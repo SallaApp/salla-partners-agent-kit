@@ -6,6 +6,10 @@ description: >
   App Settings, or Salla API calls. Invoke it even for partial tasks like "add a setting",
   "write a webhook handler", or "fix the app function" — the Salla platform has many
   non-obvious constraints that this skill prevents you from getting wrong.
+license: Copyright (c) 2026 Salla
+metadata:
+  authors: Hazem Khaled
+  version: 1.0
 ---
 
 # Salla App Builder
@@ -36,25 +40,25 @@ Any app type can use any combination of these capabilities:
 
 Read only what you need — each reference is self-contained:
 
-- **`references/oauth.md`** — Implementing OAuth (Easy Mode token delivery via webhook,
+- [Implementing OAuth](references/oauth.md) (Easy Mode token delivery via webhook,
   no callback URL needed, handling token refresh).
 
-- **`references/webhooks.md`** — Verifying webhook signatures (HMAC-SHA256, timing-safe)
+- [Webhooks](references/webhooks.md) — Verifying webhook signatures (HMAC-SHA256, timing-safe)
   and handling lifecycle events (authorize → trial → subscription → uninstalled).
 
-- **`references/salla-api.md`** — Calling the Salla Admin API: identifying merchants via the
+- [Salla API](references/salla-api.md) — Calling the Salla Admin API: identifying merchants via the
   introspect endpoint, reading and writing App Settings (critical: always send ALL keys).
 
-- **`references/app-functions.md`** — Writing App Functions in TypeScript: execution types
+- [App Functions](references/app-functions.md) — Writing App Functions in TypeScript: execution types
   (sync vs async), context object shape, typed context interfaces, the locked Portal
   template, pre-declared runtime globals (`Resp`, typed contexts), the Resp API, settings
   access, and the local mock pattern for IDE support.
 
-- **`references/communication-app.md`** — Communication App event types
+- [Communication App](references/communication-app.md) — Communication App event types
   (`communication.sms.send`, `communication.whatsapp.send`, `communication.email.send`),
   the `CommunicationEvent` payload structure, and delivery patterns.
 
-- **`references/embedded-app.md`** — Embedding a custom page inside the Salla dashboard:
+- [Embedded App](references/embedded-app.md) — Embedding a custom page inside the Salla dashboard:
   `@salla.sa/embedded-sdk` setup, reading token/lang/theme from query params, RTL support
   for Arabic.
 

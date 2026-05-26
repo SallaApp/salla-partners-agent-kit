@@ -7,5 +7,5 @@ A foundation for building an AI coding assistance plugin (Claude, Gemini, Copilo
 Now we only have one skill ready to use, and here how to install it
 
 ```bash
-npx skills add HazemKhaled/salla-partners-ai-plugin
+npx skills add SallaApp/salla-partners-ai-plugin
 ```

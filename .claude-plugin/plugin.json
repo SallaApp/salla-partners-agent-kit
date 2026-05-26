@@ -1,0 +1,10 @@
+{
+  "name": "salla-partners-ai-plugin",
+  "version": "1.0.0",
+  "description": "Build Salla Apps with AI.",
+  "author": {
+    "name": "Salla Dev Team"
+  },
+  "license": "Copyright (c) 2026 Salla",
+  "keywords": ["salla"]
+}

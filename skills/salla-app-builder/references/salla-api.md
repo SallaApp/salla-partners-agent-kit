@@ -14,6 +14,25 @@ GET /oauth2/user/info
 
 Response: `data.merchant.id` — use this as your stable internal key for the merchant.
 
+## Common API Resources
+
+For core e-commerce integrations, use these standard endpoints:
+
+| Resource  | Method | Endpoint     | Documentation Reference           |
+| --------- | ------ | ------------ | --------------------------------- |
+| Orders    | GET    | `/orders`    | https://docs.salla.dev/doc-421124 |
+| Products  | GET    | `/products`  | https://docs.salla.dev/doc-421121 |
+| Customers | GET    | `/customers` | https://docs.salla.dev/doc-421126 |
+
+### Pagination & Request Limits
+
+Collection endpoints support standard pagination parameters:
+
+- `page`: Page number (1-indexed, default: 1)
+- `per_page`: Records per page (default: 20, max: 50)
+
+Example: `GET /orders?page=2&per_page=30`
+
 ## App Settings
 
 ```

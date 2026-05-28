@@ -97,17 +97,17 @@ Resp.error().setStatus(res.status);
 
 The builder pattern returns `this` — all methods are chainable.
 
-### Rejection and Modification (Synchronous Actions)
-
-- **To Reject/Block an Operation:** Return an error response (e.g., `Resp.error().setMessage("Unsupported shipping address").setStatus(400)`). Salla intercepts this error, blocks the operation, and displays the `.message` text to the merchant or customer directly in the storefront/checkout UI.
-- **To Modify Data:** In a synchronous event like `shipment.creating`, return the updated parameters inside `setData(...)`. For example, `Resp.success().setData({ carrier: "Custom Carrier" })` will alter the shipment details before Salla writes it to the database.
-
 ### Plain Object Equivalence
 
-If you prefer not to use the builder utility, you can return a plain JSON object with the following fields:
+If not using the `Resp` builder, return an equivalent plain JSON object:
 
-- **Success:** `{ success: true, data: Record<string, unknown> }` _(data field is mandatory)_
-- **Error:** `{ success: false, error: string, status?: number }` _(the `error` key represents the error message)_
+```typescript
+// Success (data object is mandatory, even if empty)
+return { success: true, data: { order_id: 123 } };
+
+// Error (error key represents the error message)
+return { success: false, error: "Validation failed", status: 400 };
+```
 
 ## Settings
 

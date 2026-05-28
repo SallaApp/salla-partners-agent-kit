@@ -33,3 +33,33 @@ Salla invalidates all tokens and the merchant must reinstall the app (RFC 6819 Â
 
 Fired on install and on token refresh. Handle it to store the latest tokens.
 App Events reference: https://docs.salla.dev/doc-421413
+
+### Webhook Handling Example
+
+Since Salla delivers credentials directly via the webhook in Easy Mode, you must implement a handler to receive and persist them:
+
+```typescript
+// POST /webhooks/oauth handler
+async function handleAuthorizeWebhook(req: Request) {
+  // 1. Verify signature (see verification logic in webhooks.md)
+  const isValid = await verifyWebhook(req, process.env.SALLA_WEBHOOK_SECRET!);
+  if (!isValid) return new Response("Unauthorized", { status: 401 });
+
+  const payload = await req.json();
+
+  // 2. Intercept the authorization event
+  if (payload.event === "app.store.authorize") {
+    const merchantId = payload.merchant;
+    const { access_token, refresh_token } = payload.data;
+
+    // 3. Persist the tokens securely
+    await saveMerchantTokens(merchantId, {
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      updatedAt: new Date(),
+    });
+  }
+
+  return new Response("OK", { status: 200 });
+}
+```

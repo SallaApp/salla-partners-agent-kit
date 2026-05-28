@@ -29,12 +29,11 @@ import { embedded } from "@salla.sa/embedded-sdk";
 
 async function bootstrapApp() {
   try {
-    // 1. Initialize the SDK and await the handshake context from the parent frame
+    // Initialize the SDK and apply layout settings
     const { layout } = await embedded.init({
       debug: process.env.NODE_ENV !== "production",
     });
 
-    // Apply layout preferences (language, theme, RTL dir) immediately
     if (layout) {
       document.documentElement.setAttribute("data-theme", layout.theme);
       document.documentElement.setAttribute("lang", layout.locale);
@@ -44,34 +43,31 @@ async function bootstrapApp() {
       );
     }
 
-    // 2. Retrieve the short-lived session token (PASETO)
+    // Retrieve and verify session token with your backend
     const token = embedded.auth.getToken();
-    if (!token) throw new Error("Unauthorized: Session token missing");
+    if (!token) throw new Error("Session token missing");
 
-    // 3. Verify the token with your backend (Server-Side verification)
     const authSuccess = await fetch("/api/verify-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     }).then((res) => res.ok);
 
-    if (!authSuccess) throw new Error("Unauthorized: Invalid token");
+    if (!authSuccess) throw new Error("Invalid token");
 
-    // 4. Signal readiness to Salla Dashboard to remove the initial loading spinner
+    // Signal ready and configure navbar title
     embedded.ready();
-
-    // 5. Configure page parameters using native components (No-Chrome rule)
     embedded.page.setTitle(
       layout?.locale === "ar" ? "واتساب دايركت" : "WhatsApp Direct",
     );
 
-    // Listen to theme or lang changes dynamically
+    // Listen to theme changes
     embedded.onThemeChange?.((newTheme: string) => {
       document.documentElement.setAttribute("data-theme", newTheme);
     });
   } catch (err) {
-    console.error("SDK Handshake failed", err);
-    embedded.destroy(); // Gracefully exit the embedded view or display fallback UI
+    console.error("Handshake failed", err);
+    embedded.destroy();
   }
 }
 ```
@@ -139,11 +135,11 @@ Use Salla's standard palette to style your iframe components:
 
 ```css
 :root {
-  --color-primary: #004d5b; /* HSL: 189 100% 17% */
-  --color-secondary: #73fcd7; /* HSL: 163 100% 82% */
-  --color-success: #00b259; /* HSL: 157 100% 34% */
-  --color-danger: #f5434a; /* HSL: 358 89% 64% */
-  --color-bg-main: #f8f8f8; /* HSL: 0 0% 97% */
+  --color-primary: #004d5b;
+  --color-secondary: #73fcd7;
+  --color-success: #00b259;
+  --color-danger: #f5434a;
+  --color-bg-main: #f8f8f8;
   --font-main: "Outfit", sans-serif;
 }
 ```

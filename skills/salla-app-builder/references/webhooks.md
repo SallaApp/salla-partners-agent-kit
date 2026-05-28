@@ -50,3 +50,25 @@ App Events reference: https://docs.salla.dev/doc-421413
 | `app.trial.expired`        | Trial ended without upgrade | Restrict access               |
 | `app.subscription.expired` | Paid subscription lapsed    | Restrict access               |
 | `app.uninstalled`          | Merchant removes the app    | Delete merchant data          |
+
+## Webhook Payload Wrapper
+
+All Salla webhooks share a standard outer metadata envelope:
+
+```json
+{
+  "event": "order.created",
+  "merchant": 123456789,
+  "created_at": "2026-05-28T13:34:45+03:00",
+  "data": {
+    "id": 98765,
+    "status": "completed"
+  }
+}
+```
+
+## Response & Retry Policies
+
+- **Respond with 200 OK:** Your webhook endpoint must respond with a `200 OK` status code within **3 seconds**. Do not block the request for heavy processing; offload database operations or external API calls to a background worker queue.
+- **Retry Behavior:** Salla retries failed webhook deliveries (non-2xx responses or timeouts) up to **5 times** using an exponential backoff policy.
+- **Idempotency:** Webhooks can occasionally be delivered more than once. Implement idempotency checks using event unique fields (like merchant, event name, and creation time) to ignore duplicates.

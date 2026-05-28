@@ -30,13 +30,18 @@ import { embedded } from "@salla.sa/embedded-sdk";
 async function bootstrapApp() {
   try {
     // 1. Initialize the SDK and await the handshake context from the parent frame
-    const { layout } = await embedded.init({ debug: process.env.NODE_ENV !== "production" });
+    const { layout } = await embedded.init({
+      debug: process.env.NODE_ENV !== "production",
+    });
 
     // Apply layout preferences (language, theme, RTL dir) immediately
     if (layout) {
       document.documentElement.setAttribute("data-theme", layout.theme);
       document.documentElement.setAttribute("lang", layout.locale);
-      document.documentElement.setAttribute("dir", layout.locale === "ar" ? "rtl" : "ltr");
+      document.documentElement.setAttribute(
+        "dir",
+        layout.locale === "ar" ? "rtl" : "ltr",
+      );
     }
 
     // 2. Retrieve the short-lived session token (PASETO)
@@ -56,13 +61,14 @@ async function bootstrapApp() {
     embedded.ready();
 
     // 5. Configure page parameters using native components (No-Chrome rule)
-    embedded.page.setTitle(layout?.locale === "ar" ? "واتساب دايركت" : "WhatsApp Direct");
+    embedded.page.setTitle(
+      layout?.locale === "ar" ? "واتساب دايركت" : "WhatsApp Direct",
+    );
 
     // Listen to theme or lang changes dynamically
     embedded.onThemeChange?.((newTheme: string) => {
       document.documentElement.setAttribute("data-theme", newTheme);
     });
-
   } catch (err) {
     console.error("SDK Handshake failed", err);
     embedded.destroy(); // Gracefully exit the embedded view or display fallback UI
@@ -77,19 +83,21 @@ async function bootstrapApp() {
 Your backend must verify the short-lived PASETO token by calling Salla's official token introspection service. Do not trust the token payload without verification.
 
 ### Endpoint Details
-*   **Method**: `POST`
-*   **URL**: `https://api.salla.dev/exchange-authority/v1/introspect`
-*   **Headers**:
-    *   `S-Source`: `YOUR_SALLA_APP_ID` (Your unique Salla Application ID)
-    *   `Content-Type`: `application/json`
-*   **Request Body**:
-    ```json
-    {
-      "token": "em_tok_..."
-    }
-    ```
+
+- **Method**: `POST`
+- **URL**: `https://api.salla.dev/exchange-authority/v1/introspect`
+- **Headers**:
+  - `S-Source`: `YOUR_SALLA_APP_ID` (Your unique Salla Application ID)
+  - `Content-Type`: `application/json`
+- **Request Body**:
+  ```json
+  {
+    "token": "em_tok_..."
+  }
+  ```
 
 ### Expected Response
+
 ```json
 {
   "status": 200,
@@ -101,7 +109,8 @@ Your backend must verify the short-lived PASETO token by calling Salla's officia
   }
 }
 ```
-*   Use `data.merchant_id` to look up or associate the merchant context in your database.
+
+- Use `data.merchant_id` to look up or associate the merchant context in your database.
 
 ---
 
@@ -110,27 +119,31 @@ Your backend must verify the short-lived PASETO token by calling Salla's officia
 Embedded apps must visually blend seamlessly with the Salla dashboard to feel native.
 
 ### The "No-Chrome" Rule
+
 Do **not** render your own:
-*   Header titles or app bars
-*   Navigation tabs, sidebars, or menus
-*   Footers or settings save headers
+
+- Header titles or app bars
+- Navigation tabs, sidebars, or menus
+- Footers or settings save headers
 
 Delegate these to Salla's native UI:
-*   **Title**: Set it via `embedded.page.setTitle("My Title")`.
-*   **Action Button**: Place main navbar actions (e.g. Save, Connect) via `embedded.nav.setAction({ title: "Save", value: "save" })`.
-*   **Toasts**: Trigger native alert banners using `embedded.ui.toast.success("Done!")` or `embedded.ui.toast.error("Error")`.
-*   **Loading**: Toggle dashboard loading progress using `embedded.ui.loading.show()` and `embedded.ui.loading.hide()`.
+
+- **Title**: Set it via `embedded.page.setTitle("My Title")`.
+- **Action Button**: Place main navbar actions (e.g. Save, Connect) via `embedded.nav.setAction({ title: "Save", value: "save" })`.
+- **Toasts**: Trigger native alert banners using `embedded.ui.toast.success("Done!")` or `embedded.ui.toast.error("Error")`.
+- **Loading**: Toggle dashboard loading progress using `embedded.ui.loading.show()` and `embedded.ui.loading.hide()`.
 
 ### Salla Brand Design Tokens (CSS Variables)
+
 Use Salla's standard palette to style your iframe components:
 
 ```css
 :root {
-  --color-primary: #004d5b;       /* HSL: 189 100% 17% */
-  --color-secondary: #73fcd7;     /* HSL: 163 100% 82% */
-  --color-success: #00b259;       /* HSL: 157 100% 34% */
-  --color-danger: #f5434a;        /* HSL: 358 89% 64% */
-  --color-bg-main: #f8f8f8;       /* HSL: 0 0% 97% */
+  --color-primary: #004d5b; /* HSL: 189 100% 17% */
+  --color-secondary: #73fcd7; /* HSL: 163 100% 82% */
+  --color-success: #00b259; /* HSL: 157 100% 34% */
+  --color-danger: #f5434a; /* HSL: 358 89% 64% */
+  --color-bg-main: #f8f8f8; /* HSL: 0 0% 97% */
   --font-main: "Outfit", sans-serif;
 }
 ```
@@ -146,4 +159,4 @@ Dashboard session tokens are short-lived (usually expiring in 5 minutes). If you
 embedded.auth.refresh();
 ```
 
-*   `embedded.auth.refresh()` posts a message to Salla to obtain a new token. Salla will re-render the iframe with a fresh token in the URL params, triggering your page to bootstrap again.
+- `embedded.auth.refresh()` posts a message to Salla to obtain a new token. Salla will re-render the iframe with a fresh token in the URL params, triggering your page to bootstrap again.

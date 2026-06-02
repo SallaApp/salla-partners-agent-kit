@@ -141,15 +141,29 @@ PUT /orders/{id}/status
 
 ## Response Envelope
 
-All responses follow this shape:
+The `data` field shape depends on the endpoint type:
+
+**List endpoints** (`GET /shipments`, `GET /orders`, etc.) — `data` is an **array**:
 
 ```json
 {
   "status": 200,
   "success": true,
-  "data": [ ]
+  "data": [ { "id": "SHP-001", ... } ]
 }
 ```
+
+**Single-resource endpoints** (`GET /shipments/{id}`, `GET /orders/{id}`, etc.) — `data` is an **object**:
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "data": { "id": "SHP-001", "status": "shipped", ... }
+}
+```
+
+Do not assume `data` is always an array. Check the endpoint type before calling `.map()` or iterating.
 
 List endpoints support page-based pagination via query parameters:
 

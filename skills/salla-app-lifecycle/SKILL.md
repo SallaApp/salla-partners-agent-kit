@@ -37,7 +37,7 @@ Token persistence from `app.store.authorize` → see **salla-app-authorization**
 
 > These all arrive on your single webhook endpoint inside the standard envelope
 > (`event`, `merchant`, `created_at`, `data`). Verify the signature, respond `200`
-> within 30 s, then process asynchronously. Always **upsert** keyed by `merchant`.
+> within 3 s, then process asynchronously. Always **upsert** keyed by `merchant`.
 
 ---
 
@@ -173,8 +173,12 @@ subscriptions as real revenue.
 Non-negotiable for every handler here:
 
 - **Verify the signature first** (HMAC-SHA256, timing-safe) — reject otherwise.
-- **Respond `200` within 30 s**, then process async (queue the work).
-- **Be idempotent** — dedup on `${merchant}:${event}:${created_at}`; events may repeat.
+- **Respond `200` within 3 s**, then process async (queue the work). Salla retries
+  failed deliveries (non-2xx / timeout) up to 5 times with exponential backoff.
+- **Be idempotent** — `created_at` is second-resolution, so `${merchant}:${event}:${created_at}`
+  collides if the same merchant fires two same-type events in one second (e.g. two
+  settings updates). Add a stronger discriminator when the payload offers one
+  (e.g. `subscription_id`) or hash the raw body.
 - **Upsert, never insert-only** — the same merchant re-installs and re-authorizes.
 
 See the salla-webhooks skill for the verification and idempotency code.

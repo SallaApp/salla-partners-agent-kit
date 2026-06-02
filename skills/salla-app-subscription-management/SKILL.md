@@ -124,7 +124,8 @@ Use this to **reconcile** after downtime (missed a webhook) — not as your hot 
 ## Part 4 — Tracking Plan State from Events
 
 The events are the source of truth. Wire them via salla-app-lifecycle, branch on
-`item_type === "plan"` here:
+`item_type === "plan"` here. Handle the **trial** family too (`app.trial.*`) — otherwise a
+trial start/expiry falls through and the merchant gets the wrong gating:
 
 ```typescript
 async function onSubscriptionEvent(payload: WebhookPayload) {
@@ -146,8 +147,21 @@ async function onSubscriptionEvent(payload: WebhookPayload) {
       });
       break;
 
+    case "app.trial.started":
+      await db.subscriptions.upsert(payload.merchant, {
+        planName: d.plan_name,
+        status: "trial",
+        startDate: d.start_date,
+        endDate: d.end_date,
+        features: d.features ?? [],
+        storeType: d.store_type,
+      });
+      break;
+
     case "app.subscription.expired":
     case "app.subscription.canceled":
+    case "app.trial.expired":
+    case "app.trial.canceled":
       await db.subscriptions.update(payload.merchant, { status: "inactive" });
       break;
   }

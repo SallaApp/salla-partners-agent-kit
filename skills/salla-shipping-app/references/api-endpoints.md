@@ -147,14 +147,39 @@ All responses follow this shape:
 {
   "status": 200,
   "success": true,
-  "data": { },
-  "pagination": {
-    "count": 25,
-    "total": 142,
-    "per_page": 25,
-    "current_page": 1,
-    "next_cursor": "eyJpZCI6MjV9"
+  "data": [ ]
+}
+```
+
+List endpoints support page-based pagination via query parameters:
+
+- `page` — page number, 1-indexed (default: `1`)
+- `per_page` — records per page (default: `20`, max: `50`)
+
+```http
+GET /shipping/shipments?page=2&per_page=30
+```
+
+Iterate all pages until `data` is empty or fewer records than `per_page` are returned:
+
+```ts
+async function getAllShipments(token: string) {
+  const shipments = [];
+  let page = 1;
+
+  while (true) {
+    const res = await fetch(
+      `https://api.salla.dev/admin/v2/shipping/shipments?page=${page}&per_page=50`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { data } = await res.json();
+    if (!data?.length) break;
+    shipments.push(...data);
+    if (data.length < 50) break;
+    page++;
   }
+
+  return shipments;
 }
 ```
 

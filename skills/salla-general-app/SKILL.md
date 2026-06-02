@@ -63,7 +63,7 @@ Define which Salla API resources your app needs access to. Request only the mini
 1. Enter your **Webhook URL**
 2. Copy the **Webhook Secret** — use it to verify HMAC-SHA256 signatures on every incoming request
 3. Subscribe to **App Events** (lifecycle triggers):
-   - `app.installed`, `app.updated`
+   - `app.store.authorize` (install + token refresh), `app.updated`
    - `app.trial.started`, `app.trial.ended`
    - `app.subscription.started`, `app.subscription.ended`, `app.subscription.renewed`
    - `app.rated`

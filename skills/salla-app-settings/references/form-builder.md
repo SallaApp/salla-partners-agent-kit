@@ -77,7 +77,7 @@ If you set a Validation URL, Salla will POST to it before saving the merchant's 
 ```http
 POST https://your-app.com/settings/validate
 Content-Type: application/json
-X-Salla-Signature: <hmac-sha256>
+Authorization: Bearer <hex-hmac-sha256>
 
 {
   "merchant_id": 12345,
@@ -106,7 +106,7 @@ X-Salla-Signature: <hmac-sha256>
 }
 ```
 
-Always verify the `X-Salla-Signature` header (HMAC-SHA256) before processing.
+Always verify the `Authorization: Bearer` signature (HMAC-SHA256, Web Crypto `subtle.verify`) before processing. See [settings-patterns.md](settings-patterns.md) for the verification implementation.
 
 ---
 
@@ -124,7 +124,7 @@ Always verify the `X-Salla-Signature` header (HMAC-SHA256) before processing.
 ```
 Merchant installs app
     ↓
-app.installed webhook fires → your server receives token
+app.store.authorize webhook fires → your server receives token
     ↓
 Salla redirects merchant to your Settings form
     ↓

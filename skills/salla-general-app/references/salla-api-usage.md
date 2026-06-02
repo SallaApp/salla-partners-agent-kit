@@ -72,25 +72,24 @@ POST   /apps/{app_id}/settings    # Write merchant's settings (all keys required
 
 ## Pagination
 
-List endpoints use cursor-based pagination:
+List endpoints use **page-based** pagination with `page` and `per_page` query params (default: 20, max: 50):
 
 ```ts
 async function getAllOrders(token: string) {
   const orders = [];
-  let cursor: string | null = null;
+  let page = 1;
 
-  do {
-    const url = new URL('https://api.salla.dev/admin/v2/orders');
-    if (cursor) url.searchParams.set('cursor', cursor);
-
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const { data, pagination } = await res.json();
-
+  while (true) {
+    const res = await fetch(
+      `https://api.salla.dev/admin/v2/orders?page=${page}&per_page=50`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const { data } = await res.json();
+    if (!data?.length) break;
     orders.push(...data);
-    cursor = pagination?.next_cursor ?? null;
-  } while (cursor);
+    if (data.length < 50) break;
+    page++;
+  }
 
   return orders;
 }
@@ -137,19 +136,18 @@ async function apiCall(url: string, token: string, options = {}) {
 
 ## Calling the API from an App Function
 
-```ts
-export default async function (context: OrderCreatedContext) {
-  const token = context.token; // merchant's access token, always fresh
+Authentication is **automatic** inside App Functions — do not add an `Authorization` header:
 
+```ts
+export default async (context: OrderCreatedContext): Promise<Resp> => {
   const res = await fetch(
-    `https://api.salla.dev/admin/v2/orders/${context.event.data.id}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    `https://api.salla.dev/admin/v2/orders/${context.payload.data.id}`
   );
   const { data: order } = await res.json();
 
   // process order...
-  return Resp.success();
-}
+  return Resp.success().setData({});
+};
 ```
 
 ---

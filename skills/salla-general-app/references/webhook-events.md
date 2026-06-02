@@ -4,49 +4,57 @@
 
 ## Signature Verification
 
-Every incoming webhook must be verified using HMAC-SHA256:
+Salla webhooks carry the signature in `Authorization: Bearer <hex-sig>`. Verify using Web Crypto (timing-safe) before trusting the payload:
 
 ```ts
-import crypto from 'crypto';
+async function verifyWebhook(req: Request, secret: string): Promise<boolean> {
+  const sig = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+  const body = await req.text(); // must read raw body before any JSON parsing
 
-function verifyWebhook(rawBody: string, signature: string, secret: string): boolean {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  );
+
+  return crypto.subtle.verify(
+    'HMAC',
+    key,
+    hexToBytes(sig),
+    new TextEncoder().encode(body),
+  );
 }
 
-// Express middleware
-app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  const sig = req.headers['x-salla-signature'] as string;
-  if (!verifyWebhook(req.body.toString(), sig, process.env.WEBHOOK_SECRET!)) {
-    return res.status(401).send('Unauthorized');
-  }
-  const payload = JSON.parse(req.body.toString());
-  handleEvent(payload.event, payload.data);
-  res.status(200).send('OK');
-});
+function hexToBytes(hex: string): Uint8Array {
+  const arr = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2)
+    arr[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  return arr;
+}
 ```
 
-Always return `200` quickly — if processing takes time, acknowledge immediately and handle async.
+Use `crypto.subtle.verify` — never compare signatures with `===`.
+
+Respond with `200 OK` within **3 seconds**. Offload heavy processing to a background queue.
 
 ---
 
 ## App Events (Lifecycle)
 
-Fired when merchants interact with your app. These come automatically — no subscription needed.
+Fired automatically — no manual subscription needed.
 
-| Event | Trigger | Key data |
+| Event | Trigger | Suggested action |
 | --- | --- | --- |
-| `app.installed` | Merchant installs your app | `merchant`, `data.access_token`, `data.refresh_token` |
-| `app.updated` | App updated (new version released) | `merchant`, `version` |
-| `app.trial.started` | Trial period begins | `merchant`, `trial_ends_at` |
-| `app.trial.ended` | Trial expires without subscription | `merchant` |
-| `app.subscription.started` | Merchant subscribes to a paid plan | `merchant`, `plan`, `subscription` |
-| `app.subscription.ended` | Subscription cancelled/lapsed | `merchant`, `plan` |
-| `app.subscription.renewed` | Subscription auto-renewed | `merchant`, `plan`, `next_renewal` |
-| `app.rated` | Merchant rates your app | `merchant`, `rating`, `review` |
+| `app.store.authorize` | Install or token refresh | Store access + refresh tokens |
+| `app.trial.started` | Trial begins | Provision resources |
+| `app.trial.expired` | Trial ended without upgrade | Restrict access |
+| `app.subscription.started` | Paid subscription begins | Mark merchant as active |
+| `app.subscription.expired` | Paid subscription lapsed | Restrict access |
+| `app.subscription.renewed` | Subscription auto-renewed | Extend expiry in your DB |
+| `app.uninstalled` | Merchant removes the app | Delete merchant data |
+| `app.rated` | Merchant rates your app | Log or notify team |
 
 ---
 
@@ -58,7 +66,7 @@ Fired when merchants interact with your app. These come automatically — no sub
 | --- | --- |
 | `order.created` | New order placed |
 | `order.updated` | Order details changed |
-| `order.status.updated` | Order status changed (pending → processing → shipped etc.) |
+| `order.status.updated` | Order status changed |
 | `order.cancelled` | Order cancelled |
 | `order.refunded` | Refund issued |
 | `order.deleted` | Order deleted |
@@ -116,7 +124,7 @@ Fired when merchants interact with your app. These come automatically — no sub
 | --- | --- |
 | `coupon.applied` | Coupon used at checkout |
 | `review.added` | Product review submitted |
-| `abandoned.cart` | Cart abandoned (no checkout within threshold) |
+| `abandoned.cart` | Cart abandoned |
 
 ---
 
@@ -125,23 +133,22 @@ Fired when merchants interact with your app. These come automatically — no sub
 ```json
 {
   "event": "order.created",
-  "merchant": {
-    "id": 12345,
-    "store_id": 67890
-  },
-  "created_at": "2026-01-01T12:00:00Z",
+  "merchant": 123456789,
+  "created_at": "2026-01-01T12:00:00+03:00",
   "data": { }
 }
 ```
+
+Note: `merchant` is a plain integer (the merchant ID), not an object.
 
 ---
 
 ## Best Practices
 
-- **Idempotency** — store processed event IDs; replay is possible
-- **Fast acknowledgement** — return `200` in under 5s; use queues for heavy processing
-- **Retry handling** — Salla retries failed deliveries; handle duplicates gracefully
-- **Error responses** — non-2xx causes Salla to retry; only return errors if you want a retry
+- **Idempotency** — store processed event IDs; Salla may deliver duplicates
+- **Fast acknowledgement** — return `200` within 3 seconds; offload slow work to a queue
+- **Retry policy** — Salla retries up to 5 times with exponential backoff on non-2xx or timeout
+- **Raw body** — always read the raw request body for signature verification before parsing JSON
 
 ---
 

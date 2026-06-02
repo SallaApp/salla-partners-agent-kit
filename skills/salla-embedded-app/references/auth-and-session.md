@@ -1,6 +1,6 @@
 # Embedded App — Authentication & Session Management
 
-The Salla Merchant Dashboard passes a short-lived token to your iframe via query parameters. Your app must verify this token on every page load before rendering any content.
+The Salla Merchant Dashboard passes a short-lived PASETO token to your iframe. Your app must verify this token **server-side** on every page load before rendering any content.
 
 ---
 
@@ -9,135 +9,147 @@ The Salla Merchant Dashboard passes a short-lived token to your iframe via query
 ```
 Merchant opens your embedded page in the dashboard
     ↓
-Salla loads your iframe URL with query params:
-  ?token=ACCESS_TOKEN&lang=ar&theme=light&store_id=67890
+Salla loads your iframe URL — token is available via embedded.auth.getToken()
     ↓
-Your app reads params and calls Token Introspect
+Frontend sends token to YOUR backend via POST /api/verify-token
     ↓
-Introspect returns merchant identity (active, merchant_id, store_id, scope)
+Backend calls Salla exchange-authority introspect with S-Source header
+    ↓
+Introspect returns merchant_id + user_id
     ↓
 Render content for that merchant
 ```
 
 ---
 
-## Reading Query Parameters
+## SDK Initialization (Frontend)
 
 ```ts
-const params = new URLSearchParams(window.location.search);
+import { embedded } from '@salla.sa/embedded-sdk';
 
-const token    = params.get('token')    ?? '';
-const lang     = params.get('lang')     ?? 'ar';   // 'ar' | 'en'
-const theme    = params.get('theme')    ?? 'light'; // 'light' | 'dark'
-const storeId  = params.get('store_id') ?? '';
+async function bootstrapApp() {
+  try {
+    // Initialize SDK and apply layout settings from dashboard
+    const { layout } = await embedded.init({
+      debug: process.env.NODE_ENV !== 'production',
+    });
+
+    if (layout) {
+      document.documentElement.setAttribute('data-theme', layout.theme);
+      document.documentElement.setAttribute('lang', layout.locale);
+      document.documentElement.setAttribute('dir', layout.locale === 'ar' ? 'rtl' : 'ltr');
+    }
+
+    // Get token and verify it server-side
+    const token = embedded.auth.getToken();
+    if (!token) throw new Error('Session token missing');
+
+    const authOk = await fetch('/api/verify-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    }).then((res) => res.ok);
+
+    if (!authOk) throw new Error('Invalid token');
+
+    // Signal ready to the dashboard shell
+    embedded.ready();
+    embedded.page.setTitle(layout?.locale === 'ar' ? 'تطبيقي' : 'My App');
+
+    // React to theme changes without reloading
+    embedded.onThemeChange?.((newTheme: string) => {
+      document.documentElement.setAttribute('data-theme', newTheme);
+    });
+  } catch (err) {
+    console.error('Handshake failed', err);
+    embedded.destroy();
+  }
+}
+
+bootstrapApp();
 ```
 
 ---
 
-## Token Introspection
+## Server-Side Token Verification (Backend)
 
-Call the introspect endpoint before rendering any merchant-specific content:
+Your backend must call Salla's **exchange-authority** introspection service — not the standard OAuth introspect endpoint.
+
+| Field | Value |
+| --- | --- |
+| Method | `POST` |
+| URL | `https://api.salla.dev/exchange-authority/v1/introspect` |
+| Header `S-Source` | Your Salla App ID |
+| Header `Content-Type` | `application/json` |
+| Body | `{ "token": "em_tok_..." }` |
 
 ```ts
 interface IntrospectResponse {
-  active: boolean;
-  merchant_id: number;
-  store_id: number;
-  scope: string;
-  exp: number; // unix timestamp
+  status: number;
+  success: boolean;
+  data: {
+    merchant_id: number;
+    user_id: number;
+    exp: string; // ISO datetime
+  };
 }
 
-async function introspectToken(token: string): Promise<IntrospectResponse> {
-  const res = await fetch('https://accounts.salla.sa/oauth2/introspect', {
+async function verifyEmbeddedToken(token: string, appId: string): Promise<IntrospectResponse> {
+  const res = await fetch('https://api.salla.dev/exchange-authority/v1/introspect', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      'S-Source': appId,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token }),
   });
 
-  if (!res.ok) throw new Error('Introspect failed');
+  if (!res.ok) throw new Error('Introspect request failed');
   return res.json();
 }
 
-// On page load
-const session = await introspectToken(token);
-
-if (!session.active) {
-  // Token expired or invalid — request a fresh one
-  const freshToken = await Salla.auth.refreshToken();
-  // retry introspect with freshToken
-}
-```
-
----
-
-## Full Page Initialization Pattern
-
-```ts
-import Salla from '@salla.sa/embedded-sdk';
-
-async function initApp() {
-  // 1. Initialize SDK
-  await Salla.init();
-
-  // 2. Read params
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token') ?? '';
-  const lang  = params.get('lang') ?? 'ar';
-  const theme = params.get('theme') ?? 'light';
-
-  // 3. Apply theme and locale
-  document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-  document.documentElement.setAttribute('lang', lang);
-  document.documentElement.setAttribute('data-theme', theme);
-
-  // 4. Verify token
-  let session;
+// Express endpoint called by your frontend
+app.post('/api/verify-token', async (req, res) => {
+  const { token } = req.body;
   try {
-    session = await introspectToken(token);
-    if (!session.active) throw new Error('inactive');
+    const result = await verifyEmbeddedToken(token, process.env.SALLA_APP_ID!);
+    if (!result.success) return res.status(401).json({ ok: false });
+
+    const { merchant_id, user_id } = result.data;
+    // associate merchant_id with the session
+    req.session.merchantId = merchant_id;
+    res.json({ ok: true, merchant_id, user_id });
   } catch {
-    // Refresh and retry once
-    const fresh = await Salla.auth.refreshToken();
-    session = await introspectToken(fresh);
-    if (!session.active) {
-      showError('Session expired. Please reopen the app.');
-      return;
-    }
+    res.status(401).json({ ok: false });
   }
-
-  // 5. Load merchant-specific data
-  await loadMerchantData(session.merchant_id, token);
-
-  // 6. Render app
-  renderApp(session);
-
-  // 7. Resize iframe to content
-  Salla.page.resize();
-}
-
-initApp();
-```
-
----
-
-## Token Refresh Strategy
-
-```ts
-// Register a refresh handler on SDK init — fires automatically before expiry
-Salla.auth.onTokenRefresh(async (newToken) => {
-  // Update your API client or store the new token
-  currentToken = newToken;
-  apiClient.defaults.headers.Authorization = `Bearer ${newToken}`;
 });
 ```
 
 ---
 
-## Using the Token for API Calls
+## Token Refresh
 
-After introspect, use the token to call the Salla Admin API on behalf of the merchant:
+Embedded tokens are short-lived (~5 minutes). When your API returns `401`, trigger a refresh:
 
 ```ts
-async function fetchOrders(token: string, merchantId: number) {
+// In your API client error handler
+if (response.status === 401) {
+  embedded.auth.refresh();
+  // Salla re-renders the iframe with a fresh token, triggering bootstrapApp() again
+}
+```
+
+`embedded.auth.refresh()` posts a message to the dashboard shell. The iframe reloads with a new token in the URL — your `bootstrapApp()` function runs again automatically.
+
+---
+
+## Calling the Salla API (from your backend)
+
+After verifying the token, your backend can call the Salla Admin API using the merchant's OAuth access token (stored during `app.store.authorize`):
+
+```ts
+async function fetchOrders(merchantId: number) {
+  const token = await db.getAccessToken(merchantId); // stored at install
   const res = await fetch('https://api.salla.dev/admin/v2/orders', {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -150,10 +162,10 @@ async function fetchOrders(token: string, merchantId: number) {
 
 ## Security Rules
 
-- **Always introspect on page load** — never trust the token without server-side verification
-- **Never expose the token in localStorage** — keep it in memory only
-- **Check `exp`** — if token expires within 60 seconds, proactively refresh
-- **Verify scope** — check that `session.scope` includes the permissions your page needs before rendering sensitive features
+- **Always verify server-side** — never trust the token on the frontend alone
+- **Use exchange-authority** — do not call `/oauth2/introspect`; it is the wrong endpoint for embedded tokens
+- **Never store the token in localStorage** — keep it in memory or a secure session
+- **Call `embedded.auth.refresh()` on 401** — do not retry with the stale token
 
 ---
 
@@ -162,5 +174,5 @@ async function fetchOrders(token: string, merchantId: number) {
 | Topic | Link |
 | --- | --- |
 | Authentication guide | https://docs.salla.dev/1919160 |
-| Token Introspect endpoint | https://docs.salla.dev/6394918f0.md |
+| Exchange-authority introspect | https://api.salla.dev/exchange-authority/v1/introspect |
 | Auth Module reference | https://docs.salla.dev/embedded-sdk/modules/auth.md |

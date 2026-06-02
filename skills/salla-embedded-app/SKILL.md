@@ -41,105 +41,97 @@ npm install @salla.sa/embedded-sdk
 <script src="https://cdn.salla.network/embedded-sdk/latest/index.js"></script>
 ```
 
-Initialize the SDK as early as possible in your app's lifecycle:
+Initialize the SDK using the named export:
 
 ```ts
-import Salla from '@salla.sa/embedded-sdk';
+import { embedded } from '@salla.sa/embedded-sdk';
 
-Salla.init();
+const { layout } = await embedded.init({ debug: false });
 ```
 
 ---
 
 ### Step 3 — Authenticate the Session
 
-On every page load, verify the merchant's identity using the **Token Introspect** endpoint before rendering any content.
+On every page load, verify the merchant's identity **server-side** before rendering any content.
 
-1. Read the `token` query parameter from the iframe URL
-2. Call `POST /oauth2/introspect` with the token
-3. If valid, extract `merchant_id`, `store_id`, and `scope`
-4. If invalid or expired, redirect to re-authentication
+1. Get token via `embedded.auth.getToken()`
+2. Send it to YOUR backend endpoint
+3. Backend calls `POST https://api.salla.dev/exchange-authority/v1/introspect` with `S-Source: YOUR_APP_ID`
+4. Introspect returns `merchant_id` — use it to load merchant data
+5. If invalid, call `embedded.destroy()`
 
 ```ts
-// Read token from URL params
-const params = new URLSearchParams(window.location.search);
-const token = params.get('token');
+const token = embedded.auth.getToken();
+if (!token) { embedded.destroy(); return; }
 
-// Introspect via Salla API
-const res = await fetch('https://accounts.salla.sa/oauth2/introspect', {
+const authOk = await fetch('/api/verify-token', {
   method: 'POST',
-  headers: { Authorization: `Bearer ${token}` },
-});
-const { active, merchant_id } = await res.json();
-if (!active) { /* redirect */ }
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ token }),
+}).then(res => res.ok);
+
+if (!authOk) { embedded.destroy(); return; }
+
+embedded.ready(); // signal dashboard to show the iframe
 ```
 
-Token Introspect reference: https://docs.salla.dev/6394918f0.md
+See [Auth & Session](references/auth-and-session.md) for the full backend introspect implementation.
 
 ---
 
 ### Step 4 — Sync Theme and Locale
 
-Read `lang` and `theme` from query params and apply them so your UI matches the dashboard:
+Use the `layout` returned by `embedded.init()` — do not read query params manually:
 
 ```ts
-const lang = params.get('lang') ?? 'ar';   // 'ar' | 'en'
-const theme = params.get('theme') ?? 'light'; // 'light' | 'dark'
+if (layout) {
+  document.documentElement.setAttribute('data-theme', layout.theme);
+  document.documentElement.setAttribute('lang', layout.locale);
+  document.documentElement.setAttribute('dir', layout.locale === 'ar' ? 'rtl' : 'ltr');
+}
 
-document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-document.documentElement.setAttribute('data-theme', theme);
+embedded.onThemeChange?.((newTheme) => {
+  document.documentElement.setAttribute('data-theme', newTheme);
+});
 ```
 
 ---
 
 ### Step 5 — Use SDK Modules
 
-Call SDK methods to interact with the dashboard shell. Only import what you need.
-
-#### Auth Module — token refresh
+#### Auth Module — token refresh on 401
 
 ```ts
-Salla.auth.refreshToken().then(token => { /* new token */ });
+// Call when your API returns 401 — Salla re-renders iframe with a fresh token
+embedded.auth.refresh();
 ```
 
-#### Page Module — title and resize
+#### Page Module — title
 
 ```ts
-Salla.page.setTitle('My App');
-Salla.page.resize(); // auto-resizes iframe to content height
+embedded.page.setTitle('My App');
 ```
 
-#### Nav Module — action buttons
+#### Nav Module — action button
 
 ```ts
-Salla.nav.addButton({
-  label: 'Save',
-  icon: 'material-outline-save',
-  onClick: () => saveChanges(),
+embedded.nav.setAction({ title: 'Save', value: 'save' });
+embedded.nav.onAction((action) => {
+  if (action.value === 'save') saveChanges();
 });
 ```
 
-#### UI Module — toasts, modals, confirms
+#### UI Module — toasts and loading
 
 ```ts
-Salla.ui.toast.success('Saved!');
-
-Salla.ui.modal.open({
-  title: 'Confirm delete',
-  body: 'This cannot be undone.',
-});
-
-const confirmed = await Salla.ui.confirm('Are you sure?');
+embedded.ui.toast.success('Saved!');
+embedded.ui.toast.error('Something went wrong');
+embedded.ui.loading.show();
+embedded.ui.loading.hide();
 ```
 
-#### Checkout Module — subscriptions and add-ons
-
-```ts
-const addOns = await Salla.checkout.getAppAddOns();
-await Salla.checkout.subscribe({ plan_id: 'pro' });
-```
-
-Full module references: see [Embedded SDK Overview](references/embedded-sdk-overview.md)
+Full module reference: see [SDK Modules Guide](references/sdk-modules-guide.md)
 
 ---
 

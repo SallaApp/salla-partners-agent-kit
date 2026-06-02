@@ -7,19 +7,21 @@ Common patterns for reading, writing, and validating App Settings across differe
 ## Reading Settings in an App Function
 
 ```ts
-export default async function (context: AppContext) {
-  // All settings are available as a flat object
-  const apiKey     = context.settings.api_key as string;
-  const sandbox    = context.settings.sandbox_mode as boolean;
-  const webhookUrl = context.settings.webhook_url as string | null;
+export default async (context: AppContext): Promise<Resp> => {
+  const apiKey     = context.settings?.api_key;
+  const sandbox    = context.settings?.sandbox_mode;
+  const webhookUrl = context.settings?.webhook_url;
 
   if (!apiKey) {
-    return Resp.error('App not configured — merchant must enter API key in settings', 400);
+    return Resp.error().setMessage('App not configured — merchant must enter API key in settings').setStatus(400);
   }
 
   // use apiKey to call your carrier/service
-}
+  return Resp.success().setData({});
+};
 ```
+
+Always use optional chaining (`settings?.key`) — settings may be undefined until the merchant fills the form.
 
 ---
 
@@ -42,13 +44,12 @@ async function getMerchantSettings(appId: number, accessToken: string) {
 
 ## Writing Settings on Install (POST)
 
-After the merchant authorizes your app, set default settings immediately so your App Functions always have values to read:
+After the merchant authorizes your app (`app.store.authorize` webhook), set default settings immediately:
 
 ```ts
-// In your app.installed webhook handler
-async function onAppInstalled(payload: AppInstalledPayload) {
-  const { app_id, merchant } = payload;
-  const token = merchant.token;
+async function onAppAuthorize(payload: AppAuthorizePayload) {
+  const { app_id, merchant, data } = payload;
+  const token = data.access_token;
 
   await fetch(`https://api.salla.dev/admin/v2/apps/${app_id}/settings`, {
     method: 'POST',
@@ -76,10 +77,8 @@ There is no partial update. To change one value, read all first, then write all:
 
 ```ts
 async function setSandboxMode(appId: number, token: string, enabled: boolean) {
-  // Step 1: read current values
   const current = await getMerchantSettings(appId, token);
 
-  // Step 2: merge and write all keys back
   await fetch(`https://api.salla.dev/admin/v2/apps/${appId}/settings`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -92,32 +91,39 @@ async function setSandboxMode(appId: number, token: string, enabled: boolean) {
 
 ## Validating Settings Signature
 
-Verify the `X-Salla-Signature` on incoming validation requests:
+Settings validation requests from Salla carry the signature in `Authorization: Bearer <hex-sig>`, the same as webhooks. Always read the **raw body** before parsing:
 
 ```ts
-import crypto from 'crypto';
+async function verifySignature(rawBody: string, authHeader: string, secret: string): Promise<boolean> {
+  const sig = authHeader.replace('Bearer ', '');
 
-function verifySettingsSignature(body: string, signature: string, secret: string): boolean {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(body)
-    .digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify'],
   );
-}
 
-// Express handler
-app.post('/settings/validate', (req, res) => {
-  const raw = JSON.stringify(req.body);
-  const sig = req.headers['x-salla-signature'] as string;
-
-  if (!verifySettingsSignature(raw, sig, process.env.WEBHOOK_SECRET!)) {
-    return res.status(401).json({ success: false });
+  function hexToBytes(hex: string): Uint8Array {
+    const arr = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2)
+      arr[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+    return arr;
   }
 
-  const { settings } = req.body;
+  return crypto.subtle.verify('HMAC', key, hexToBytes(sig), new TextEncoder().encode(rawBody));
+}
+
+// Express handler — must use raw body middleware
+app.post('/settings/validate', express.raw({ type: 'application/json' }), async (req, res) => {
+  const rawBody = req.body.toString();
+  const authHeader = req.headers['authorization'] as string ?? '';
+
+  const valid = await verifySignature(rawBody, authHeader, process.env.WEBHOOK_SECRET!);
+  if (!valid) return res.status(401).json({ success: false });
+
+  const { settings } = JSON.parse(rawBody);
   if (!settings.api_key) {
     return res.json({
       success: false,
@@ -135,7 +141,7 @@ app.post('/settings/validate', (req, res) => {
 
 | Lifecycle event | Settings action |
 | --- | --- |
-| `app.installed` | POST defaults for all keys |
+| `app.store.authorize` | POST defaults for all keys |
 | `app.updated` | Re-POST if your schema changed (add new keys with defaults) |
 | `app.uninstalled` | No action needed — Salla clears settings automatically |
 | Merchant edits form | Salla calls your Validation URL → on success, Salla calls POST |

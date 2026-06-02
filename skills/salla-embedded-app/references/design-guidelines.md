@@ -60,23 +60,13 @@ document.documentElement.setAttribute('data-theme', theme);
 Use CSS variables that respond to the attribute:
 
 ```css
-:root,
-[data-theme='light'] {
-  --color-bg:        #ffffff;
-  --color-surface:   #f5f5f5;
-  --color-text:      #1a1a1a;
-  --color-text-muted:#6b7280;
-  --color-border:    #e5e7eb;
-  --color-primary:   #6d28d9;   /* Salla purple */
-}
-
-[data-theme='dark'] {
-  --color-bg:        #0f0f0f;
-  --color-surface:   #1a1a1a;
-  --color-text:      #f5f5f5;
-  --color-text-muted:#9ca3af;
-  --color-border:    #2d2d2d;
-  --color-primary:   #7c3aed;
+:root {
+  --color-primary:   #004d5b;
+  --color-secondary: #73fcd7;
+  --color-success:   #00b259;
+  --color-danger:    #f5434a;
+  --color-bg-main:   #f8f8f8;
+  --font-main:       'Outfit', sans-serif;
 }
 ```
 
@@ -125,7 +115,7 @@ Use 4px base grid:
 
 ```html
 <div class="app-page">
-  <!-- No page header needed — dashboard provides title via Salla.page.setTitle() -->
+  <!-- No page header needed — dashboard provides title via embedded.page.setTitle() -->
   <main class="app-content">
     <!-- content -->
   </main>
@@ -201,12 +191,12 @@ Use native Salla UI toasts and confirms where possible. For inline buttons:
 
 | Do | Don't |
 | --- | --- |
-| Use `Salla.ui.toast` for feedback | Show your own custom toast overlays |
-| Use `Salla.ui.confirm` for destructive actions | Use `window.confirm()` |
-| Use `Salla.nav.addButton` for primary actions | Duplicate the Save button inside the page |
+| Use `embedded.ui.toast` for feedback | Show your own custom toast overlays |
+| Use `window.confirm()` only as fallback | Build custom confirm modals |
+| Use `embedded.nav.setAction` for primary actions | Duplicate the Save button inside the page |
 | Match the dashboard theme | Use hardcoded colors |
 | Support RTL text alignment | Use `text-align: left` globally |
-| Call `Salla.page.resize()` after layout changes | Rely on `height: 100vh` |
+| Call `embedded.ready()` after bootstrap | Let the dashboard show a blank iframe |
 | Use bilingual labels everywhere | Show English-only text to Arabic merchants |
 
 ---

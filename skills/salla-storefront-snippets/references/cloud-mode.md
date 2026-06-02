@@ -13,46 +13,21 @@ Cloud Mode delivers e-commerce events server-to-server from Salla's infrastructu
 
 ---
 
-## Registering an App Function for an Event
-
-In `salla.config.json` (your App Functions configuration), declare which events trigger your function:
-
-```json
-{
-  "functions": [
-    {
-      "name": "track-cart-add",
-      "entry": "functions/track-cart-add.ts",
-      "events": ["cart.add"]
-    },
-    {
-      "name": "process-order",
-      "entry": "functions/process-order.ts",
-      "events": ["order.created"]
-    }
-  ]
-}
-```
-
----
-
 ## App Function Structure
 
+App Functions are serverless TypeScript handlers. The Portal wraps your code — lines 1 and 4 are locked:
+
 ```ts
-import { AppFunction, CartAddContext } from '@salla.sa/app-functions';
+export default async (context: OrderCreatedContext): Promise<Resp> => {
+  const orderId = context.payload.data.id;
 
-const handler: AppFunction<CartAddContext> = async (context) => {
-  const { product_id, quantity, price } = context.event.data;
-  const merchantId = context.merchant.id;
+  // your logic here
 
-  // Run your backend logic
-  await syncInventory(product_id, quantity);
-
-  return Resp.success({ received: true });
+  return Resp.success().setData({ order_id: orderId });
 };
-
-export default handler;
 ```
+
+**Do NOT** include import statements or re-declare `Resp` or context types when pasting into the Portal — they are pre-declared by the Salla runtime.
 
 ---
 
@@ -61,60 +36,51 @@ export default handler;
 Every App Function receives a `context` object:
 
 ```ts
-interface AppFunctionContext<T = unknown> {
-  event: {
-    name: string;       // e.g. 'cart.add'
-    data: T;            // typed event payload
-  };
-  merchant: {
-    id: number;
-    store_id: number;
-  };
-  settings: Record<string, unknown>; // app settings for this merchant
-  token: string;                     // merchant OAuth access token
-}
+context.merchant   // { id: string, … }
+context.payload    // { event: string, created_at: string, data: { … } }
+context.settings   // Record<string, string | undefined> — per-merchant app settings
 ```
+
+Note: `context.merchant.id` is a **string**. There is no `context.token` — API calls inside functions are automatically authenticated.
 
 ---
 
 ## Typed Contexts by Event
 
-| Event | Context type | Key `data` fields |
+| Event | Context type | Key `payload.data` fields |
 | --- | --- | --- |
 | `cart.add` | `CartAddContext` | `product_id`, `name`, `price`, `quantity`, `sku` |
 | `cart.remove` | `CartRemoveContext` | `product_id`, `quantity` |
 | `order.created` | `OrderCreatedContext` | `id`, `reference_id`, `total`, `items[]`, `customer` |
 | `order.updated` | `OrderUpdatedContext` | `id`, `status`, `updated_fields` |
-| `checkout.complete` | `CheckoutCompleteContext` | `order_id`, `total`, `payment_method` |
-| `product.updated` | `ProductUpdatedContext` | `id`, `name`, `price`, `stock` |
+| `product.added` | `ProductAddedContext` | `id`, `name`, `price`, `stock` |
+
+Full event list: https://docs.salla.dev/1726818m0
 
 ---
 
 ## Execution Types
 
-| Type | Behaviour | Use when |
-| --- | --- | --- |
-| **Async** (default) | Salla doesn't wait for your response | Analytics, logging, background sync |
-| **Sync** | Salla waits; your response can modify the flow | Modifying checkout data, blocking actions |
-
-Declare sync in config:
-```json
-{ "execution": "sync" }
-```
+| Type | Behaviour | Timeout | Use when |
+| --- | --- | --- | --- |
+| **Async** (default) | Salla doesn't wait | 30s | Analytics, logging, background sync |
+| **Sync** | Salla waits; response can modify flow | < 500ms | Modifying checkout data, blocking actions |
 
 ---
 
-## Returning Responses
+## Resp API
+
+Always return a structured response. Use the builder — `setData({})` is mandatory on success even when there is no payload:
 
 ```ts
-// Success with data
-return Resp.success({ order_ref: 'ORD-001' });
+// Success
+return Resp.success().setData({ received: true });
 
-// Error (sync only — causes Salla to surface the error)
-return Resp.error('Carrier unavailable', 503);
+// Success with no payload
+return Resp.success().setData({});
 
-// No-op (async — safe default)
-return Resp.success();
+// Error (sync — surfaces to the merchant or storefront)
+return Resp.error().setMessage('Carrier unavailable').setStatus(503);
 ```
 
 ---
@@ -122,21 +88,55 @@ return Resp.success();
 ## Accessing Merchant Settings
 
 ```ts
-const apiKey = context.settings.carrier_api_key as string;
-const sandbox = context.settings.sandbox_mode as boolean;
+const apiKey  = context.settings?.carrier_api_key;
+const sandbox = context.settings?.sandbox_mode;
+```
+
+Always use optional chaining — settings may be undefined until the merchant fills the form.
+
+---
+
+## Calling the Salla API
+
+Authentication is **automatic** inside App Functions — do not add an `Authorization` header:
+
+```ts
+export default async (context: OrderCreatedContext): Promise<Resp> => {
+  const res = await fetch(
+    `https://api.salla.dev/admin/v2/orders/${context.payload.data.id}`
+  );
+  const { data: order } = await res.json();
+
+  // process order...
+  return Resp.success().setData({});
+};
 ```
 
 ---
 
-## Calling the Salla API from a Function
+## Local Development Mock
 
-Use the merchant's token from context:
+`Resp` and typed contexts are runtime globals — local TypeScript won't know about them. Add mocks **after** your handler with a clear comment. Paste **only** the handler into the Portal:
 
 ```ts
-const res = await fetch('https://api.salla.dev/admin/v2/orders', {
-  headers: { Authorization: `Bearer ${context.token}` },
-});
-const { data: orders } = await res.json();
+export default async (context: OrderCreatedContext): Promise<Resp> => {
+  return Resp.success().setData({ id: context.payload.data.id });
+};
+
+// Don't paste following code into Salla's App Function
+// Mocks for local IDE type checking only
+interface OrderCreatedContext {
+  merchant: { id: string };
+  payload: { event: string; created_at: string; data: { id: number } };
+  settings: Record<string, string | undefined>;
+}
+class Resp {
+  static success() { return new Resp(); }
+  static error()   { return new Resp(); }
+  setData(d: Record<string, unknown>) { return this; }
+  setMessage(m: string) { return this; }
+  setStatus(s: number)  { return this; }
+}
 ```
 
 ---

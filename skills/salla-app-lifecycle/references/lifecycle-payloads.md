@@ -16,8 +16,9 @@ Every event uses the standard webhook envelope:
 }
 ```
 
-`merchant` is your DB key for the store. `created_at` + `event` + `merchant` make a good
-idempotency key.
+`merchant` is your DB key for the store. Do not use `created_at` + `event` + `merchant`
+as the only idempotency key because `created_at` has second-level resolution. Add a stronger
+discriminator when the payload offers one, such as `subscription_id`, or hash the raw body.
 
 ---
 

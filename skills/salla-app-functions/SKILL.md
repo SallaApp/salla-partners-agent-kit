@@ -105,7 +105,7 @@ Confirm the exact `payload.data` fields for an event via the MCP before relying 
 The Portal wraps your code in a fixed template. **Lines 1 and 4 are locked** — you can
 only edit the body. Nothing may go before line 1 or after line 4:
 
-```
+```text
 1  export default async (context: ContextType): Promise<Resp> => {
 2    // editable body
 3    ...

@@ -43,11 +43,11 @@ Fired on first install **and** on every app update (after `app.updated`). Always
 
 | Field           | Type   | Notes                                             |
 | --------------- | ------ | ------------------------------------------------- |
-| `access_token`  | string | Bearer token for Merchant API calls               |
+| `access_token`  | string | OAuth 2.0 access token for Merchant API calls     |
 | `expires`       | number | **Unix timestamp** — multiply by 1000 for JS ms   |
 | `refresh_token` | string | **Single-use** — store immediately, never discard |
 | `scope`         | string | Space-separated granted scopes                    |
-| `token_type`    | string | Always `"bearer"`                                 |
+| `token_type`    | string | OAuth 2.0 token type, always `"bearer"`           |
 
 Handling rules (single-use refresh token, mutex on refresh) → **salla-app-authorization**.
 

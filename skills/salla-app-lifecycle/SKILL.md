@@ -180,6 +180,11 @@ Non-negotiable for every handler here:
   settings updates). Add a stronger discriminator when the payload offers one
   (e.g. `subscription_id`) or hash the raw body.
 - **Upsert, never insert-only** — the same merchant re-installs and re-authorizes.
+- **Handle async-job failure** — the `200` is already sent, so a throw in the queued
+  worker (DB write, downstream API) is invisible to Salla and won't be retried by it.
+  Route failed jobs to a dead-letter queue, retry with backoff, keep the retry
+  idempotent (same discriminator as above so a re-run can't double-apply), and alert on
+  exhausted retries so a silently dropped install/uninstall doesn't go unnoticed.
 
 See the salla-webhooks skill for the verification and idempotency code.
 
@@ -187,7 +192,7 @@ See the salla-webhooks skill for the verification and idempotency code.
 
 ## Part 8 — Recommended Merchant State Machine
 
-```
+```text
         app.installed
               │
               ▼

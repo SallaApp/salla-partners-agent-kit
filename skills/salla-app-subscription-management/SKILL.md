@@ -181,6 +181,13 @@ async function onSubscriptionEvent(payload: WebhookPayload) {
 Drive feature access from the stored `status` + `end_date`, not from the moment an event
 arrives (events can be late or duplicated — be idempotent).
 
+**Handle async-job failure** — you respond `200` then process the event off the request
+path, so a throw in the worker (DB write, downstream call) is invisible to Salla and
+won't be retried by it. Route failed jobs to a dead-letter queue, retry with backoff,
+keep the retry idempotent, and alert on exhausted retries — otherwise a dropped
+`renewed`/`expired` event silently leaves a merchant on the wrong plan tier. The
+`GET /apps/{app_id}/subscriptions` reconciliation in Part 3 is your backstop here.
+
 ---
 
 ## Part 6 — Trials
@@ -194,7 +201,7 @@ A converting merchant then triggers `app.subscription.started`.
 
 ## Part 7 — Recommended Schema
 
-```
+```text
 subscriptions
   merchant_id      (PK / FK)
   subscription_id

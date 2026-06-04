@@ -162,7 +162,7 @@ the activation handler flip it — never block on the redirect.
 
 ## Part 7 — End-to-End Flow
 
-```
+```text
 [embedded page] show addon
       │  merchant clicks Buy
       ▼

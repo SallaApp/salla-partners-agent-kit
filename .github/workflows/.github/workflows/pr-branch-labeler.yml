@@ -1,0 +1,16 @@
+name: PR Branch Labeler
+
+on:
+  pull_request:
+    types:
+      - opened
+
+jobs:
+  label_prs:
+    name: Label PRs
+    runs-on:
+      group: default
+    steps:
+      - uses: SallaApp/.CI/pr-branch-labeler@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

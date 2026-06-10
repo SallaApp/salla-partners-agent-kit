@@ -9,7 +9,7 @@ Salla uses OAuth 2.0 with two modes. Choose one at app creation — it can be ch
 | | Easy Mode | Custom Mode |
 | --- | --- | --- |
 | **Authorization URL** | Salla-hosted | Your own page |
-| **Token delivery** | Via `app.installed` webhook | Via your redirect URI callback |
+| **Token delivery** | Via `app.store.authorize` webhook | Via your redirect URI callback |
 | **Code exchange** | Handled by Salla | You do it |
 | **Best for** | Most apps — simpler setup | Apps needing custom consent UI |
 
@@ -22,28 +22,31 @@ Merchant clicks "Install" on App Store
     ↓
 Salla handles OAuth consent
     ↓
-Salla fires `app.installed` webhook to your URL
+Salla fires `app.store.authorize` webhook to your URL
     ↓
 Payload contains access_token + refresh_token
     ↓
-Store token against merchant_id in your database
+Store both tokens against `payload.merchant` in your database
 ```
 
-### app.installed payload
+> The **same `app.store.authorize` event also fires on token refresh** (and right after
+> `app.updated`). Your handler must upsert the new tokens every time — see
+> **salla-app-authorization** for the full lifecycle and the refresh-mutex rules.
+
+### app.store.authorize payload
+
+`merchant` is the merchant **id** (not an object); the tokens are under `data`. `expires`
+is a **Unix timestamp** (seconds) — convert with `new Date(expires * 1000)` before storing.
 
 ```json
 {
-  "event": "app.installed",
-  "merchant": {
-    "id": 12345,
-    "name": "My Store",
-    "email": "owner@store.sa"
-  },
+  "event": "app.store.authorize",
+  "merchant": 12345,
   "data": {
     "access_token": "eyJ...",
     "refresh_token": "eyJ...",
     "token_type": "Bearer",
-    "expires_in": 3600,
+    "expires": 1710000000,
     "scope": "offline_access orders.read products.read"
   }
 }
@@ -129,24 +132,24 @@ async function getValidToken(merchantId: number): Promise<string> {
 
 ## Identifying the Merchant (Token Introspect)
 
-When a request arrives with a token you didn't issue (e.g. from an Embedded App), verify it:
+For a token **you didn't issue** — an Embedded App's short-lived dashboard token — verify
+it server-side against Salla's **exchange-authority** introspection service (not the OAuth
+introspect endpoint). Send the token in the JSON body with the `S-Source` header set to
+your App ID:
 
 ```http
-POST https://accounts.salla.sa/oauth2/introspect
-Authorization: Bearer ACCESS_TOKEN
+POST https://api.salla.dev/exchange-authority/v1/introspect
+S-Source: YOUR_APP_ID
+Content-Type: application/json
+
+{ "token": "EMBEDDED_TOKEN" }
 ```
 
-```json
-{
-  "active": true,
-  "merchant_id": 12345,
-  "store_id": 67890,
-  "scope": "offline_access orders.read",
-  "exp": 1710000000
-}
-```
+The response identifies the merchant (e.g. `merchant_id`). If it isn't valid, reject the
+request. Full implementation → **salla-embedded-app** (`references/auth-and-session.md`).
 
-If `active` is `false`, reject the request and redirect to re-auth.
+For a merchant token **you do hold** (from `app.store.authorize` / a code exchange),
+resolve the merchant with `GET /oauth2/user/info` (see **salla-api-core**).
 
 ---
 

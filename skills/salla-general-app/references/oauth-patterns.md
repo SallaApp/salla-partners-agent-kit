@@ -119,33 +119,55 @@ both.
 
 ### Refresh strategy (lock-guarded)
 
+Three rules make this safe: **only one process refreshes** (per-merchant lock),
+**re-read the token *after* acquiring the lock** (never refresh with a value read before
+the lock — it may already be consumed), and **release the lock owner-safely** (compare-
+and-delete, so an expired holder can't delete another process's lock).
+
 ```ts
+const NEAR_EXPIRY_MS = 5 * 60 * 1000;
+const fresh = (t: { expires_at: string }) =>
+  new Date(t.expires_at).getTime() - Date.now() >= NEAR_EXPIRY_MS;
+
 async function getValidToken(merchantId: number): Promise<string> {
-  const stored = await db.getToken(merchantId);
-  const expiresAt = new Date(stored.expires_at);
+  let stored = await db.getToken(merchantId);
+  if (fresh(stored)) return stored.access_token; // fast path — no refresh needed
 
-  // Not near expiry — use the stored token as-is
-  if (expiresAt.getTime() - Date.now() >= 5 * 60 * 1000) return stored.access_token;
-
-  // Acquire a per-merchant lock so only ONE process refreshes (single-use token).
   const lockKey = `token_refresh_lock:${merchantId}`;
-  const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 30); // 30s TTL
+  const lockId = crypto.randomUUID(); // unique owner marker for this attempt
+  const acquired = await redis.set(lockKey, lockId, 'NX', 'EX', 30); // 30s TTL
+
   if (!acquired) {
-    // Another process is refreshing — wait briefly, then read the token it just saved.
-    await sleep(500);
-    return (await db.getToken(merchantId)).access_token;
+    // Another process is refreshing — wait for IT to finish, then use its result.
+    for (let i = 0; i < 20; i++) {
+      await sleep(250);
+      stored = await db.getToken(merchantId);
+      if (fresh(stored)) return stored.access_token;
+    }
+    throw new Error('Timed out waiting for token refresh');
   }
 
   try {
-    const fresh = await refreshToken(stored.refresh_token);
-    // ALWAYS save BOTH new tokens — the old refresh token is now dead.
-    await db.saveToken(merchantId, fresh); // { access_token, refresh_token, expires_at }
-    return fresh.access_token;
+    // Double-check under the lock — someone may have refreshed between our read and the lock.
+    stored = await db.getToken(merchantId);
+    if (fresh(stored)) return stored.access_token;
+
+    // Refresh with the LATEST stored refresh token (single-use — never the pre-lock value).
+    const next = await refreshToken(stored.refresh_token);
+    await db.saveToken(merchantId, next); // ALWAYS persist BOTH new tokens + new expires_at
+    return next.access_token;
   } finally {
-    await redis.del(lockKey); // always release the lock
+    // Owner-safe release: delete only if we still hold the lock (atomic compare-and-delete).
+    await redis.eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+      1, lockKey, lockId
+    );
   }
 }
 ```
+
+If a refresh can outlast the 30s lock TTL, also fence the DB write (e.g. only save when
+the lock is still held / via a token version) so a slow holder can't overwrite a newer refresh.
 
 ---
 

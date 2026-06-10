@@ -233,26 +233,23 @@ Salla's OAuth server (per RFC 6819 §5.2.2.3) invalidates the refresh token, rev
 access tokens obtained with it, and forces the merchant to reinstall. **There is no
 recovery.** Never call refresh from multiple processes simultaneously.
 
-**Required: mutex / lock pattern.**
+**Required: distributed mutex per merchant.**
+
+Acquire a per-merchant lock before calling the token endpoint. If another process already
+holds it, wait briefly then re-read the now-refreshed token from the DB rather than
+retrying the refresh. Use a proven distributed-lock library (e.g. `redlock` for Redis,
+or a DB advisory lock) so owner-token and atomic release are handled for you — don't
+hand-roll `SET NX / DEL`.
 
 ```typescript
 async function refreshTokenSafe(merchantId: string): Promise<string> {
-  const lockKey = `token_refresh_lock:${merchantId}`;
-  const lockOwner = crypto.randomUUID(); // unique per call — prevents a slow holder
-                                         // from deleting a later holder's lock
-
-  const acquired = await redis.set(lockKey, lockOwner, 'NX', 'EX', 30); // 30s TTL
-  if (!acquired) {
-    // Another process is refreshing — wait for it to finish, then re-read
-    await sleep(1500);
+  return await withDistributedLock(`token_refresh:${merchantId}`, async () => {
+    // Re-read inside the lock — another holder may have already refreshed
     const merchant = await db.merchants.findById(merchantId);
-    if (merchant.tokenExpiresAt.getTime() > Date.now()) return merchant.accessToken;
-    // Still expired after waiting — the lock holder may have failed; surface the error
-    throw new Error(`Token refresh lock contention for merchant ${merchantId}`);
-  }
+    if (merchant.tokenExpiresAt.getTime() - Date.now() > 60_000) {
+      return merchant.accessToken; // already fresh
+    }
 
-  try {
-    const merchant = await db.merchants.findById(merchantId);
     const res = await fetch('https://accounts.salla.sa/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -279,12 +276,7 @@ async function refreshTokenSafe(merchantId: string): Promise<string> {
       tokenExpiresAt: new Date(data.expires * 1000),
     });
     return data.access_token;
-  } finally {
-    // Only release our own lock — if the TTL expired and another process took it,
-    // leave it alone
-    const current = await redis.get(lockKey);
-    if (current === lockOwner) await redis.del(lockKey);
-  }
+  });
 }
 ```
 

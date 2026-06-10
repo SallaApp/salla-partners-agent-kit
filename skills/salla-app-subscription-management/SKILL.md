@@ -30,8 +30,11 @@ How merchants pay for your app, and how you keep a reliable picture of each merc
 plan. Salla owns billing — you react to events and (optionally) read the subscriptions
 endpoint; you never charge cards yourself.
 
-**MCP:** `apidog-mcp-server` (site-id: `451700`) — confirm payloads and the subscriptions
-schema before coding.
+**Two MCPs:** `apidog-mcp-server` (site-id: `451700`) is *read-only* — confirm payloads
+and the subscriptions schema before coding. The **Salla Partners MCP** *performs actions*
+— use `salla_events action=subscribe` to subscribe the app to `app.subscription.*` /
+`app.trial.*` (via **salla-app-lifecycle** Part 0), and `salla_request` to call the
+read-only `GET /apps/{app_id}/subscriptions` reconciliation endpoint (Part 3).
 **Docs:** https://docs.salla.dev/doc-421412 (Apps API) · https://docs.salla.dev/421413m0 (App Events)
 **Subscriptions endpoint:** `GET /apps/{app_id}/subscriptions` (https://docs.salla.dev/api-5401098)
 **Related skills:** salla-app-lifecycle (event wiring) · salla-subscription-system (gating) ·
@@ -84,9 +87,22 @@ Keys, App Scope, Webhooks/Notifications, App Settings) for per-merchant or tailo
 > The exact per-field Portal steps aren't fully documented — confirm current UI via the
 > MCP/docs rather than asserting field names you can't see.
 
+> There is **no MCP tool for defining plans** — pricing is configured in the Portal
+> publish flow. Submitting the app for publishing **is** an action:
+> `salla_apps action=publish`, `app_id` (see **salla-general-app** Step 8).
+
 ---
 
 ## Part 3 — Reading a Merchant's Subscription (Partners API)
+
+**Action:** call this read-only endpoint through the Partners MCP `salla_request` tool
+(no hand-rolled HTTP needed):
+
+1. `salla_request mode=search`, `keyword: "subscriptions"` → find the `operationId`.
+2. `salla_request mode=call`, `operationId`, `path_params: { app_id }` → the response.
+
+`salla_request` is GET-only and may be off by default (`MCP_EXPOSE_GENERIC_TOOLS`); if
+it isn't exposed, fall back to the raw call:
 
 ```http
 GET /apps/{app_id}/subscriptions

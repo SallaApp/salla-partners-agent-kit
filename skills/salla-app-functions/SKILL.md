@@ -32,8 +32,13 @@ Serverless TypeScript/JavaScript handlers that execute automatically on Salla
 events. No infrastructure to manage — you write the logic, Salla runs it in a
 sandboxed V8 runtime.
 
-**MCP:** `apidog-mcp-server` (site-id: `451700`) — query for the live event list and
-each event's `payload.data` shape before writing a handler. Never assume a payload.
+**Two MCPs — different jobs:**
+- **`apidog-mcp-server`** (site-id: `451700`) — *read-only*. Query for the live event
+  list and each event's `payload.data` shape before writing a handler. Never assume a
+  payload.
+- **Salla Partners MCP** — *performs actions*. Once you've written the handler, use
+  `salla_functions` (`list` / `get` / `delete`) to inspect deployed functions and
+  `salla_apps action=publish` to ship them (deploy happens on publish — Part 8).
 **Docs:** https://docs.salla.dev/1726817m0 (overview) · https://docs.salla.dev/1726815m0 (get started)
 **Events:** https://docs.salla.dev/1726818m0 · **Testing:** https://docs.salla.dev/1726816m0
 
@@ -170,22 +175,30 @@ Always use optional chaining — settings may be `undefined` until the merchant 
 
 ---
 
-## Part 8 — Deploy / Publish (Partners Portal)
+## Part 8 — Deploy / Publish
 
-App Functions are authored and shipped entirely from the Partners Portal — there is no
-local deploy step.
+App Function **source** is authored in the Partners Portal (there is no source-upload
+tool — write the handler body inside the locked template, Part 4):
 
 1. Sign in at https://portal.salla.partners and open your app.
-2. Scroll to the **App Functions** section → **Add New Function**.
-3. Name the function (e.g. `order-status-notifier`).
-4. Pick the trigger in the **Select Action** dropdown (the event/action list).
-5. Write the handler body inside the locked template (Part 4).
-6. Save — changes live in the **sandbox** until you publish.
-7. **Publish** the app (app dashboard → Publish) to push the function live.
-   Merchants who have the app installed receive the update automatically.
+2. **App Functions** section → **Add New Function** → name it (e.g. `order-status-notifier`).
+3. Pick the trigger in the **Select Action** dropdown (the event/action list).
+4. Write the handler body inside the locked template; Save — it lives in the **sandbox**
+   until you publish.
+
+**Shipping it is an action** — use the Salla Partners MCP instead of clicking Publish:
+
+- **Publish (= deploy):** `salla_apps action=publish`, `app_id` (optional `update_note`).
+  Salla deploys the function when the app is published; installed merchants get the
+  update automatically. There is **no deploy tool** — publishing is the deploy.
+- **Inspect what's deployed:** `salla_functions action=list`, `app_id` (optional
+  `category`, e.g. `"custom_scripts_events"`); `action=get` with a `trigger` for one
+  function's source.
+- **Remove a function:** `salla_functions action=delete`, `app_id`, `trigger`
+  (e.g. `"order.created"`).
 
 > Versioning, CLI deploy, and explicit draft labels are not documented — confirm current
-> Portal behavior via the MCP / docs before asserting them to a user.
+> behavior via the docs/MCP before asserting them to a user.
 
 ---
 

@@ -30,7 +30,10 @@ description: >
 The lifecycle events keep your backend in sync with each merchant's relationship to your
 app — from first install through trial, subscription, and uninstall.
 
-**MCP:** `apidog-mcp-server` (site-id: `451700`) — confirm every payload shape before coding.
+**Two MCPs:** `apidog-mcp-server` (site-id: `451700`) is *read-only* — confirm every
+payload shape before coding. The **Salla Partners MCP** *performs actions* — use
+`salla_events` to subscribe the app to these lifecycle events and `salla_apps action=get`
+to inspect an app's current state (see Part 0).
 **Docs:** https://docs.salla.dev/421413m0 (App Events)
 **Prerequisites:** signature verification + idempotency + fast 200 → see **salla-webhooks**.
 Token persistence from `app.store.authorize` → see **salla-app-authorization**.
@@ -38,6 +41,24 @@ Token persistence from `app.store.authorize` → see **salla-app-authorization**
 > These all arrive on your single webhook endpoint inside the standard envelope
 > (`event`, `merchant`, `created_at`, `data`). Verify the signature, respond `200`
 > within 3 s, then process asynchronously. Always **upsert** keyed by `merchant`.
+
+---
+
+## Part 0 — Subscribe to Lifecycle Events (Salla Partners MCP)
+
+Lifecycle events only arrive if the app is subscribed to them and a `webhook_url` is set.
+Do this with the Partners MCP before relying on any handler below:
+
+1. Ensure a webhook receiver is configured: `salla_apps action=connect`, `app_id`,
+   `webhook_url`, `webhook_security_strategy: "signature"`, `generate_secret: true`.
+2. List valid slugs: `salla_events action=list`, `app_id`.
+3. Subscribe: `salla_events action=subscribe`, `app_id`, `events: [...]` — e.g.
+   `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,
+   `app.subscription.started`, `app.subscription.renewed`, `app.subscription.expired`.
+
+Inspect the app's current configuration/state any time with `salla_apps action=get`,
+`app_id`. (Subscribing is a partner-config action; **handling** the delivered events is
+runtime code — Parts 2–8.)
 
 ---
 

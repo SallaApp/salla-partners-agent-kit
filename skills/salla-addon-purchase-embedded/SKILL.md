@@ -27,8 +27,11 @@ description: >
 Let a merchant buy an addon without leaving your embedded app: present the offer, send
 them through Salla billing, and unlock the addon when Salla confirms payment.
 
-**MCP:** `apidog-mcp-server` (site-id: `451700`) — confirm the purchase/redirect mechanism
-and the `app.subscription.started` (addon) payload before coding.
+**Two MCPs:** `apidog-mcp-server` (site-id: `451700`) is *read-only* — confirm the
+purchase/redirect mechanism and the `app.subscription.started` (addon) payload before
+coding. The **Salla Partners MCP** *performs actions* — use `salla_events action=subscribe`
+to subscribe the app to `app.subscription.started` (the activation source of truth,
+Part 5). The in-iframe purchase itself is an embedded-SDK call, **not** an MCP tool.
 **Embedded SDK:** `@salla.sa/embedded-sdk` — see **salla-embedded-app** for init/handshake.
 **Pricing/definition:** **salla-app-subscription-management** · **Entitlements after
 purchase:** **salla-addon-subscription-management** · **Gating:** **salla-subscription-system**.
@@ -122,7 +125,10 @@ salla-embedded-app) and re-bootstrap.
 ## Part 5 — Activation (Webhook-Driven, Source of Truth)
 
 Do **not** unlock features just because the redirect returned. Wait for Salla to confirm
-payment via webhook:
+payment via webhook. First make sure the app is actually subscribed to the event — with
+the Partners MCP: `salla_events action=subscribe`, `app_id`,
+`events: ["app.subscription.started"]` (a `webhook_url` must already be set via
+`salla_apps action=connect`). Then handle it:
 
 ```typescript
 if (

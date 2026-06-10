@@ -1,96 +1,129 @@
 ---
 name: salla-storefront-snippets
 description: >
-  Use this skill whenever building, debugging, documenting, or reviewing any Salla
-  storefront snippet or e-commerce event integration — including Device Mode (tracker.js / Twilight SDK),
-  Cloud Mode (App Functions), event lifecycle questions, or choosing between integration
-  modes. Invoke it for tasks like "track a cart event", "handle product view", "write
-  an App Function for order placed", or "explain the difference between device and cloud mode".
-license: Copyright (c) 2026 Salla
-metadata:
-  authors: Ilyas
-  version: 1.0
+  Use when building a Salla storefront snippet or e-commerce event integration —
+  choosing between Device Mode (client-side tracker.js) and Cloud Mode (App Functions),
+  scaffolding the implementation, or handling storefront events like cart, product
+  view, checkout, and search.
 ---
 
-# Salla Storefront Snippets
+# Salla Storefront Snippets Flow
 
-## Integration Modes
+Integrate with Salla storefront events by **performing the actions**. Device Mode
+snippets are injected with the Salla Partners MCP `salla_snippets` tool; Cloud Mode runs
+in an App Function. Follow the steps in order — complete each gate before moving on.
 
-| Mode            | Processing Location         | Best For                                       |
-| --------------- | --------------------------- | ---------------------------------------------- |
-| **Device Mode** | Client-side (`tracker.js`)  | Analytics, personalization, marketing tracking |
-| **Cloud Mode**  | Server-side (App Functions) | Automation, integrations, backend workflows    |
+## Tools
 
-## Workflow
+| Tool | Action | What it does |
+| --- | --- | --- |
+| `salla_snippets` | `list` / `parameters` / `create` / `update` / `delete` | Manage the app's storefront snippets |
 
-Follow this three-step workflow for any e-commerce event task:
+> **Prerequisite:** the Salla Partners MCP server must be connected, and you need the
+> app's `app_id`. Cloud Mode App Functions have no deploy tool — Salla deploys them when
+> the app is published.
 
-### Step 1 — Choose Integration Mode
+---
 
-Ask (or infer from context) which mode fits the use case:
+## Step 0 — Discover
 
-- **Device Mode** → user wants client-side tracking, analytics, real-time personalization, or marketing attribution
-- **Cloud Mode** → user wants backend automation, order processing, data sync, or reliable server-side delivery
+Ask before starting:
 
-If unclear, ask: _"Should this run in the browser (Device Mode) or on your server (Cloud Mode)?"_
+1. **Which storefront event do you want to handle?**
+   (e.g. `cart.add`, `product.view`, `checkout.complete`, `search.query`)
+2. **What should happen when the event fires?**
+   (track analytics, sync data, trigger automation, personalize content)
 
-### Step 2 — Scaffold the Implementation
+Use the answers to determine the right mode in Step 1.
 
-**Device Mode setup:**
-1. Embed `tracker.js` in the storefront frontend
-2. Use the Twilight SDK to listen for events
-3. Process event payload in the listener callback
-4. Optionally acknowledge the event
+---
 
-```js
-// Example: Device Mode — listen for cart event via Twilight SDK
-salla.event.on('cart.add', (event) => {
-  // event.data contains product, quantity, price, etc.
-  console.log('Item added to cart:', event.data);
-});
-```
+## Step 1 — Choose Integration Mode
 
-**Cloud Mode setup (App Function):**
-1. Create an App Function in your Salla app
-2. Declare the event trigger in the function config
+| Mode | Where it runs | Best for |
+| --- | --- | --- |
+| **Device Mode** | Browser (`tracker.js` + Twilight SDK) | Analytics, personalization, marketing attribution |
+| **Cloud Mode** | Server (App Functions) | Automation, data sync, reliable backend delivery |
+
+Decision rule:
+- Needs real-time browser data or marketing pixels → **Device Mode**
+- Needs guaranteed delivery, backend logic, or API calls → **Cloud Mode**
+
+If still unclear, ask: *"Should this run in the browser or on your server?"*
+
+**Gate:** "Confirmed the mode. Proceeding to scaffold."
+
+---
+
+## Step 2 — Scaffold the Implementation
+
+### Device Mode
+
+The snippet body runs in the storefront browser via the Twilight SDK. Write the listener,
+then **inject it as a storefront snippet** with the tool:
+
+1. Write the snippet body — listen with the Twilight SDK and process the payload:
+
+   ```js
+   salla.event.on("cart.add", (event) => {
+     // event.data contains product, quantity, price, etc.
+     analytics.track("Add to Cart", event.data);
+   });
+   ```
+
+2. (Optional) Check available template variables: `salla_snippets action=parameters`,
+   `app_id`.
+3. Inject it: `salla_snippets action=create`, `app_id`, `name`, `place` ("before"),
+   `tag` ("head" | "body"), `content` (the snippet body). Verify with
+   `salla_snippets action=list`; use `update` / `delete` to change or remove it.
+
+Device Mode setup, full event catalogue, payload shapes →
+[`references/device-mode.md`](references/device-mode.md)
+
+### Cloud Mode
+
+1. Write the App Function source (Salla deploys it on publish — no deploy tool; inspect
+   deployed functions with `salla_functions action=list`)
+2. Select the storefront event as the trigger
 3. Access the typed event payload via the context object
-4. Return a response if required
+4. Return a response
 
 ```ts
-// Example: Cloud Mode — App Function triggered by cart.add
 export default async function (context: CartAddContext) {
-  const { product, quantity } = context.event.data;
-  // Run backend logic: sync inventory, trigger workflow, etc.
-  return Resp.success({ received: true });
+  const { product, quantity } = context.payload.data;
+  await syncInventory(product.id, quantity);
+  return Resp.success().setData({});
 }
 ```
 
-For App Function patterns, context shapes, and the Resp API, see
-[App Functions reference](../salla-app-builder/references/app-functions.md).
+App Function execution types, `Resp` API, context shapes →
+[`references/cloud-mode.md`](references/cloud-mode.md)
 
-### Step 3 — Document the Integration
+**Gate:** "Test the event: trigger it from a demo store and confirm the handler fires
+correctly."
 
-When writing or reviewing documentation for an event integration, include:
+---
+
+## Step 3 — Document the Integration
+
+When writing or reviewing documentation for the integration, include:
 
 - Which mode is used and why
 - The event name and trigger condition
 - The payload shape (key fields)
 - The processing logic summary
 - Any response or acknowledgement behavior
-- A lifecycle diagram if the flow is non-trivial (use the Mermaid templates in the reference)
 
-## When to read the reference files
+Full event overview and lifecycle diagrams →
+[`references/overview.md`](references/overview.md)
 
-- [E-commerce Events Overview](references/overview.md) — full lifecycle diagrams for both modes, detailed comparison table, and links to the Device Mode and Cloud Mode usage guides.
-- [Device Mode](references/device-mode.md) — `tracker.js` setup, Twilight SDK initialization, full event catalogue (cart, product, checkout, search), payload shape, store context, and sending data to your backend.
-- [Cloud Mode](references/cloud-mode.md) — App Function trigger config, typed context shapes per event, execution types (sync vs async), `Resp` API, accessing settings, and calling the Salla API from a function.
+---
 
 ## Resources
 
-| Topic                    | Link                                   |
-| ------------------------ | -------------------------------------- |
-| Events Overview          | https://docs.salla.dev                 |
-| Device Mode Usage        | https://docs.salla.dev/1724504m0.md    |
-| Cloud Mode Usage         | https://docs.salla.dev/1724667m0.md    |
-| App Functions Overview   | https://docs.salla.dev/1726817m0.md    |
-| App Functions Events     | https://docs.salla.dev/1726818m0.md    |
+| Topic | Link |
+| --- | --- |
+| Device Mode Usage | https://docs.salla.dev/1724504m0.md |
+| Cloud Mode Usage | https://docs.salla.dev/1724667m0.md |
+| App Functions Overview | https://docs.salla.dev/1726817m0.md |
+| App Functions Events | https://docs.salla.dev/1726818m0.md |

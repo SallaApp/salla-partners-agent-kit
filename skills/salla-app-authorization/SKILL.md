@@ -238,13 +238,17 @@ recovery.** Never call refresh from multiple processes simultaneously.
 ```typescript
 async function refreshTokenSafe(merchantId: string): Promise<string> {
   const lockKey = `token_refresh_lock:${merchantId}`;
+  const lockOwner = crypto.randomUUID(); // unique per call — prevents a slow holder
+                                         // from deleting a later holder's lock
 
-  // Acquire lock — fail fast if another process holds it
-  const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 30); // 30s TTL
+  const acquired = await redis.set(lockKey, lockOwner, 'NX', 'EX', 30); // 30s TTL
   if (!acquired) {
-    await sleep(500); // another process is refreshing — return current token
+    // Another process is refreshing — wait for it to finish, then re-read
+    await sleep(1500);
     const merchant = await db.merchants.findById(merchantId);
-    return merchant.accessToken;
+    if (merchant.tokenExpiresAt.getTime() > Date.now()) return merchant.accessToken;
+    // Still expired after waiting — the lock holder may have failed; surface the error
+    throw new Error(`Token refresh lock contention for merchant ${merchantId}`);
   }
 
   try {
@@ -276,7 +280,10 @@ async function refreshTokenSafe(merchantId: string): Promise<string> {
     });
     return data.access_token;
   } finally {
-    await redis.del(lockKey); // always release the lock
+    // Only release our own lock — if the TTL expired and another process took it,
+    // leave it alone
+    const current = await redis.get(lockKey);
+    if (current === lockOwner) await redis.del(lockKey);
   }
 }
 ```

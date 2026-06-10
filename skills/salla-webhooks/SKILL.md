@@ -336,11 +336,11 @@ app.post("/webhooks/salla", async (req, res) => {
 ```
 
 ```typescript
-// Idempotency — created_at has second-level resolution; use a stronger discriminator
+// Idempotency — subscription_id is unique per lifecycle event; for everything else
+// hash the raw body so resource IDs (order id, product id) don't collide across updates
 async function handleWebhook(payload: WebhookPayload): Promise<void> {
   const discriminator = (payload.data as any)?.subscription_id
-    ?? (payload.data as any)?.id
-    ?? payload.created_at;
+    ?? crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 16);
   const key = `${payload.merchant}:${payload.event}:${discriminator}`;
   const seen = await db.webhookEvents.exists({ key });
   if (seen) return;                            // already processed
@@ -349,7 +349,7 @@ async function handleWebhook(payload: WebhookPayload): Promise<void> {
 }
 ```
 
-**Gate:** "Endpoint verifies → 200s within 3s → processes async → dedupes with a discriminator stronger than `created_at` alone?"
+**Gate:** "Endpoint verifies → 200s within 3s → processes async → dedupes with `subscription_id` or body hash (not resource id or `created_at`)?"
 
 ---
 

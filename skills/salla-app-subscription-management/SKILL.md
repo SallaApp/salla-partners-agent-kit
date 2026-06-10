@@ -207,14 +207,19 @@ GET /apps/{app_id}/subscriptions
 Authorization: Bearer <token>
 ```
 
+This endpoint returns subscriptions for **all merchants** of the app. Always filter the
+response by merchant ID before updating any stored state — applying another merchant's
+subscription data silently corrupts plan gating.
+
 ```json
-{ "id": "657032372", "item_type": "plan", "plan_type": "recurring",
+{ "id": "657032372", "merchant": 1234509876, "item_type": "plan", "plan_type": "recurring",
   "plan_name": "Yearly", "price": 20, "start_date": "2022-05-23",
   "end_date": "2023-05-23", "quantity": 1 }
 ```
 
 | Field | Notes |
 | --- | --- |
+| `merchant` | **Filter on this** before updating stored state |
 | `item_type` | `"plan"` \| `"addon"` — filter to `plan` for plan state |
 | `plan_type` | `free` \| `once` \| `recurring` \| `on_demand` |
 | `plan_name` | e.g. `"Yearly"`; trial commonly `"trail"` |

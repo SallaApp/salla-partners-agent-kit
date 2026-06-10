@@ -66,7 +66,7 @@ npm install @salla.sa/webhooks-actions
 
 `.env` (created automatically by Salla CLI):
 
-```
+```bash
 SALLA_OAUTH_CLIENT_ID=xxxxx
 SALLA_OAUTH_CLIENT_SECRET=xxxxx
 SALLA_WEBHOOK_SECRET=xxxxx
@@ -99,6 +99,7 @@ SallaWebhook.on("all", (eventBody, userArgs) => {
 
 app.post("/webhook", (req, res) => {
   SallaWebhook.checkActions(req.body, req.headers.authorization, {});
+  res.status(200).end();
 });
 
 app.listen(8081);
@@ -107,7 +108,7 @@ app.listen(8081);
 **Pattern B — File-based handlers.** Use `salla app create-webhook <event.name>` to
 scaffold handler files:
 
-```
+```text
 Actions/
 ├── app/{installed.js, store.authorize.js}
 ├── order/{created.js, cancelled.js}
@@ -275,7 +276,7 @@ Set via the Portal UI, the register/update API, or `salla_apps action=connect`
 
 Rules filter payloads so your endpoint only receives matching events — less noise, less load.
 
-```
+```text
 field = value           // equality          field != value   // inequality
 field > value           // greater than       field < value    // less than
 condition1 AND condition2                      condition1 OR condition2
@@ -319,7 +320,7 @@ Response & retry rules — **non-negotiable:**
 
 | Rule | Detail |
 |---|---|
-| **Respond 200 immediately** | Return `200 OK` within **30 seconds** — Salla won't wait longer |
+| **Respond 200 immediately** | Return `200 OK` within **3 seconds** — Salla won't wait longer |
 | **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after |
 | **Retry behavior** | Salla retries **3 times** at ~5 minute intervals on non-2xx or timeout |
 | **Idempotency required** | Webhooks can be delivered more than once — always deduplicate |
@@ -335,9 +336,12 @@ app.post("/webhooks/salla", async (req, res) => {
 ```
 
 ```typescript
-// Idempotency
+// Idempotency — created_at has second-level resolution; use a stronger discriminator
 async function handleWebhook(payload: WebhookPayload): Promise<void> {
-  const key = `${payload.merchant}:${payload.event}:${payload.created_at}`;
+  const discriminator = (payload.data as any)?.subscription_id
+    ?? (payload.data as any)?.id
+    ?? payload.created_at;
+  const key = `${payload.merchant}:${payload.event}:${discriminator}`;
   const seen = await db.webhookEvents.exists({ key });
   if (seen) return;                            // already processed
   await db.webhookEvents.insert({ key, received_at: new Date() }); // insert BEFORE processing
@@ -345,8 +349,7 @@ async function handleWebhook(payload: WebhookPayload): Promise<void> {
 }
 ```
 
-**Gate:** "Endpoint verifies → 200s within 30s → processes async → dedupes by
-`merchant:event:created_at`?"
+**Gate:** "Endpoint verifies → 200s within 3s → processes async → dedupes with a discriminator stronger than `created_at` alone?"
 
 ---
 
@@ -418,7 +421,7 @@ When webhooks aren't arriving:
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")
 - [ ] Subscribed to the correct event name (case-sensitive)
-- [ ] Endpoint returns `200` within 30 seconds and accepts POST (not just GET)
+- [ ] Endpoint returns `200` within 3 seconds and accepts POST (not just GET)
 - [ ] No TLS/SSL issues on your server
 - [ ] Check the Salla Webhooks Log in the Portal for delivery attempts and response codes
 

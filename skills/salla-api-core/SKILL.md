@@ -46,7 +46,8 @@ Content-Type: application/json   # for POST/PUT/PATCH
 Resolve the stable merchant key once and cache it:
 
 ```http
-GET /oauth2/user/info
+GET https://accounts.salla.sa/oauth2/user/info
+Authorization: Bearer <access_token>
 ```
 
 `data.merchant.id` is the stable internal key — cache it rather than re-fetching per request.
@@ -119,6 +120,7 @@ async function sallaRequest<T>(
     });
   }
 
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 ```
@@ -136,7 +138,7 @@ Collection endpoints accept:
 | `page` | 1 | — | 1-indexed |
 | `per_page` | 15 | 60 | `count` alias also accepted on some endpoints |
 
-```
+```http
 GET /orders?page=2&per_page=40
 ```
 

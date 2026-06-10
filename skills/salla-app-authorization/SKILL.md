@@ -135,7 +135,7 @@ Easy Mode checklist: webhook URL set (Step 2) · scope includes `offline_access`
 
 **Step 3a — Authorization request:**
 
-```
+```http
 GET https://accounts.salla.sa/oauth2/auth
   ?client_id=YOUR_CLIENT_ID
   &response_type=code
@@ -259,6 +259,13 @@ async function refreshTokenSafe(merchantId: string): Promise<string> {
         client_secret: process.env.SALLA_CLIENT_SECRET!,
       }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw Object.assign(
+        new Error(err?.error_description ?? err?.error ?? res.statusText),
+        { status: res.status, body: err }
+      );
+    }
     const data = await res.json();
 
     // ALWAYS save BOTH new tokens — the old refresh token is now dead
@@ -321,7 +328,7 @@ Authorization: Bearer <access_token>
 Always include `offline_access` (space-separated in the auth URL). Confirm the latest list
 via `salla_reference action=scopes`:
 
-```
+```text
 offline_access          required for refresh tokens
 orders.read_write
 products.read_write

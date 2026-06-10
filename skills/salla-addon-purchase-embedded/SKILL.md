@@ -17,33 +17,45 @@ description: >
   This skill sits on top of three others: the embedded SDK setup and No-Chrome rules
   (salla-embedded-app), how addons are priced/defined (salla-app-subscription-management),
   and how addon entitlements are tracked after purchase (salla-addon-subscription-management).
-  Feature gating is salla-subscription-system. The MCP (apidog-mcp-server, site-id:
-  451700) and the @salla.sa/embedded-sdk package are the authorities for the purchase
-  method — confirm it there before writing the redirect, it is not fully documented.
+  Feature gating is salla-subscription-system. The @salla.sa/embedded-sdk package is the
+  authority for the purchase method — confirm it there before writing the redirect.
 ---
 
-# Salla Addon Purchase (Embedded) Skill
+# Salla Addon Purchase (Embedded) Flow
 
-Let a merchant buy an addon without leaving your embedded app: present the offer, send
-them through Salla billing, and unlock the addon when Salla confirms payment.
+Let a merchant buy an addon without leaving your embedded app: present the offer, hand off
+to Salla billing, and unlock the addon when Salla confirms payment. Follow the steps in
+order; complete each gate before moving on. Activation is **webhook-driven** — the redirect
+starts checkout; `app.subscription.started` (addon) finishes it.
 
-**Two MCPs:** `apidog-mcp-server` (site-id: `451700`) is *read-only* — confirm the
+## Tools & MCPs
+
+**Two MCPs:** `apidog-mcp-server` (site-id `451700`) is *read-only* — confirm the
 purchase/redirect mechanism and the `app.subscription.started` (addon) payload before
-coding. The **Salla Partners MCP** *performs actions* — use `salla_events action=subscribe`
-to subscribe the app to `app.subscription.started` (the activation source of truth,
-Part 5). The in-iframe purchase itself is an embedded-SDK call, **not** an MCP tool.
-**Embedded SDK:** `@salla.sa/embedded-sdk` — see **salla-embedded-app** for init/handshake.
-**Pricing/definition:** **salla-app-subscription-management** · **Entitlements after
-purchase:** **salla-addon-subscription-management** · **Gating:** **salla-subscription-system**.
+coding. The **Salla Partners MCP** *performs actions*: use `salla_events action=subscribe`
+to subscribe the app to `app.subscription.started` (the activation source of truth, Step
+3). The in-iframe purchase itself is an **embedded-SDK call, not an MCP tool**.
 
 > Salla owns billing. You never collect payment in the iframe — you hand off to Salla's
-> checkout and react to the resulting webhook. Activation is **webhook-driven**, not
-> redirect-driven: the redirect starts checkout; `app.subscription.started` (addon)
-> finishes it.
+> checkout and react to the resulting webhook. Embedded SDK: `@salla.sa/embedded-sdk`
+> (init/handshake → **salla-embedded-app**). Pricing/definition →
+> **salla-app-subscription-management** · Entitlements after purchase →
+> **salla-addon-subscription-management** · Gating → **salla-subscription-system**.
 
 ---
 
-## Part 1 — Prerequisites (Embedded Context)
+## Step 0 — Discover
+
+Ask before starting:
+
+1. **Which addon(s)** can the merchant buy from inside the app, and what does each unlock?
+2. **Is your page already a working embedded app?** (SDK init + server-side token verify)
+3. **Where do you surface the offer** — a dedicated page, or an upsell inside an existing
+   one?
+
+---
+
+## Step 1 — Confirm the Embedded Context (prerequisite)
 
 Your page must already be a working embedded app: SDK initialized, handshake done, token
 verified server-side. Don't re-implement this — follow **salla-embedded-app**:
@@ -60,17 +72,33 @@ embedded.ready();
 Honor the **No-Chrome rule** — use Salla's native title/actions/toasts/loading, not your
 own chrome.
 
+**Gate:** "Embedded SDK initialized and the session token verified server-side?"
+
 ---
 
-## Part 2 — Define the Addon First
+## Step 2 — Define the Addon
 
 The addon must exist as a plan of type **Addon** in the Partners Portal (Pricing / Custom
-Plans) before it can be purchased. Each addon has an `item_slug` you'll match on later.
-See **salla-app-subscription-management** for how plans/addons are defined.
+Plans) before it can be purchased. Each addon has an `item_slug` you'll match on later. See
+**salla-app-subscription-management** for how plans/addons are defined.
+
+**Gate:** "Addon defined as an Addon plan, and you know its `item_slug`?"
 
 ---
 
-## Part 3 — Present Purchasable Addons
+## Step 3 — Subscribe to the Activation Webhook
+
+Activation is confirmed by `app.subscription.started` (addon) — subscribe the app to it
+with the Partners MCP (a `webhook_url` must already be set via `salla_apps action=connect`):
+
+- `salla_events action=list`, `app_id` → confirm the slug.
+- `salla_events action=subscribe`, `app_id`, `events: ["app.subscription.started"]`.
+
+**Gate:** "`app.subscription.started` is subscribed (`salla_events action=list` confirms)?"
+
+---
+
+## Step 4 — Present Purchasable Addons
 
 Render the offer inside your page using Salla's design tokens (No-Chrome). Keep it to the
 addon name, what it unlocks, and price; let Salla's checkout handle the money.
@@ -80,12 +108,12 @@ embedded.ui.loading.show();
 // fetch the addons you want to surface (your own catalog mapped to Salla addon slugs)
 const addons = await fetch("/api/addons").then((r) => r.json());
 embedded.ui.loading.hide();
-// render cards; each "Buy" button calls startAddonPurchase(addon) (Part 4)
+// render cards; each "Buy" button calls startAddonPurchase(addon) (Step 5)
 ```
 
 ---
 
-## Part 4 — Start the Purchase / Billing Redirect
+## Step 5 — Start the Purchase / Billing Redirect
 
 > ⚠️ **Unverified mechanism.** The exact embedded purchase entry point is **not fully
 > documented**. Before implementing, confirm via the MCP and the `@salla.sa/embedded-sdk`
@@ -98,13 +126,11 @@ embedded.ui.loading.hide();
 > Do not ship a hardcoded URL or method name you couldn't confirm — surface the
 > uncertainty to the user and verify first.
 
-Pattern, written against whichever entry point the MCP confirms:
-
 ```typescript
 async function startAddonPurchase(addon: { slug: string }) {
   try {
     // CONFIRM the real call via MCP / embedded-sdk before relying on it.
-    // e.g. embedded.billing?.purchase({ addon: addon.slug })  — or a returned checkout URL.
+    // e.g. embedded.billing?.purchase({ addon: addon.slug }) — or a returned checkout URL.
     await embedded.ui.loading.show();
     await /* confirmed purchase entry point */ startSallaCheckout(addon.slug);
     // Merchant completes payment in Salla billing, then returns to the iframe.
@@ -120,15 +146,15 @@ After checkout the merchant returns to your embedded page. The session token may
 rotated — if an API call returns `401`, call `embedded.auth.refresh()` (see
 salla-embedded-app) and re-bootstrap.
 
+**Gate:** "Purchase entry point (SDK method vs redirect URL) confirmed via MCP/embedded-sdk
+— not guessed?"
+
 ---
 
-## Part 5 — Activation (Webhook-Driven, Source of Truth)
+## Step 6 — Activate on the Webhook (source of truth)
 
 Do **not** unlock features just because the redirect returned. Wait for Salla to confirm
-payment via webhook. First make sure the app is actually subscribed to the event — with
-the Partners MCP: `salla_events action=subscribe`, `app_id`,
-`events: ["app.subscription.started"]` (a `webhook_url` must already be set via
-`salla_apps action=connect`). Then handle it:
+payment via the webhook you subscribed in Step 3:
 
 ```typescript
 if (
@@ -146,27 +172,32 @@ if (
 ```
 
 - Match the addon by **`item_slug`** (plans have `item_slug: null`; addons carry the slug).
-- Persist + track the addon subscription via **salla-addon-subscription-management**
-  (recurring vs one-time, renewal, stacking on the plan).
+- Persist + track via **salla-addon-subscription-management** (recurring vs one-time,
+  renewal, stacking on the plan).
 - Verify the signature, respond 200 fast, dedup — see **salla-webhooks**.
+
+**Gate:** "Activation handler fires on `app.subscription.started` + `item_type === "addon"`,
+matched by `item_slug`, signature-verified and idempotent?"
 
 ---
 
-## Part 6 — Reflect the New State in the UI
+## Step 7 — Reflect the New State in the UI
 
-Once activated, confirm to the merchant inside the iframe and reveal the unlocked feature:
+Once activated, confirm inside the iframe and reveal the unlocked feature:
 
 ```typescript
 embedded.ui.toast.success("Addon activated 🎉");
 // re-fetch entitlements and re-render; gate features via salla-subscription-system
 ```
 
-If the webhook hasn't landed yet when the merchant returns, show a pending state and let
-the activation handler flip it — never block on the redirect.
+If the webhook hasn't landed when the merchant returns, show a pending state and let the
+activation handler flip it — never block on the redirect.
+
+**Gate:** "UI reveals the feature only after the entitlement is persisted?"
 
 ---
 
-## Part 7 — End-to-End Flow
+## End-to-End Flow
 
 ```text
 [embedded page] show addon
@@ -186,28 +217,16 @@ activateAddon() → entitlements updated → toast + UI reveal
 
 ---
 
-## Part 8 — Checklist
-
-- [ ] Addon defined as an Addon plan in the Portal; you know its `item_slug`.
-- [ ] Embedded SDK initialized + token verified server-side (salla-embedded-app).
-- [ ] Purchase entry point (SDK method vs redirect URL) **confirmed via MCP/embedded-sdk** — not guessed.
-- [ ] Activation handled on `app.subscription.started` + `item_type === "addon"`, matched by `item_slug`.
-- [ ] Signature verified, 200 fast, idempotent (salla-webhooks).
-- [ ] Token refresh on post-checkout `401` (`embedded.auth.refresh()`).
-- [ ] UI reveals the feature only after entitlement is persisted.
-
----
-
 ## Key Resources
 
-| Resource                     | URL / Skill                               |
-| ---------------------------- | ----------------------------------------- |
-| Embedded SDK setup           | salla-embedded-app skill                  |
-| Addon pricing / definition   | salla-app-subscription-management skill   |
-| Addon entitlement tracking   | salla-addon-subscription-management skill |
-| Feature gating               | salla-subscription-system skill           |
-| Webhook security/idempotency | salla-webhooks skill                      |
-| App Events                   | https://docs.salla.dev/421413m0           |
-| `@salla.sa/embedded-sdk`     | npm package (purchase method authority)   |
-| Partners Portal              | https://salla.partners                    |
-| Telegram community           | https://t.me/salladev                     |
+| Resource | URL / Skill |
+| --- | --- |
+| Embedded SDK setup | salla-embedded-app skill |
+| Addon pricing / definition | salla-app-subscription-management skill |
+| Addon entitlement tracking | salla-addon-subscription-management skill |
+| Feature gating | salla-subscription-system skill |
+| Webhook security/idempotency | salla-webhooks skill |
+| App Events | https://docs.salla.dev/421413m0 |
+| `@salla.sa/embedded-sdk` | npm package (purchase method authority) |
+| Partners Portal | https://salla.partners |
+| Telegram community | https://t.me/salladev |

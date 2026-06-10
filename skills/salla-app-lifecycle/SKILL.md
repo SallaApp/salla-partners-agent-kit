@@ -18,74 +18,94 @@ description: >
   "install webhook", "uninstall cleanup", "store_type", "development store",
   "demo store", or any question about reacting to install/trial/subscription state.
 
-  Always use this skill before writing any lifecycle event handler. It builds on the
-  salla-webhooks skill (signature verification, idempotency, fast 200 response) and
-  the salla-app-authorization skill (token storage from app.store.authorize). The MCP
-  server (apidog-mcp-server, site-id: 451700) has the live payload schemas — confirm
-  before coding. For plan/trial state logic see salla-app-subscription-management.
+  Always use this skill before writing any lifecycle event handler. Builds on the
+  salla-webhooks skill (signature verification, idempotency, fast 200) and the
+  salla-app-authorization skill (token storage). For plan/trial state logic see
+  salla-app-subscription-management.
 ---
 
-# Salla App Lifecycle Skill
+# Salla App Lifecycle Flow
 
-The lifecycle events keep your backend in sync with each merchant's relationship to your
-app — from first install through trial, subscription, and uninstall.
+Keep your backend in sync with each merchant's relationship to your app — from install
+through trial, subscription, and uninstall. Follow the steps in order; complete each gate
+before moving on. Step 1 **performs** the subscription with the Salla Partners MCP; Steps
+2–6 are the runtime handlers you write.
 
-**Two MCPs:** `apidog-mcp-server` (site-id: `451700`) is *read-only* — confirm every
-payload shape before coding. The **Salla Partners MCP** *performs actions* — use
-`salla_events` to subscribe the app to these lifecycle events and `salla_apps action=get`
-to inspect an app's current state (see Part 0).
-**Docs:** https://docs.salla.dev/421413m0 (App Events)
-**Prerequisites:** signature verification + idempotency + fast 200 → see **salla-webhooks**.
-Token persistence from `app.store.authorize` → see **salla-app-authorization**.
+## Tools & MCPs
 
-> These all arrive on your single webhook endpoint inside the standard envelope
-> (`event`, `merchant`, `created_at`, `data`). Verify the signature, respond `200`
-> within 3 s, then process asynchronously. Always **upsert** keyed by `merchant`.
+**Two MCPs:** `apidog-mcp-server` (site-id `451700`) is *read-only* — confirm every
+payload shape before coding. The **Salla Partners MCP** *performs actions*:
+
+| Tool | Action | What it does |
+| --- | --- | --- |
+| `salla_apps` | `connect` / `get` | Set the webhook receiver / inspect app state |
+| `salla_events` | `list` / `subscribe` | Discover + subscribe to lifecycle events |
+
+> All events arrive on your single webhook endpoint inside the standard envelope
+> (`event`, `merchant`, `created_at`, `data`). **Verify the signature, respond `200`
+> within 3 s, then process asynchronously. Always upsert keyed by `merchant`.**
+> Prerequisites: signature + idempotency + fast 200 → **salla-webhooks**; token
+> persistence from `app.store.authorize` → **salla-app-authorization**.
+
+### Event Catalog (reference)
+
+| Event | When | What to do |
+| --- | --- | --- |
+| `app.installed` | First install | Provision merchant resources, set defaults |
+| `app.store.authorize` | Install **or** token refresh | Save/update `access_token` + `refresh_token` + expiry per merchant |
+| `app.updated` | Merchant updates the app | Salla fires `app.store.authorize` right after — wait for it for new tokens |
+| `app.settings.updated` | Merchant changes app settings | Apply new values from `data.settings` |
+| `app.trial.started` | Trial begins | Enable trial features |
+| `app.trial.expired` | Trial ended without upgrade | Restrict access |
+| `app.trial.canceled` | Trial cancelled | Restrict access |
+| `app.subscription.started` | Paid plan **or addon** activated | Unlock features; branch on `data.item_type` |
+| `app.subscription.renewed` | Plan/addon renewed | Confirm active; store new `data.end_date` / `renew_date` |
+| `app.subscription.expired` | Plan/addon lapsed | Restrict access, notify merchant |
+| `app.subscription.canceled` | Plan/addon cancelled | Restrict access |
+| `app.feedback.created` | Merchant leaves a review | Log rating/comment |
+
+> `app.subscription.*` and `app.trial.*` fire for **both** plans and addons — the
+> `data.item_type` (`"plan"` | `"addon"`) tells them apart. Full subscription payload +
+> plan-state handling → **salla-app-subscription-management**. Full per-event JSON →
+> **[references/lifecycle-payloads.md](references/lifecycle-payloads.md)** (confirm field
+> names against the MCP before relying on them).
 
 ---
 
-## Part 0 — Subscribe to Lifecycle Events (Salla Partners MCP)
+## Step 0 — Discover
 
-Lifecycle events only arrive if the app is subscribed to them and a `webhook_url` is set.
-Do this with the Partners MCP before relying on any handler below:
+Ask before starting:
 
-1. Ensure a webhook receiver is configured: `salla_apps action=connect`, `app_id`,
-   `webhook_url`, `webhook_security_strategy: "signature"`, `generate_secret: true`.
+1. **Which lifecycle states** does your app care about? (install only, or trial +
+   subscription too?)
+2. **What do you provision** on install, and **what must be cleaned up** on uninstall
+   (retention / GDPR policy)?
+3. **Do you gate features** on plan/trial state? (if so, pair with
+   salla-app-subscription-management)
+
+---
+
+## Step 1 — Subscribe to Lifecycle Events
+
+Lifecycle events only arrive if the app is subscribed and a `webhook_url` is set. Do this
+with the Partners MCP:
+
+1. Configure the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
+   `webhook_security_strategy: "signature"`, `generate_secret: true` (store the returned
+   secret for HMAC verification).
 2. List valid slugs: `salla_events action=list`, `app_id`.
 3. Subscribe: `salla_events action=subscribe`, `app_id`, `events: [...]` — e.g.
    `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,
    `app.subscription.started`, `app.subscription.renewed`, `app.subscription.expired`.
 
-Inspect the app's current configuration/state any time with `salla_apps action=get`,
-`app_id`. (Subscribing is a partner-config action; **handling** the delivered events is
-runtime code — Parts 2–8.)
+Inspect the app's current configuration any time with `salla_apps action=get`, `app_id`.
+
+**Gate:** "Webhook set + events subscribed (`salla_events action=list` shows them), and
+your endpoint returns 200?"
 
 ---
 
-## Part 1 — Event Catalog
-
-| Event                       | When                             | What to do                                                                 |
-| --------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
-| `app.installed`             | First install                    | Provision merchant resources, set defaults                                 |
-| `app.store.authorize`       | Install **or** token refresh     | Save/update `access_token` + `refresh_token` + expiry per merchant         |
-| `app.updated`               | Merchant updates the app         | Salla fires `app.store.authorize` right after — wait for it for new tokens |
-| `app.settings.updated`      | Merchant changes app settings    | Apply new values from `data.settings`                                      |
-| `app.trial.started`         | Trial begins                     | Enable trial features                                                      |
-| `app.trial.expired`         | Trial ended without upgrade      | Restrict access                                                            |
-| `app.trial.canceled`        | Trial cancelled                  | Restrict access                                                            |
-| `app.subscription.started`  | Paid plan **or addon** activated | Unlock features; branch on `data.item_type` (plan vs addon)                |
-| `app.subscription.renewed`  | Plan/addon renewed               | Confirm active; store new `data.end_date` / `renew_date`                   |
-| `app.subscription.expired`  | Plan/addon lapsed                | Restrict access, notify merchant                                           |
-| `app.subscription.canceled` | Plan/addon cancelled             | Restrict access                                                            |
-| `app.feedback.created`      | Merchant leaves a review         | Log rating/comment                                                         |
-
-> `app.subscription.*` and `app.trial.*` fire for **both** plans and addons — the
-> `data.item_type` field (`"plan"` | `"addon"`) tells them apart. Full subscription
-> payload + plan-state handling lives in **salla-app-subscription-management**.
-
----
-
-## Part 2 — Install Flow
+## Step 2 — Handle the Install Flow
 
 On first install Salla fires **`app.installed`** and **`app.store.authorize`**. Don't
 assume an order — make each handler independent and idempotent.
@@ -95,11 +115,7 @@ if (payload.event === "app.installed") {
   // Provision: create the merchant row, seed defaults, queue a welcome step.
   await db.merchants.upsert({
     where: { id: payload.merchant },
-    create: {
-      id: payload.merchant,
-      status: "installed",
-      installedAt: new Date(),
-    },
+    create: { id: payload.merchant, status: "installed", installedAt: new Date() },
     update: { status: "installed" },
   });
 }
@@ -126,22 +142,28 @@ if (payload.event === "app.store.authorize") {
 }
 ```
 
+**Gate:** "Install of a demo store creates the merchant row and persists tokens, in any
+arrival order?"
+
 ---
 
-## Part 3 — Update Flow
+## Step 3 — Handle the Update Flow
 
-When the merchant updates the app, Salla fires **`app.updated`** and then immediately
+When the merchant updates the app, Salla fires **`app.updated`** then immediately
 **`app.store.authorize`** with fresh tokens.
 
 - Treat `app.updated` as a signal only — **do not** expect tokens in its payload.
 - Let your existing `app.store.authorize` handler persist the new tokens.
 
+**Gate:** "An app update refreshes stored tokens via the authorize handler, not the
+update handler?"
+
 ---
 
-## Part 4 — Uninstall Cleanup
+## Step 4 — Handle Uninstall Cleanup
 
-**`app.uninstalled`** means the merchant removed your app. This is an App Store
-requirement: you must clean up merchant data per your retention/GDPR policy.
+**`app.uninstalled`** means the merchant removed your app. Cleanup is an App Store
+requirement — handle it per your retention/GDPR policy.
 
 ```typescript
 if (payload.event === "app.uninstalled") {
@@ -153,25 +175,21 @@ if (payload.event === "app.uninstalled") {
 
 Document what you store and how it's deleted on uninstall — it's reviewed at submission.
 
----
-
-## Part 5 — Trial Events
-
-| Event                | Effect                                       |
-| -------------------- | -------------------------------------------- |
-| `app.trial.started`  | Enable trial-tier features; record trial end |
-| `app.trial.expired`  | Downgrade/restrict until they subscribe      |
-| `app.trial.canceled` | Restrict immediately                         |
-
-Trials and paid plans are distinct event families. A merchant typically flows
-`trial.started` → (`subscription.started` if they convert | `trial.expired` if they don't).
+**Gate:** "Uninstall enqueues cleanup and the job revokes tokens + removes/anonymizes PII?"
 
 ---
 
-## Part 6 — Subscription Events (overview)
+## Step 5 — Handle Trial & Subscription Events
 
-`app.subscription.started` / `.renewed` / `.expired` / `.canceled` carry the plan/addon
-detail. Minimum handling here; full logic in **salla-app-subscription-management**:
+| Event | Effect |
+| --- | --- |
+| `app.trial.started` | Enable trial-tier features; record trial end |
+| `app.trial.expired` | Downgrade/restrict until they subscribe |
+| `app.trial.canceled` | Restrict immediately |
+
+A merchant typically flows `trial.started` → (`subscription.started` if they convert |
+`trial.expired` if they don't). Minimum subscription handling here — full logic in
+**salla-app-subscription-management**:
 
 ```typescript
 if (payload.event === "app.subscription.started") {
@@ -187,31 +205,30 @@ if (payload.event === "app.subscription.started") {
 Watch `data.store_type` (`development` | `demo` | `live`) to avoid treating test-store
 subscriptions as real revenue.
 
+**Gate:** "Trial and subscription events transition the merchant's stored status, branching
+on `item_type`?"
+
 ---
 
-## Part 7 — Reliability (from salla-webhooks)
+## Step 6 — Harden: Reliability & State Machine
 
-Non-negotiable for every handler here:
+Non-negotiable for every handler above:
 
 - **Verify the signature first** (HMAC-SHA256, timing-safe) — reject otherwise.
-- **Respond `200` within 3 s**, then process async (queue the work). Salla retries
-  failed deliveries (non-2xx / timeout) up to 5 times with exponential backoff.
-- **Be idempotent** — `created_at` is second-resolution, so `${merchant}:${event}:${created_at}`
-  collides if the same merchant fires two same-type events in one second (e.g. two
-  settings updates). Add a stronger discriminator when the payload offers one
+- **Respond `200` within 3 s**, then process async. Salla retries failed deliveries
+  (non-2xx / timeout) up to 5 times with exponential backoff.
+- **Be idempotent** — `created_at` is second-resolution, so
+  `${merchant}:${event}:${created_at}` collides if the same merchant fires two same-type
+  events in one second. Add a stronger discriminator when the payload offers one
   (e.g. `subscription_id`) or hash the raw body.
 - **Upsert, never insert-only** — the same merchant re-installs and re-authorizes.
 - **Handle async-job failure** — the `200` is already sent, so a throw in the queued
-  worker (DB write, downstream API) is invisible to Salla and won't be retried by it.
-  Route failed jobs to a dead-letter queue, retry with backoff, keep the retry
-  idempotent (same discriminator as above so a re-run can't double-apply), and alert on
-  exhausted retries so a silently dropped install/uninstall doesn't go unnoticed.
+  worker is invisible to Salla. Route failed jobs to a dead-letter queue, retry with
+  backoff (idempotent), and alert on exhausted retries so a dropped install/uninstall
+  doesn't go unnoticed.
 
-See the salla-webhooks skill for the verification and idempotency code.
-
----
-
-## Part 8 — Recommended Merchant State Machine
+Recommended merchant state machine — persist `status` per merchant and transition from the
+handlers above:
 
 ```text
         app.installed
@@ -235,25 +252,20 @@ See the salla-webhooks skill for the verification and idempotency code.
         uninstalled  (run cleanup)
 ```
 
-Persist `status` per merchant and transition it from the handlers above. Gate features on
-`status` (and on addon entitlements — see salla-subscription-system).
+Gate features on `status` (and on addon entitlements — see salla-subscription-system).
 
----
-
-## Part 9 — Payload Reference
-
-Full per-event JSON payloads: **[references/lifecycle-payloads.md](references/lifecycle-payloads.md)**.
-Confirm field names against the MCP before relying on them.
+**Gate:** "Every handler verifies signature, returns 200 fast, is idempotent, and updates
+`status` along the state machine?"
 
 ---
 
 ## Key Resources
 
-| Resource            | URL                                     |
-| ------------------- | --------------------------------------- |
-| App Events docs     | https://docs.salla.dev/421413m0         |
-| Webhooks (security) | salla-webhooks skill                    |
-| Token handling      | salla-app-authorization skill           |
-| Plan/trial state    | salla-app-subscription-management skill |
-| Partners Portal     | https://salla.partners                  |
-| Telegram community  | https://t.me/salladev                   |
+| Resource | URL |
+| --- | --- |
+| App Events docs | https://docs.salla.dev/421413m0 |
+| Webhooks (security) | salla-webhooks skill |
+| Token handling | salla-app-authorization skill |
+| Plan/trial state | salla-app-subscription-management skill |
+| Partners Portal | https://salla.partners |
+| Telegram community | https://t.me/salladev |

@@ -108,23 +108,42 @@ grant_type=refresh_token
 &client_secret=YOUR_CLIENT_SECRET
 ```
 
-Response returns a new `access_token` (and sometimes a new `refresh_token` — always store the latest).
+The response returns a **new `access_token` AND a new `refresh_token`** — always store
+both.
 
-### Refresh strategy
+> ⚠️ **Refresh tokens are single-use.** Refreshing the **same** refresh token twice (e.g.
+> two requests refreshing concurrently) makes Salla invalidate the refresh token and
+> **revoke every access token issued from it** — the merchant must reinstall, with no
+> recovery. Never refresh from two processes at once: guard refresh with a per-merchant
+> distributed lock and always persist both new tokens. Full rules → **salla-app-authorization**.
+
+### Refresh strategy (lock-guarded)
 
 ```ts
 async function getValidToken(merchantId: number): Promise<string> {
   const stored = await db.getToken(merchantId);
   const expiresAt = new Date(stored.expires_at);
 
-  // Refresh if expiring within 5 minutes
-  if (expiresAt.getTime() - Date.now() < 5 * 60 * 1000) {
-    const fresh = await refreshToken(stored.refresh_token);
-    await db.saveToken(merchantId, fresh);
-    return fresh.access_token;
+  // Not near expiry — use the stored token as-is
+  if (expiresAt.getTime() - Date.now() >= 5 * 60 * 1000) return stored.access_token;
+
+  // Acquire a per-merchant lock so only ONE process refreshes (single-use token).
+  const lockKey = `token_refresh_lock:${merchantId}`;
+  const acquired = await redis.set(lockKey, '1', 'NX', 'EX', 30); // 30s TTL
+  if (!acquired) {
+    // Another process is refreshing — wait briefly, then read the token it just saved.
+    await sleep(500);
+    return (await db.getToken(merchantId)).access_token;
   }
 
-  return stored.access_token;
+  try {
+    const fresh = await refreshToken(stored.refresh_token);
+    // ALWAYS save BOTH new tokens — the old refresh token is now dead.
+    await db.saveToken(merchantId, fresh); // { access_token, refresh_token, expires_at }
+    return fresh.access_token;
+  } finally {
+    await redis.del(lockKey); // always release the lock
+  }
 }
 ```
 

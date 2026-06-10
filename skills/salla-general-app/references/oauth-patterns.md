@@ -135,14 +135,19 @@ async function getValidToken(merchantId: number): Promise<string> {
 
   const lockKey = `token_refresh_lock:${merchantId}`;
   const lockId = crypto.randomUUID(); // unique owner marker for this attempt
-  const acquired = await redis.set(lockKey, lockId, 'NX', 'EX', 30); // 30s TTL
+  const LOCK_TTL_S = 30;
+  const acquired = await redis.set(lockKey, lockId, 'NX', 'EX', LOCK_TTL_S);
 
   if (!acquired) {
     // Another process is refreshing — wait for IT to finish, then use its result.
-    for (let i = 0; i < 20; i++) {
+    // Poll for the FULL lock lifetime (+ margin): the holder can still save a valid
+    // token right up to the TTL, so giving up early would throw on a normal slow refresh.
+    const deadline = Date.now() + (LOCK_TTL_S + 2) * 1000;
+    while (Date.now() < deadline) {
       await sleep(250);
       stored = await db.getToken(merchantId);
       if (fresh(stored)) return stored.access_token;
+      if (!(await redis.get(lockKey))) break; // holder released/expired — stop waiting
     }
     throw new Error('Timed out waiting for token refresh');
   }

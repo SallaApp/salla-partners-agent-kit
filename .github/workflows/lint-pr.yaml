@@ -12,6 +12,12 @@ on:
       - synchronize
       - labeled
       - unlabeled
+
+permissions:
+  pull-requests: read
+  statuses: write
+  checks: write
+
 jobs:
   title:
     name: Validate PR title

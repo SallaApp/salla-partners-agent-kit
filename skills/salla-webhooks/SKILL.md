@@ -314,12 +314,13 @@ app.post("/webhooks/salla", async (req, res) => {
 ```typescript
 // Idempotency — subscription_id is unique per lifecycle event; for everything else
 // hash the raw body so resource IDs (order id, product id) don't collide across updates
-async function handleWebhook(payload: WebhookPayload): Promise<void> {
+async function handleWebhook(rawBody: string): Promise<void> {
+  const payload = JSON.parse(rawBody) as WebhookPayload;
   const discriminator =
     (payload.data as any)?.subscription_id ??
     crypto
       .createHash("sha256")
-      .update(JSON.stringify(payload))
+      .update(rawBody) // the delivered bytes — re-serializing the parsed object can reorder keys
       .digest("hex")
       .slice(0, 16);
   const key = `${payload.merchant}:${payload.event}:${discriminator}`;

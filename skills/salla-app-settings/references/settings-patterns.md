@@ -99,7 +99,7 @@ async function setSandboxMode(appId: number, token: string, enabled: boolean) {
 
 ## Validating Settings Signature
 
-Settings validation requests from Salla carry the signature in `Authorization: Bearer <hex-sig>`, the same as webhooks. Always read the **raw body** before parsing:
+Settings validation requests from Salla carry the HMAC signature in `Authorization: Bearer <hex-sig>` — note this DIFFERS from webhook Signature verification, which uses the `X-Salla-Signature` header (see salla-webhooks). Always read the **raw body** before parsing:
 
 ```ts
 async function verifySignature(

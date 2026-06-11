@@ -48,7 +48,7 @@ payload shape before coding. The **Salla Partners MCP** _performs actions_:
 | Event                       | When                             | What to do                                                                                                     |
 | --------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `app.installed`             | First install                    | Provision merchant resources, set defaults                                                                     |
-| `app.store.authorize`       | Install **or** token refresh     | Save/update `access_token` + `refresh_token` + expiry per merchant                                             |
+| `app.store.authorize`       | App installed or updated (never on token refresh — that's your own `grant_type=refresh_token` call) | Save/update `access_token` + `refresh_token` + expiry per merchant                                             |
 | `app.updated`               | Merchant updates the app         | Salla fires `app.store.authorize` right after — wait for it for new tokens                                     |
 | `app.settings.updated`      | Merchant saves app settings      | Apply new values from `data.settings` — **this event activates the app** (install → settings.updated → active) |
 | `app.trial.started`         | Trial begins                     | Enable trial features                                                                                          |

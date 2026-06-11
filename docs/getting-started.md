@@ -178,7 +178,7 @@ parameter:
 | `salla_functions`        | `list` · `get` · `delete`                                                   | Inspect/remove deployed App Functions (deploy happens on publish)          |
 | `salla_upload`           | —                                                                           | Upload an image/document → returns a file `id` (e.g. for an app logo)      |
 | `salla_reference`        | `categories` · `scopes` · `countries` · `cities`                            | Read-only lookups other tools need                                         |
-| `salla_request`          | `search` · `call`                                                           | Generic GET fallback for partner endpoints (may be disabled by the server) |
+| `salla_request`          | `mode: search` · `mode: call` (not `action`)                                                         | Generic GET fallback for partner endpoints (may be disabled by the server) |
 
 ---
 

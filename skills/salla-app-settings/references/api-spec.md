@@ -1,7 +1,14 @@
-# App Settings API
+# App Settings Values API (runtime — not an MCP tool)
+
+This is the **runtime, per-merchant values** API: your deployed app's backend calls it
+with **each merchant's OAuth access token** (delivered via `app.store.authorize`). It
+cannot be an MCP tool — the Partners MCP authenticates as the partner and never holds
+merchant tokens. Don't confuse it with defining the settings **form schema**, which IS
+an MCP action (`salla_settings action=define_form`, Partner API).
 
 Base URL: `https://api.salla.dev/admin/v2`
-Auth: OAuth2 (`offline_access` scope), Bearer token in header.
+Auth: the **merchant's** Bearer token (OAuth2, `offline_access` scope) — see
+[salla-app-auth](../../salla-app-auth/SKILL.md) for acquiring and refreshing it.
 
 ---
 

@@ -18,7 +18,7 @@ material. Work in this order:
 ## 1. Prefer the domain skill
 
 Each Salla skill embeds its own deep links and verified deltas. If a skill covers the
-topic, follow it instead of the docs ([salla-app-architect](../salla-app-architect/SKILL.md)
+topic, follow it instead of the docs ([salla-app-expert](../salla-app-expert/SKILL.md)
 routes by intent). Come here when the skills don't answer it.
 
 ## 2. API shapes → the docs MCP

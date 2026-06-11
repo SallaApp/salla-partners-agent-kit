@@ -10,8 +10,8 @@ monetize, publish — designed to pair with the
 
 ## How to use the skills
 
-- **Start at the router**: the `salla-app-architect` skill dispatches any Salla intent
-  to the right skill (on Claude Code, the `salla-app-architect` agent in `agents/`
+- **Start at the router**: the `salla-app-expert` skill dispatches any Salla intent
+  to the right skill (on Claude Code, the `salla-app-expert` agent in `agents/`
   plays this role). Creating an app from scratch → `salla-app-builder`.
 - **The hookable rule** (how behavior attaches to the platform): shopper's browser →
   snippet (`salla-snippets`); an App Function trigger exists → App Function

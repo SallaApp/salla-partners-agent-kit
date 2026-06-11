@@ -62,7 +62,7 @@ checkpoints (**Gates**), and inline links to references.
 
 **Router (start here)**
 
-- `salla-app-architect` — the master router: hookable rule (snippet vs App Function vs webhook), intent → skill routes, capability → MCP tool map. On clients that support agents, the `salla-app-architect` agent plays this role.
+- `salla-app-expert` — the master router: hookable rule (snippet vs App Function vs webhook), intent → skill routes, capability → MCP tool map. On clients that support agents, the `salla-app-expert` agent plays this role.
 
 **Core / foundation**
 

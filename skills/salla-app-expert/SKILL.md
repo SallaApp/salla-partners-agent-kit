@@ -1,5 +1,5 @@
 ---
-name: salla-app-architect
+name: salla-app-expert
 description: >
   Master router for Salla app development. Use when the task is broad ("build a
   Salla app", "add X to my app") or you're unsure which Salla skill applies — it
@@ -9,7 +9,7 @@ description: >
   to the dedicated skill named below.
 ---
 
-# Salla App Architect — Master Router
+# Salla App Expert — Master Router
 
 A Salla app is **reactions to events attached at hookables**, across one lifecycle:
 install → configure → operate → monetize → update → uninstall. This skill holds no

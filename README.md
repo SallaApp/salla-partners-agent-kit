@@ -18,12 +18,12 @@ claude plugin marketplace add SallaApp/salla-partners-ai-plugin
 
 Per-agent notes:
 
-| Agent              | Install                                                                                                                           |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Claude Code**    | `claude plugin marketplace add SallaApp/salla-partners-ai-plugin` (skills + the `salla-app-architect` agent), or `npx skills add` |
-| **Cursor**         | `npx skills add …`, or clone this repo into the workspace — `.cursor/skills/` mirrors `skills/`                                   |
-| **GitHub Copilot** | works on this repo out of the box via `.github/skills/`; elsewhere use `npx skills add`                                           |
-| **Codex / others** | `npx skills add …` or copy `skills/` to your agent's skills directory                                                             |
+| Agent              | Install                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Claude Code**    | `claude plugin marketplace add SallaApp/salla-partners-ai-plugin` (skills + the `salla-app-expert` agent), or `npx skills add` |
+| **Cursor**         | `npx skills add …`, or clone this repo into the workspace — `.cursor/skills/` mirrors `skills/`                                |
+| **GitHub Copilot** | works on this repo out of the box via `.github/skills/`; elsewhere use `npx skills add`                                        |
+| **Codex / others** | `npx skills add …` or copy `skills/` to your agent's skills directory                                                          |
 
 Cross-agent conventions live in [AGENTS.md](AGENTS.md). For full setup — installing the
 skills **and** connecting the Partners MCP action tools — see
@@ -33,9 +33,9 @@ skills **and** connecting the Partners MCP action tools — see
 
 A Salla app is **reactions to events attached at hookables**. The plugin mirrors that:
 
-- **Master agent** — [`agents/salla-app-architect.md`](agents/salla-app-architect.md):
+- **Master agent** — [`agents/salla-app-expert.md`](agents/salla-app-expert.md):
   routes intent → skills → MCP tools, end to end. For clients that support agent prompts.
-- **Master router skill** — [`salla-app-architect`](skills/salla-app-architect/SKILL.md):
+- **Master router skill** — [`salla-app-expert`](skills/salla-app-expert/SKILL.md):
   the same routing as a plain skill, for clients that don't support agent prompts. Holds
   the hookable rule (snippet vs App Function vs webhook) and the intent → skill map.
 - **14 composable skills** — each owns one domain and hands off to the others:

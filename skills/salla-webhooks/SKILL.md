@@ -7,13 +7,6 @@ description: >
   idempotent fast-200 handlers, and delivery debugging. Use only when no App Function
   trigger covers the event — App Functions are preferred (salla-app-functions).
   Lifecycle events → salla-app-lifecycle; shopper-browser behavior → salla-snippets.
-
-  Trigger also when you see: "webhook", "SallaWebhook", "webhook-actions-js",
-  "event subscription", "signature verification", "X-Salla-Signature",
-  "app.store.authorize", "order.created", "shipment.creating", "conditional webhook",
-  "webhook rule", "salla app create-webhook", or any Salla store event name.
-
-  Always use this skill before writing any webhook code.
 ---
 
 # Salla Webhooks Flow

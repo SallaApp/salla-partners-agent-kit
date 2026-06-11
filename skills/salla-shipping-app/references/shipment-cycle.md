@@ -6,7 +6,7 @@ The complete lifecycle of a shipment from order creation through delivery, with 
 
 ## Full Lifecycle Diagram
 
-```
+```text
 Merchant receives order
         ↓
 Merchant clicks "Ship" in dashboard

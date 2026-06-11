@@ -8,17 +8,6 @@ description: >
   dashboard, billing redirects, or post-purchase activation. Prerequisites: a working
   embedded app (salla-embedded-app) and an addon defined at publish (salla-app-billing).
   Webhook hygiene → salla-webhooks.
-
-  Trigger also when you see: "buy addon", "purchase addon in app", "in-app purchase",
-  "addon checkout", "billing redirect", "embedded addon", "addon item_slug",
-  "activate addon", "upsell inside dashboard", or any question about selling an addon
-  without sending the merchant out to the App Store listing.
-
-  This skill sits on top of three others: the embedded SDK setup and No-Chrome rules
-  (salla-embedded-app), how addons are priced/defined (salla-app-billing),
-  and how addon entitlements are tracked after purchase (salla-app-billing).
-  Feature gating is salla-app-billing. The @salla.sa/embedded-sdk package is the
-  authority for the purchase method — confirm it there before writing the redirect.
 ---
 
 # Salla Addon Purchase (Embedded) Flow

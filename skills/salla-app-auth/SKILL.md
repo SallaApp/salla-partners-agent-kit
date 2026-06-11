@@ -8,13 +8,6 @@ description: >
   lock, and the User Info endpoint. Use before writing any Salla token-handling code.
   Lifecycle event handling → salla-app-lifecycle; webhook verification → salla-webhooks;
   API usage → salla-api-core.
-
-  Trigger also when you see: "Easy Mode", "Custom Mode", "access token", "refresh token",
-  "offline_access", "app.store.authorize", "accounts.salla.sa", "token expired",
-  "token refresh", "OAuth callback", "client_id", "client_secret", "authorization_code",
-  "grant_type", or any question about how Salla authentication works.
-
-  Always use this skill before writing any OAuth or token-handling code.
 ---
 
 # Salla App Authorization Flow

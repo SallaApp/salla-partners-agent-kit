@@ -51,20 +51,21 @@ Each skill is a workflow: a discovery step, numbered steps with gates, and refer
 loaded only when needed. Descriptions are the routing interface — agents pick the right
 skill from the description alone.
 
-## Validation & Scoring
+## Validation
 
-To evaluate skill quality locally using the LLM-as-a-judge validator:
+Lint every skill with the open-source `skill-validator` (static rules: frontmatter,
+structure, secret scanning). The expired-token workaround (`npm_config_userconfig`)
+is only needed if your `~/.npmrc` carries a stale token:
 
 ```bash
-# Score a skill and all its reference files:
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli
-
-# Force a re-evaluation (bypassing cache):
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore
-
-# Per-reference-file scores:
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore --display files
+for f in skills/*/SKILL.md skills/*/references/*.md; do
+  npm_config_userconfig=/dev/null npx -y skill-validator validate "$f"
+done
 ```
+
+Notes: the tool's "code blocks without language specification" counter counts closing
+fences (ignore it), and its Overview/Parameters/Returns section warnings assume
+tool-doc layout, not agent-skill workflows.
 
 ## Code Quality & Formatting
 

@@ -8,16 +8,6 @@ description: >
   expired → uninstalled). Events redeliver — handlers must be idempotent and upsert by
   merchant. Transport (registration, verification, fast 200) → salla-webhooks; token
   storage/refresh → salla-app-auth; plan/trial state → salla-app-billing.
-
-  Trigger also when you see: "app.installed", "app.uninstalled", "app.store.authorize",
-  "app.updated", "app.trial.started", "app.subscription.started", "lifecycle event",
-  "install webhook", "uninstall cleanup", "store_type", "development store",
-  "demo store", or any question about reacting to install/trial/subscription state.
-
-  Always use this skill before writing any lifecycle event handler. Builds on the
-  salla-webhooks skill (signature verification, idempotency, fast 200) and the
-  salla-app-auth skill (token storage). For plan/trial state logic see
-  salla-app-billing.
 ---
 
 # Salla App Lifecycle Flow

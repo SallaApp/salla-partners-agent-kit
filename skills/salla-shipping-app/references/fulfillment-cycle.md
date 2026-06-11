@@ -17,7 +17,7 @@ Order Fulfillment Apps manage dispatching orders across multiple carriers and br
 
 ## Fulfillment Lifecycle
 
-```
+```text
 Order created in Salla
         ↓
 Salla fires: order.created

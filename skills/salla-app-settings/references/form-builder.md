@@ -138,7 +138,7 @@ Always verify the `Authorization: Bearer` signature (HMAC-SHA256, Web Crypto `su
 
 ## Typical Install Flow
 
-```
+```text
 Merchant installs app
     ↓
 app.store.authorize webhook fires → your server receives token

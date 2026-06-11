@@ -6,7 +6,7 @@ The Salla Merchant Dashboard passes a short-lived PASETO token to your iframe. Y
 
 ## Token Flow
 
-```
+```text
 Merchant opens your embedded page in the dashboard
     ↓
 Salla loads your iframe URL — token is available via embedded.auth.getToken()

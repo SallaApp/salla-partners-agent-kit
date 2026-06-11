@@ -8,17 +8,6 @@ description: >
   (features[]), reconcile via salla_apps action=subscriptions, and meter
   usage-based billing against the subscription balance. In-app addon purchase UI →
   salla-addon-purchase; event wiring → salla-app-lifecycle.
-
-  Trigger also when you see: "pricing plan", "Custom Plans", "plan_type", "recurring",
-  "on_demand", "app.subscription.started", "app.subscription.renewed", "subscription_id",
-  "GET /apps/{app_id}/subscriptions", "plan_name", "end_date", "renew_date", "free trial",
-  "Pay As You Go", or any question about how a merchant pays for an app or what plan
-  they're on.
-
-  Always use this skill before writing subscription/plan logic. Plan and addon events
-  share one payload family — `item_type` distinguishes them; for addons see
-  salla-app-billing and salla-addon-purchase. Lifecycle event
-  wiring is in salla-app-lifecycle; feature gating in salla-app-billing.
 ---
 
 # Salla App Subscription Management Flow

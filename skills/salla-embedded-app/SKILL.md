@@ -116,7 +116,7 @@ embedded.ready(); // signals the dashboard to show the iframe
 
 Your backend must call:
 
-```
+```http
 POST https://api.salla.dev/exchange-authority/v1/introspect
 S-Source: YOUR_APP_ID
 ```

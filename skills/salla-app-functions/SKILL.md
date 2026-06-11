@@ -8,16 +8,6 @@ description: >
   sandbox limits (no npm, no fs/http, Web Crypto + fetch only), context.settings, and
   deploy-via-app-publish. Storefront/browser behavior → salla-snippets; events without
   triggers → salla-webhooks.
-
-  Trigger also when you see: "App Function", "Resp.success", "Resp.error",
-  "setData", "OrderCreatedContext", "ShipmentCreatingContext", "CommunicationEvent",
-  "context.settings", "Select Action", "Save and Preview", "synchronous action",
-  "asynchronous event", "shipment.creating", "App Functions sandbox", "edge function
-  timeout", or any question about running custom code on a Salla trigger without
-  hosting a server.
-
-  Always use this skill before writing or reviewing any App Function code. Builds on
-  the salla-api-core and salla-webhooks skills.
 ---
 
 # Salla App Functions Flow

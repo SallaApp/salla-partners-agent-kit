@@ -134,7 +134,9 @@ PUT https://api.salla.dev/admin/v2/shipping/shipments/{shipment_id}/tracking
 ```
 
 Full webhook payloads and response shapes →
-[`references/shipment-cycle.md`](references/shipment-cycle.md)
+[`references/shipment-cycle.md`](references/shipment-cycle.md); the Shipping API
+endpoints (labels, tracking, status) →
+[`references/api-endpoints.md`](references/api-endpoints.md)
 
 **Gate:** "Simulate a full shipment in the demo store: rate request → label → tracking →
 confirm tracking ID appears on the order."

@@ -49,7 +49,7 @@ Fired on first install **and** on every app update (after `app.updated`). Always
 | `scope`         | string | Space-separated granted scopes                    |
 | `token_type`    | string | OAuth 2.0 token type, always `"bearer"`           |
 
-Handling rules (single-use refresh token, mutex on refresh) → **salla-app-authorization**.
+Handling rules (single-use refresh token, mutex on refresh) → **salla-app-auth**.
 
 ---
 
@@ -131,4 +131,4 @@ addon identifier for addons.
 
 Trial events (`app.trial.started` / `.expired` / `.canceled`) use the same envelope; the
 trial typically appears as a zero-price `plan_type` like `once` with `plan_name: "trail"`.
-Per-event field detail → confirm via the MCP and see **salla-app-subscription-management**.
+Per-event field detail → confirm via the MCP and see **salla-app-billing**.

@@ -1,49 +1,65 @@
-# Salla Partners AI Plugin Foundation
+# Salla Partners AI Plugin
 
-A foundation for building an AI coding assistance plugin (Claude, Gemini, Copilot, and more) to guide agents with the right skills, commands, agents, and hooks for Salla app development.
+Build Salla Apps with AI. This plugin gives any coding agent (Claude, Cursor, Codex,
+Gemini, Copilot, and more) the **skills** to reason about the Salla platform natively
+and — together with the [Partners MCP](https://github.com/SallaApp/partners-mcp) — the
+**tools** to act on it: create, configure, hook, monetize, and publish apps without
+touching the Portal UI.
 
 ## Installation
 
-To add this plugin to your workspace:
-
 ```bash
+# Agent Skills standard (any client)
 npx skills add SallaApp/salla-partners-ai-plugin
+
+# Claude Code (as a plugin — also installs the master agent)
+claude plugin marketplace add SallaApp/salla-partners-ai-plugin
 ```
 
 For full setup — installing the skills **and** connecting the Partners MCP action tools
 for Claude Code, Cursor, Claude Desktop, Codex, and other MCP clients — see
 **[docs/getting-started.md](docs/getting-started.md)**.
 
-## Repository Structure
+## How it's organized
 
-The core capability of this plugin is the `salla-app-builder` skill which provides the following reference documents:
+A Salla app is **reactions to events attached at hookables**. The plugin mirrors that:
 
-- **[SKILL.md](skills/salla-app-builder/SKILL.md):** Main entry point mapping developer queries to reference files.
-- **[app-functions.md](skills/salla-app-builder/references/app-functions.md):** Writing Salla App Functions in TypeScript (execution context, sandbox constraints, Resp builder API).
-- **[communication-app.md](skills/salla-app-builder/references/communication-app.md):** Schema and payload reference for Salla Communication App events.
-- **[embedded-app.md](skills/salla-app-builder/references/embedded-app.md):** Configuring Embedded Pages, Salla SDK handshake, and the "No-Chrome" design rule.
-- **[oauth.md](skills/salla-app-builder/references/oauth.md):** Implementing the webhook-based "Easy Mode" OAuth flow.
-- **[salla-api.md](skills/salla-app-builder/references/salla-api.md):** Invoking Salla Admin API endpoints and reading/writing App Settings.
-- **[webhooks.md](skills/salla-app-builder/references/webhooks.md):** Signature verification, retry policy, and lifecycle webhook events.
+- **Master agent** — [`agents/salla-app-architect.md`](agents/salla-app-architect.md):
+  routes intent → skills → MCP tools, end to end. For clients that support agent prompts.
+- **Master router skill** — [`salla-app-builder`](skills/salla-app-builder/SKILL.md):
+  the same routing as a plain skill, for clients that don't. Holds the hookable rule
+  (snippet vs App Function vs webhook) and the intent → skill map.
+- **13 composable skills** — each owns one domain and hands off to the others:
+
+| Layer                    | Skills                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------- |
+| Foundation               | `salla-api-core` · `salla-app-auth` · `salla-webhooks`                                 |
+| Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` |
+| App types                | `salla-create-app` · `salla-shipping-app` · `salla-communication-app`                  |
+| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase`                   |
+
+Each skill is a workflow: a discovery step, numbered steps with gates, and references
+loaded only when needed. Descriptions are the routing interface — agents pick the right
+skill from the description alone.
 
 ## Validation & Scoring
 
-To evaluate the quality of the skill and its reference files locally using the LLM-as-a-judge validator:
+To evaluate skill quality locally using the LLM-as-a-judge validator:
 
 ```bash
-# Score SKILL.md and all reference files:
+# Score a skill and all its reference files:
 skill-validator score evaluate skills/salla-app-builder --provider claude-cli
 
-# Force a re-evaluation of scores (bypassing cache):
+# Force a re-evaluation (bypassing cache):
 skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore
 
-# View scores for each individual reference file:
+# Per-reference-file scores:
 skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore --display files
 ```
 
 ## Code Quality & Formatting
 
-Before committing changes to any reference `.md` files, make sure to format them using Prettier:
+Before committing changes to any `.md` files, format them with Prettier:
 
 ```bash
 pnpx prettier . --write

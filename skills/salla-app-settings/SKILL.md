@@ -1,10 +1,12 @@
 ---
 name: salla-app-settings
 description: >
-  Use when building, reading, or updating merchant settings for a Salla app —
-  designing the schema, registering the form via the MCP, setting a Validation URL,
-  managing supported features, fetching values (GET), writing values (POST), or reading
-  settings inside an App Function.
+  Per-merchant settings for a Salla app: design the schema, register the form and
+  Validation URL via the salla_settings tool, declare supported features (publish-
+  blocker for communication apps), seed defaults on install, read/write values (POST is
+  a full replace — always send ALL keys), react to app.settings.updated (the event that
+  activates the app), and read context.settings inside App Functions. Admin API
+  mechanics → salla-api-core; lifecycle wiring → salla-app-lifecycle.
 ---
 
 # Salla App Settings Flow
@@ -17,12 +19,12 @@ Salla Partners MCP tools. Follow the steps in order — complete each gate befor
 
 ## Tools
 
-| Tool | Action | What it does |
-| --- | --- | --- |
-| `salla_settings` | `define_form` | Register the merchant settings form (field objects) |
-| `salla_settings` | `set_validation_url` | Set the server-side Validation URL |
-| `salla_settings` | `list_features` | Read the app's supported features |
-| `salla_settings` | `set_features` | Set supported features |
+| Tool             | Action               | What it does                                        |
+| ---------------- | -------------------- | --------------------------------------------------- |
+| `salla_settings` | `define_form`        | Register the merchant settings form (field objects) |
+| `salla_settings` | `set_validation_url` | Set the server-side Validation URL                  |
+| `salla_settings` | `list_features`      | Read the app's supported features                   |
+| `salla_settings` | `set_features`       | Set supported features                              |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Every action needs
 > the app's `app_id`. If a tool returns "Salla session expired", re-run the login flow.
@@ -44,12 +46,12 @@ Ask before starting:
 Define the fields based on Step 0. Keep the schema **flat** — nested objects are not
 supported. Each field is an object (`id`, `label`, `type`, …).
 
-| Type | Example field |
-| --- | --- |
-| `string` | API key, endpoint URL, email |
-| `string` (secret) | Password, secret token |
-| `number` | Contract number, timeout |
-| `boolean` | Feature toggle, fast delivery enabled |
+| Type              | Example field                         |
+| ----------------- | ------------------------------------- |
+| `string`          | API key, endpoint URL, email          |
+| `string` (secret) | Password, secret token                |
+| `number`          | Contract number, timeout              |
+| `boolean`         | Feature toggle, fast delivery enabled |
 
 Field-object reference → [`references/form-builder.md`](references/form-builder.md)
 
@@ -73,9 +75,11 @@ merchants see the fields."
 
 ---
 
-## Step 3 — (Optional) Declare Supported Features
+## Step 3 — Declare Supported Features
 
-If your app advertises capability flags, manage them with the tool:
+Optional for most apps — **required before publish for communication apps** (channel
+declaration; see [salla-communication-app](../salla-communication-app/SKILL.md)).
+Manage the flags with the tool:
 
 - Read current: `salla_settings action=list_features`, `app_id`.
 - Set them: `salla_settings action=set_features`, `app_id`, `features: [...]`.
@@ -86,7 +90,9 @@ If your app advertises capability flags, manage them with the tool:
 
 There is no MCP tool for writing per-merchant **values** — that happens at runtime with
 the merchant's `access_token`. When `app.store.authorize` fires on install, seed any
-required defaults so the merchant starts with a working configuration:
+required defaults so the merchant starts with a working configuration. Note:
+`app.settings.updated` (fired when the merchant saves the form) is what **activates**
+the app — handle it even if you only re-read the values:
 
 ```http
 POST https://api.salla.dev/admin/v2/apps/{app_id}/settings
@@ -115,9 +121,14 @@ Authorization: Bearer {access_token}
 ```
 
 ```json
-{ "status": 200, "success": true,
-  "data": { "app_id": "513499943",
-            "settings": { "api_key": "sk-abc123", "fast_delivery": true } } }
+{
+  "status": 200,
+  "success": true,
+  "data": {
+    "app_id": "513499943",
+    "settings": { "api_key": "sk-abc123", "fast_delivery": true }
+  }
+}
 ```
 
 **Update — always send every key** (read first, merge your change, write all):
@@ -155,7 +166,7 @@ App Functions context shape → [`salla-app-builder`](../salla-app-builder/SKILL
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
+| Topic                      | Link                                                   |
+| -------------------------- | ------------------------------------------------------ |
 | Build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| Salla Admin API reference | https://docs.salla.dev/doc-421117 |
+| Salla Admin API reference  | https://docs.salla.dev/doc-421117                      |

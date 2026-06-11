@@ -9,6 +9,7 @@ App Settings is a per-merchant configuration form rendered inside the Salla Merc
 **Partners Portal → App Details → App Settings**
 
 Two things to configure:
+
 1. **Settings Form** — the JSON/HTML schema that defines the fields shown to the merchant
 2. **Validation URL** — an optional endpoint Salla calls to validate values before saving
 
@@ -16,16 +17,16 @@ Two things to configure:
 
 ## Field Types
 
-| Type | UI control | Use for |
-| --- | --- | --- |
-| `text` | Single-line input | API keys, URLs, usernames |
-| `password` | Masked input | Secrets, tokens |
-| `email` | Email input with validation | Contact emails |
-| `number` | Numeric input | Timeouts, limits, IDs |
-| `toggle` / `boolean` | On/Off switch | Feature flags |
-| `select` | Dropdown | Fixed option sets |
-| `textarea` | Multi-line input | Long text, notes |
-| `url` | URL input with validation | Webhook endpoints, API base URLs |
+| Type                 | UI control                  | Use for                          |
+| -------------------- | --------------------------- | -------------------------------- |
+| `text`               | Single-line input           | API keys, URLs, usernames        |
+| `password`           | Masked input                | Secrets, tokens                  |
+| `email`              | Email input with validation | Contact emails                   |
+| `number`             | Numeric input               | Timeouts, limits, IDs            |
+| `toggle` / `boolean` | On/Off switch               | Feature flags                    |
+| `select`             | Dropdown                    | Fixed option sets                |
+| `textarea`           | Multi-line input            | Long text, notes                 |
+| `url`                | URL input with validation   | Webhook endpoints, API base URLs |
 
 ---
 
@@ -35,37 +36,43 @@ Two things to configure:
 {
   "fields": [
     {
-      "key": "api_key",
+      "id": "api_key",
       "type": "text",
-      "label": { "en": "API Key", "ar": "مفتاح API" },
+      "label": "API Key",
       "required": true,
-      "placeholder": { "en": "Enter your carrier API key", "ar": "أدخل مفتاح API" }
+      "placeholder": "Enter your carrier API key",
+      "public": false
     },
     {
-      "key": "sandbox_mode",
+      "id": "sandbox_mode",
       "type": "toggle",
-      "label": { "en": "Sandbox Mode", "ar": "وضع الاختبار" },
+      "label": "Sandbox Mode",
       "default": false
     },
     {
-      "key": "environment",
+      "id": "environment",
       "type": "select",
-      "label": { "en": "Environment", "ar": "البيئة" },
+      "label": "Environment",
       "options": [
-        { "value": "production", "label": { "en": "Production", "ar": "الإنتاج" } },
-        { "value": "staging",    "label": { "en": "Staging",    "ar": "التجريبي" } }
+        { "value": "production", "label": "Production" },
+        { "value": "staging", "label": "Staging" }
       ],
       "default": "production"
     },
     {
-      "key": "webhook_url",
+      "id": "webhook_url",
       "type": "url",
-      "label": { "en": "Callback URL", "ar": "رابط الاستجابة" },
+      "label": "Callback URL",
       "required": false
     }
   ]
 }
 ```
+
+Field identifier is **`id`**; `label` / `placeholder` / `description` are plain strings
+(not bilingual objects). `public: true` marks a value as safe for client-side use
+(e.g. tracking IDs) — API keys and secrets must stay `public: false` (server/App
+Function only).
 
 ---
 
@@ -74,6 +81,7 @@ Two things to configure:
 If you set a Validation URL, Salla will POST to it before saving the merchant's settings.
 
 **Request from Salla:**
+
 ```http
 POST https://your-app.com/settings/validate
 Content-Type: application/json
@@ -91,11 +99,13 @@ Authorization: Bearer <hex-hmac-sha256>
 ```
 
 **Your response — valid:**
+
 ```json
 { "success": true }
 ```
 
 **Your response — invalid (blocks save, shows error to merchant):**
+
 ```json
 {
   "success": false,
@@ -132,7 +142,7 @@ Merchant fills form and saves
     ↓
 Salla calls your Validation URL (if set)
     ↓
-On success → Salla stores values + calls POST /apps/{app_id}/settings
+On success → Salla stores the values itself (your POST /apps/{app_id}/settings is only for runtime writes from your code)
     ↓
 Your App Functions can now read settings via context.settings
 ```
@@ -141,7 +151,7 @@ Your App Functions can now read settings via context.settings
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
+| Topic                             | Link                                                   |
+| --------------------------------- | ------------------------------------------------------ |
 | How to build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| App Settings API spec | api-spec.md |
+| App Settings API spec             | api-spec.md                                            |

@@ -5,13 +5,13 @@ Complete method reference for all SDK modules with examples.
 Import the SDK using the named export:
 
 ```ts
-import { embedded } from '@salla.sa/embedded-sdk';
+import { embedded } from "@salla.sa/embedded-sdk";
 ```
 
 Or via CDN (places `SallaEmbedded` on `window`):
 
 ```html
-<script src="https://unpkg.com/@salla.sa/embedded-sdk/dist/umd/index.js"></script>
+<script src="https://cdn.salla.network/embedded-sdk/latest/index.js"></script>
 ```
 
 ---
@@ -22,14 +22,17 @@ Always call `embedded.init()` first. It performs the handshake with the dashboar
 
 ```ts
 const { layout } = await embedded.init({
-  debug: process.env.NODE_ENV !== 'production',
+  debug: process.env.NODE_ENV !== "production",
 });
 
 // Apply theme and locale from the dashboard
 if (layout) {
-  document.documentElement.setAttribute('data-theme', layout.theme);
-  document.documentElement.setAttribute('lang', layout.locale);
-  document.documentElement.setAttribute('dir', layout.locale === 'ar' ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute("data-theme", layout.theme);
+  document.documentElement.setAttribute("lang", layout.locale);
+  document.documentElement.setAttribute(
+    "dir",
+    layout.locale === "ar" ? "rtl" : "ltr",
+  );
 }
 ```
 
@@ -67,10 +70,12 @@ Controls the page title shown in the dashboard breadcrumb.
 
 ```ts
 // Set the page title
-embedded.page.setTitle('My App — Settings');
+embedded.page.setTitle("My App — Settings");
 
 // Localized title
-embedded.page.setTitle(layout?.locale === 'ar' ? 'إعدادات تطبيقي' : 'My App — Settings');
+embedded.page.setTitle(
+  layout?.locale === "ar" ? "إعدادات تطبيقي" : "My App — Settings",
+);
 ```
 
 Call `setTitle` on every route change so the dashboard breadcrumb stays in sync.
@@ -84,13 +89,13 @@ Places an action button in the dashboard's top navigation bar.
 ```ts
 // Set a primary action button (e.g. Save)
 embedded.nav.setAction({
-  title: layout?.locale === 'ar' ? 'حفظ' : 'Save',
-  value: 'save',
+  title: layout?.locale === "ar" ? "حفظ" : "Save",
+  value: "save",
 });
 
 // Listen for the button click
 embedded.nav.onAction((action) => {
-  if (action.value === 'save') {
+  if (action.value === "save") {
     saveForm();
   }
 });
@@ -107,8 +112,8 @@ Triggers native Salla dashboard UI components — toasts and loading overlay.
 ### Toasts
 
 ```ts
-embedded.ui.toast.success('Settings saved');
-embedded.ui.toast.error('Failed to connect — check your API key');
+embedded.ui.toast.success("Settings saved");
+embedded.ui.toast.error("Failed to connect — check your API key");
 ```
 
 ### Loading Overlay
@@ -124,7 +129,7 @@ embedded.ui.loading.hide();
 embedded.ui.loading.show();
 try {
   await syncOrders();
-  embedded.ui.toast.success('Sync complete');
+  embedded.ui.toast.success("Sync complete");
 } finally {
   embedded.ui.loading.hide();
 }
@@ -138,7 +143,7 @@ React to the merchant toggling light/dark mode without a page reload:
 
 ```ts
 embedded.onThemeChange?.((newTheme: string) => {
-  document.documentElement.setAttribute('data-theme', newTheme);
+  document.documentElement.setAttribute("data-theme", newTheme);
 });
 ```
 
@@ -146,10 +151,10 @@ embedded.onThemeChange?.((newTheme: string) => {
 
 ## Full Module Reference
 
-| Module | Full Reference |
-| --- | --- |
-| Auth | https://docs.salla.dev/embedded-sdk/modules/auth.md |
-| Page | https://docs.salla.dev/embedded-sdk/modules/page.md |
-| Nav | https://docs.salla.dev/embedded-sdk/modules/nav.md |
-| UI | https://docs.salla.dev/embedded-sdk/modules/ui.md |
-| Checkout | https://docs.salla.dev/embedded-sdk/modules/checkout.md |
+| Module   | Full Reference                                                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth     | https://docs.salla.dev/embedded-sdk/modules/auth.md                                                                                                |
+| Page     | https://docs.salla.dev/embedded-sdk/modules/page.md                                                                                                |
+| Nav      | https://docs.salla.dev/embedded-sdk/modules/nav.md                                                                                                 |
+| UI       | https://docs.salla.dev/embedded-sdk/modules/ui.md                                                                                                  |
+| Checkout | https://docs.salla.dev/embedded-sdk/modules/checkout.md — in-app addon purchase flow → [salla-addon-purchase](../../salla-addon-purchase/SKILL.md) |

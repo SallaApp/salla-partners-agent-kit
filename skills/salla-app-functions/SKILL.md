@@ -1,17 +1,13 @@
 ---
 name: salla-app-functions
 description: >
-  Use this skill for any task involving Salla App Functions — serverless
-  TypeScript/JavaScript handlers that Salla runs automatically on store events.
-  Trigger when a developer is: writing an App Function handler, choosing between a
-  synchronous action and an asynchronous event, using the pre-declared `Resp`
-  builder or returning the equivalent plain JSON, reading `context.payload` /
-  `context.merchant` / `context.settings`, fighting the locked Portal template,
-  hitting the V8 sandbox limits (no npm, no `fs`/`http`, Web Crypto only),
-  deploying/publishing a function from the Partners Portal, reading the execution
-  logs / preview panel, managing the 500 ms (sync) or 30 s (async) timeout with
-  `AbortController`, or setting up local IDE type mocks for `Resp` and the typed
-  contexts.
+  Write Salla App Functions — serverless TypeScript handlers that run INSIDE Salla on
+  store-event triggers; no server to host. PREFERRED over webhooks whenever a trigger
+  exists for the event. Covers sync (under 500 ms, can modify the operation) vs async
+  (30 s), the locked Portal template, pre-declared Resp/typed-context globals, V8
+  sandbox limits (no npm, no fs/http, Web Crypto + fetch only), context.settings, and
+  deploy-via-app-publish. Storefront/browser behavior → salla-snippets; events without
+  triggers → salla-webhooks.
 
   Trigger also when you see: "App Function", "Resp.success", "Resp.error",
   "setData", "OrderCreatedContext", "ShipmentCreatingContext", "CommunicationEvent",
@@ -34,15 +30,16 @@ actions** with the Salla Partners MCP.
 ## Tools & MCPs
 
 **Two MCPs — different jobs:**
-- **`apidog-mcp-server`** (site-id: `451700`) — *read-only*. Query for the live event
+
+- **`apidog-mcp-server`** (site-id: `451700`) — _read-only_. Query for the live event
   list and each event's `payload.data` shape before writing a handler. Never assume a
   payload.
-- **Salla Partners MCP** — *performs actions*:
+- **Salla Partners MCP** — _performs actions_:
 
-| Tool | Action | What it does |
-| --- | --- | --- |
-| `salla_apps` | `publish` | Publish the app (= deploy the function) |
-| `salla_functions` | `list` / `get` / `delete` | Inspect or remove deployed functions |
+| Tool              | Action                    | What it does                            |
+| ----------------- | ------------------------- | --------------------------------------- |
+| `salla_apps`      | `publish`                 | Publish the app (= deploy the function) |
+| `salla_functions` | `list` / `get` / `delete` | Inspect or remove deployed functions    |
 
 > Sync actions must finish in **< 500 ms**; async events get **30 s**. `Resp`,
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** —
@@ -76,10 +73,10 @@ trigger list live in **[references/event-contexts.md](references/event-contexts.
 
 ## Step 2 — Choose the Execution Type
 
-| Type | Timing | Blocks user? | Timeout | Return value effect |
-| --- | --- | --- | --- | --- |
-| **Asynchronous event** | After the operation | No | 30 s | Fire-and-forget: logged, does **not** affect the flow. |
-| **Synchronous action** | Before the operation | Yes | **< 500 ms** | Blocking: can **modify** parameters or **reject/block** the operation. |
+| Type                   | Timing               | Blocks user? | Timeout      | Return value effect                                                    |
+| ---------------------- | -------------------- | ------------ | ------------ | ---------------------------------------------------------------------- |
+| **Asynchronous event** | After the operation  | No           | 30 s         | Fire-and-forget: logged, does **not** affect the flow.                 |
+| **Synchronous action** | Before the operation | Yes          | **< 500 ms** | Blocking: can **modify** parameters or **reject/block** the operation. |
 
 - **Sync actions** (e.g. `shipment.creating`) intercept the lifecycle:
   `Resp.error().setMessage("…")` cancels the operation (message shown to the
@@ -156,21 +153,11 @@ return { success: false, error: "Validation failed", status: 400 };
 const apiKey = context.settings?.apiKey; // optional chaining — undefined until configured
 ```
 
-### Bound every external `fetch` to the timeout (`AbortController`)
+### Bound every external `fetch` to the timeout
 
-```typescript
-const controller = new AbortController();
-const timeout = setTimeout(() => controller.abort(), 400); // 400ms for a sync action
-try {
-  const res = await fetch("https://api.example.com/data", { signal: controller.signal });
-  return Resp.success().setData(await res.json());
-} catch (error) {
-  if ((error as Error).name === "AbortError") console.error("External request timed out");
-  return Resp.error().setMessage("Upstream timeout").setStatus(504);
-} finally {
-  clearTimeout(timeout);
-}
-```
+Pass an `AbortController` signal sized to your budget (e.g. abort at ~400 ms inside a
+sync action) and return `Resp.error().setMessage("Upstream timeout").setStatus(504)` on
+`AbortError`.
 
 ### Local IDE mock pattern
 
@@ -190,11 +177,21 @@ interface MyContextType {
   settings: Record<string, string | undefined>;
 }
 class Resp {
-  static success() { return new Resp(); }
-  static error() { return new Resp(); }
-  setStatus(_: number) { return this; }
-  setMessage(_: string) { return this; }
-  setData(_: Record<string, unknown>) { return this; }
+  static success() {
+    return new Resp();
+  }
+  static error() {
+    return new Resp();
+  }
+  setStatus(_: number) {
+    return this;
+  }
+  setMessage(_: string) {
+    return this;
+  }
+  setData(_: Record<string, unknown>) {
+    return this;
+  }
 }
 ```
 
@@ -205,12 +202,22 @@ core modules, every `fetch` bounded, no secrets logged?"
 
 ## Step 4 — Deploy & Publish
 
-The function **source** is authored in the Portal (no source-upload tool): open your app
-→ **App Functions → Add New Function** → name it → pick the trigger in **Select Action**
-→ paste the handler body into the locked template → Save (it lives in the **sandbox**
-until published).
+Author the function **source** either way:
 
-Shipping it is an **action** — use the Partners MCP instead of clicking Publish:
+- **Portal:** open your app → **App Functions → Add New Function** → name it → pick the
+  trigger in **Select Action** → paste the handler body into the locked template → Save
+  (it lives in the **sandbox** until published).
+- **Programmatic upsert:** `PUT /partners/v1/app-builder/api/{appId}/functions` —
+  requires the **platform token** (`v4.public…`, NOT the standard partner JWT). The PUT
+  on the _collection_ endpoint is a create-or-update upsert keyed by the **trigger slug**
+  (one function per trigger; there is no numeric function ID, and
+  `PUT /functions/{slug}` → 404). Body fields: `name`, `trigger`, `content` — the source
+  field is `content`, **not** `code`. **Gotcha:** for `custom.scripts.*` triggers,
+  `content` must be **Base64-encoded**. Deploy is async — the response is
+  `{job, version}`, not the function object.
+
+Either way, merchants only get the function via **app publication** — use the Partners
+MCP instead of clicking Publish:
 
 - **Publish (= deploy):** `salla_apps action=publish`, `app_id` (optional `update_note`).
   Salla deploys the function on publish; installed merchants get the update
@@ -247,12 +254,12 @@ Checklist:
 
 ## Key Resources
 
-| Resource | URL |
-| --- | --- |
-| App Functions overview | https://docs.salla.dev/1726817m0 |
-| Get started | https://docs.salla.dev/1726815m0 |
-| Supported events | https://docs.salla.dev/1726818m0 |
-| Testing guide | https://docs.salla.dev/1726816m0 |
-| Demo store testing | https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/ |
-| Partners Portal | https://portal.salla.partners |
-| Telegram community | https://t.me/salladev |
+| Resource               | URL                                                                  |
+| ---------------------- | -------------------------------------------------------------------- |
+| App Functions overview | https://docs.salla.dev/1726817m0                                     |
+| Get started            | https://docs.salla.dev/1726815m0                                     |
+| Supported events       | https://docs.salla.dev/1726818m0                                     |
+| Testing guide          | https://docs.salla.dev/1726816m0                                     |
+| Demo store testing     | https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/ |
+| Partners Portal        | https://portal.salla.partners                                        |
+| Telegram community     | https://t.me/salladev                                                |

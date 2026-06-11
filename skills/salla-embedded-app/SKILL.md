@@ -1,10 +1,12 @@
 ---
 name: salla-embedded-app
 description: >
-  Use when building or debugging a Salla embedded app — an iframe-based custom UI
-  inside the Salla Merchant Dashboard. Covers SDK setup, server-side token
-  authentication, module usage (Auth, Page, Nav, UI, Checkout), RTL/theme sync,
-  and playground testing.
+  Build an iframe page inside the Salla Merchant Dashboard: register it via
+  salla_embedded_pages, init @salla.sa/embedded-sdk, verify the short-lived session
+  token server-side (never the OAuth introspect endpoint), sync theme/locale/RTL from
+  init's layout, and use native Page/Nav/UI modules (No-Chrome rule). Use for embedded
+  pages, dashboard UI, SDK modules, or token/401 issues. Selling addons in-app → salla-
+  addon-purchase; publish flow → salla-create-app.
 ---
 
 # Salla Embedded App Flow
@@ -15,10 +17,10 @@ app. Follow the steps in order — complete each gate before moving to the next.
 
 ## Tools
 
-| Tool | Action | What it does |
-| --- | --- | --- |
-| `salla_embedded_pages` | `list` / `create` / `update` / `delete` | Manage the app's embedded (iframe) dashboard pages |
-| `salla_onboarding_steps` | `list` / `create` / `update` / `delete` / `sort` | Manage post-install onboarding steps (optional) |
+| Tool                     | Action                                           | What it does                                       |
+| ------------------------ | ------------------------------------------------ | -------------------------------------------------- |
+| `salla_embedded_pages`   | `list` / `create` / `update` / `delete`          | Manage the app's embedded (iframe) dashboard pages |
+| `salla_onboarding_steps` | `list` / `create` / `update` / `delete` / `sort` | Manage post-install onboarding steps (optional)    |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected, and you need the
 > app's `app_id`. If a tool returns "Salla session expired", re-run the login flow.
@@ -82,7 +84,7 @@ import { embedded } from "@salla.sa/embedded-sdk";
 const { layout } = await embedded.init({ debug: false });
 ```
 
-SDK overview → [`references/embedded-sdk-overview.md`](references/embedded-sdk-overview.md)
+Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)
 
 ---
 
@@ -93,7 +95,10 @@ client-side only.
 
 ```ts
 const token = embedded.auth.getToken();
-if (!token) { embedded.destroy(); return; }
+if (!token) {
+  embedded.destroy();
+  return;
+}
 
 const authOk = await fetch("/api/verify-token", {
   method: "POST",
@@ -101,12 +106,16 @@ const authOk = await fetch("/api/verify-token", {
   body: JSON.stringify({ token }),
 }).then((res) => res.ok);
 
-if (!authOk) { embedded.destroy(); return; }
+if (!authOk) {
+  embedded.destroy();
+  return;
+}
 
 embedded.ready(); // signals the dashboard to show the iframe
 ```
 
 Your backend must call:
+
 ```
 POST https://api.salla.dev/exchange-authority/v1/introspect
 S-Source: YOUR_APP_ID
@@ -127,7 +136,10 @@ Use the `layout` from `embedded.init()` — do not read query params manually:
 if (layout) {
   document.documentElement.setAttribute("data-theme", layout.theme);
   document.documentElement.setAttribute("lang", layout.locale);
-  document.documentElement.setAttribute("dir", layout.locale === "ar" ? "rtl" : "ltr");
+  document.documentElement.setAttribute(
+    "dir",
+    layout.locale === "ar" ? "rtl" : "ltr",
+  );
 }
 
 embedded.onThemeChange?.((newTheme) => {
@@ -174,7 +186,7 @@ embedded.ui.loading.hide();
 ```
 
 **Checkout — addon purchase (if applicable):**
-→ follow the **`salla-addon-purchase-embedded`** skill
+→ follow the **`salla-addon-purchase`** skill
 
 Full method signatures → [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)
 
@@ -186,21 +198,21 @@ production."
 ## Step 6 — Publish
 
 Embedded pages go live when the parent app is published. Follow the publishing checklist
-in **`salla-general-app`** Step 8.
+in the publish step of **`salla-create-app`**.
 
 ---
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
-| Getting Started | https://docs.salla.dev/1950922 |
-| Authentication | https://docs.salla.dev/1919160 |
-| Auth Module | https://docs.salla.dev/embedded-sdk/modules/auth.md |
-| Page Module | https://docs.salla.dev/embedded-sdk/modules/page.md |
-| Nav Module | https://docs.salla.dev/embedded-sdk/modules/nav.md |
-| UI Module | https://docs.salla.dev/embedded-sdk/modules/ui.md |
-| Checkout Module | https://docs.salla.dev/embedded-sdk/modules/checkout.md |
-| Token Introspect | https://docs.salla.dev/6394918f0.md |
-| App Design Guidelines | https://docs.salla.dev/1929178 |
-| Playground Testing | https://docs.salla.dev/1929235 |
+| Topic                 | Link                                                    |
+| --------------------- | ------------------------------------------------------- |
+| Getting Started       | https://docs.salla.dev/1950922                          |
+| Authentication        | https://docs.salla.dev/1919160                          |
+| Auth Module           | https://docs.salla.dev/embedded-sdk/modules/auth.md     |
+| Page Module           | https://docs.salla.dev/embedded-sdk/modules/page.md     |
+| Nav Module            | https://docs.salla.dev/embedded-sdk/modules/nav.md      |
+| UI Module             | https://docs.salla.dev/embedded-sdk/modules/ui.md       |
+| Checkout Module       | https://docs.salla.dev/embedded-sdk/modules/checkout.md |
+| Token Introspect      | https://docs.salla.dev/6394918f0.md                     |
+| App Design Guidelines | https://docs.salla.dev/1929178                          |
+| Playground Testing    | https://docs.salla.dev/1929235                          |

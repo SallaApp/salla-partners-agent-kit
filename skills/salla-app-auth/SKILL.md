@@ -1,15 +1,13 @@
 ---
-name: salla-app-authorization
+name: salla-app-auth
 description: >
-  Use this skill for any task involving Salla OAuth 2.0 and app authorization. Trigger when
-  a developer is: choosing between Easy Mode and Custom Mode OAuth, implementing the
-  app.store.authorize webhook handler, storing or refreshing access tokens, implementing a
-  token refresh lock or mutex, working with OAuth scopes including offline_access, using the
-  salla/oauth2-merchant PHP package, using the @salla.sa/passport-strategy JS package,
-  using the Laravel OAuth controller or starter kit, calling the User Info endpoint, setting
-  up IP whitelisting, handling app lifecycle events (app.installed, app.updated,
-  app.uninstalled, app.trial.*, app.subscription.*), building a Postman OAuth flow for
-  testing, or asking why a merchant had to reinstall an app.
+  Salla OAuth 2.0 and merchant token management — the Salla delta on standard OAuth:
+  Easy Mode (tokens arrive via the app.store.authorize webhook, no callback URL; how
+  published apps work) vs Custom Mode (standard authorization-code, dev/testing only),
+  the offline_access scope, single-use refresh tokens that need a per-merchant refresh
+  lock, and the User Info endpoint. Use before writing any Salla token-handling code.
+  Lifecycle event handling → salla-app-lifecycle; webhook verification → salla-webhooks;
+  API usage → salla-api-core.
 
   Trigger also when you see: "Easy Mode", "Custom Mode", "access token", "refresh token",
   "offline_access", "app.store.authorize", "accounts.salla.sa", "token expired",
@@ -28,11 +26,11 @@ MCP; the token handling is runtime code.
 
 ## Tools & MCPs
 
-| Tool | Action | What it does |
-| --- | --- | --- |
-| `salla_reference` | `scopes` | List the app's OAuth scope slugs + current selection |
-| `salla_apps` | `connect` | Set scopes, redirect URLs, and the webhook receiver in one call |
-| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events) |
+| Tool              | Action               | What it does                                                    |
+| ----------------- | -------------------- | --------------------------------------------------------------- |
+| `salla_reference` | `scopes`             | List the app's OAuth scope slugs + current selection            |
+| `salla_apps`      | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call |
+| `salla_events`    | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)         |
 
 > Easy Mode is required for all published App Store apps. Custom Mode is for local dev and
 > Postman testing only. Docs: https://docs.salla.dev/421118m0 · App Events:
@@ -51,13 +49,13 @@ MCP; the token handling is runtime code.
 
 ## Step 1 — Choose Your OAuth Mode
 
-| | Easy Mode ✅ | Custom Mode |
-|---|---|---|
-| How tokens arrive | Via `app.store.authorize` webhook payload | Via `/oauth/callback` code exchange |
-| Callback URL needed? | No | Yes |
-| Allowed for published apps? | Yes — required | No |
-| Allowed for testing? | Yes | Yes (Postman, local dev) |
-| Token handling | Salla handles everything; you just save | You implement the full exchange |
+|                             | Easy Mode ✅                              | Custom Mode                         |
+| --------------------------- | ----------------------------------------- | ----------------------------------- |
+| How tokens arrive           | Via `app.store.authorize` webhook payload | Via `/oauth/callback` code exchange |
+| Callback URL needed?        | No                                        | Yes                                 |
+| Allowed for published apps? | Yes — required                            | No                                  |
+| Allowed for testing?        | Yes                                       | Yes (Postman, local dev)            |
+| Token handling              | Salla handles everything; you just save   | You implement the full exchange     |
 
 **Decision rule:** App Store app → Easy Mode. Postman/local server → Custom Mode.
 
@@ -97,35 +95,10 @@ subscribed?"
 
 **You do NOT build an `/oauth/callback` endpoint in Easy Mode.**
 
-```typescript
-// POST /webhooks — receives all events including app.store.authorize
-async function handleWebhook(req: Request): Promise<Response> {
-  // 1. Always verify signature first (see salla-webhooks skill)
-  const valid = await verifySignature(req, process.env.SALLA_WEBHOOK_SECRET!);
-  if (!valid) return new Response("Unauthorized", { status: 401 });
-
-  const payload = await req.json();
-
-  if (payload.event === "app.store.authorize") {
-    const merchantId = payload.merchant;
-    const { access_token, refresh_token, expires, scope } = payload.data;
-
-    // expires is a Unix timestamp — store it so you know when to refresh
-    await db.merchants.upsert({
-      where: { id: merchantId },
-      data: {
-        accessToken: access_token,
-        refreshToken: refresh_token,
-        tokenExpiresAt: new Date(expires * 1000),
-        scope,
-        updatedAt: new Date(),
-      }
-    });
-  }
-
-  return new Response("OK", { status: 200 }); // always respond 200 immediately
-}
-```
+Handler shape: verify the signature first ([salla-webhooks](../salla-webhooks/SKILL.md)),
+then on `app.store.authorize` **upsert** `access_token` / `refresh_token` /
+`expires * 1000` keyed by `merchant`, and return 200 immediately. Full handler code:
+[references/app-events.md](references/app-events.md).
 
 Easy Mode checklist: webhook URL set (Step 2) · scope includes `offline_access` ·
 `app.store.authorize` subscribed · DB stores `access_token` / `refresh_token` /
@@ -144,13 +117,8 @@ GET https://accounts.salla.sa/oauth2/auth
   &state=RANDOM_CSRF_STRING
 ```
 
-| Parameter | Notes |
-|---|---|
-| `client_id` | From Partners Portal → App Keys |
-| `response_type` | Always `code` |
-| `redirect_uri` | Must match exactly what's registered |
-| `scope` | Space-separated; always include `offline_access` |
-| `state` | Random string; verify on callback to prevent CSRF |
+Standard OAuth2 parameters — the Salla deltas: `redirect_uri` must exactly match the
+Portal registration, and `scope` must always include `offline_access`.
 
 **Step 3b — Handle the callback** (`GET /callback?code=…&state=…`): verify `state`, extract `code`.
 
@@ -168,8 +136,13 @@ grant_type=authorization_code
 ```
 
 ```json
-{ "token_type": "bearer", "access_token": "KGsnBcNN...", "expires": 1634819484,
-  "refresh_token": "fWcceFWF...", "scope": "offline_access orders.read_write" }
+{
+  "token_type": "bearer",
+  "access_token": "KGsnBcNN...",
+  "expires": 1634819484,
+  "refresh_token": "fWcceFWF...",
+  "scope": "offline_access orders.read_write"
+}
 ```
 
 PHP — `oauth2-merchant`:
@@ -205,10 +178,10 @@ https://github.com/SallaApp/laravel-starter-kit/blob/master/app/Http/Controllers
 
 ## Step 4 — Understand the Token Lifecycle
 
-| Token | Lifetime | Notes |
-|---|---|---|
-| Access token | **14 days** | `expires` in the response is a Unix timestamp |
-| Refresh token | **1 month** | Single-use — invalidated after first use |
+| Token         | Lifetime    | Notes                                         |
+| ------------- | ----------- | --------------------------------------------- |
+| Access token  | **14 days** | `expires` in the response is a Unix timestamp |
+| Refresh token | **1 month** | Single-use — invalidated after first use      |
 
 `expires` is a **Unix timestamp** (seconds), not a duration — convert before storing:
 
@@ -250,11 +223,11 @@ async function refreshTokenSafe(merchantId: string): Promise<string> {
       return merchant.accessToken; // already fresh
     }
 
-    const res = await fetch('https://accounts.salla.sa/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    const res = await fetch("https://accounts.salla.sa/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        grant_type: 'refresh_token',
+        grant_type: "refresh_token",
         refresh_token: merchant.refreshToken,
         client_id: process.env.SALLA_CLIENT_ID!,
         client_secret: process.env.SALLA_CLIENT_SECRET!,
@@ -264,7 +237,7 @@ async function refreshTokenSafe(merchantId: string): Promise<string> {
       const err = await res.json().catch(() => ({}));
       throw Object.assign(
         new Error(err?.error_description ?? err?.error ?? res.statusText),
-        { status: res.status, body: err }
+        { status: res.status, body: err },
       );
     }
     const data = await res.json();
@@ -311,9 +284,19 @@ Authorization: Bearer <access_token>
 ```
 
 ```json
-{ "id": 1771165749, "name": "Test User", "email": "testuser@email.partners",
-  "merchant": { "id": 1803665367, "username": "dev-store-name", "name": "My Store",
-                "plan": "special", "status": "active", "domain": "https://salla.sa/my-store" } }
+{
+  "id": 1771165749,
+  "name": "Test User",
+  "email": "testuser@email.partners",
+  "merchant": {
+    "id": 1803665367,
+    "username": "dev-store-name",
+    "name": "My Store",
+    "plan": "special",
+    "status": "active",
+    "domain": "https://salla.sa/my-store"
+  }
+}
 ```
 
 **Gate:** "Merchant id + store details are stored alongside the tokens?"
@@ -345,19 +328,11 @@ metadata.read_write
 
 ### App events
 
-| Event | When | Action |
-|---|---|---|
-| `app.store.authorize` | Install or token refresh | Save/update both tokens + expiry |
-| `app.installed` | First install | Provision resources |
-| `app.updated` | App updated by developer | Wait for `app.store.authorize` that follows |
-| `app.uninstalled` | Merchant removes app | Clean up merchant data |
-| `app.trial.started` | Trial begins | Enable trial features |
-| `app.trial.expired` / `app.trial.canceled` | Trial ended | Restrict access |
-| `app.subscription.started` | Paid plan starts | Unlock paid features; check `item_type` |
-| `app.subscription.expired` / `app.subscription.canceled` | Plan lapsed/cancelled | Restrict access |
-| `app.subscription.renewed` | Plan renewed | Confirm active; check new `end_date` |
-| `app.feedback.created` | Merchant leaves review | Log rating/comment |
-| `app.settings.updated` | Merchant changes app settings | Apply new `data.settings` |
+| Event                 | When                                                                                            | Action                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `app.store.authorize` | App installed or updated (never on token refresh — that's your `grant_type=refresh_token` call) | Save/update both tokens + expiry              |
+| `app.installed`       | First install                                                                                   | Provision resources                           |
+| `app.uninstalled`     | Merchant removes app                                                                            | Clean up merchant data + revoke stored tokens |
 
 Full payload shapes: `references/app-events.md`. Lifecycle handling →
 **salla-app-lifecycle**.
@@ -372,16 +347,16 @@ surface for production apps.
 
 ## Key Endpoints & Libraries
 
-| Purpose | URL |
-|---|---|
-| Authorization | `https://accounts.salla.sa/oauth2/auth` |
-| Token exchange + refresh | `https://accounts.salla.sa/oauth2/token` |
-| User info | `https://accounts.salla.sa/oauth2/user/info` |
-| Direct install | `https://s.salla.sa/apps/install/{app-id}` |
-| Salla API base | `https://api.salla.dev/admin/v2/` |
+| Purpose                  | URL                                          |
+| ------------------------ | -------------------------------------------- |
+| Authorization            | `https://accounts.salla.sa/oauth2/auth`      |
+| Token exchange + refresh | `https://accounts.salla.sa/oauth2/token`     |
+| User info                | `https://accounts.salla.sa/oauth2/user/info` |
+| Direct install           | `https://s.salla.sa/apps/install/{app-id}`   |
+| Salla API base           | `https://api.salla.dev/admin/v2/`            |
 
-| Library | Language | Repo |
-|---|---|---|
-| `salla/oauth2-merchant` | PHP | https://github.com/SallaApp/oauth2-merchant |
-| `@salla.sa/passport-strategy` | JavaScript | https://github.com/SallaApp/passport-strategy |
-| Laravel starter kit | PHP/Laravel | https://github.com/SallaApp/laravel-starter-kit |
+| Library                       | Language    | Repo                                            |
+| ----------------------------- | ----------- | ----------------------------------------------- |
+| `salla/oauth2-merchant`       | PHP         | https://github.com/SallaApp/oauth2-merchant     |
+| `@salla.sa/passport-strategy` | JavaScript  | https://github.com/SallaApp/passport-strategy   |
+| Laravel starter kit           | PHP/Laravel | https://github.com/SallaApp/laravel-starter-kit |

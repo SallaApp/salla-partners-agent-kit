@@ -6,12 +6,12 @@ Order Fulfillment Apps manage dispatching orders across multiple carriers and br
 
 ## How It Differs from a Shipping App
 
-| | Shipping App | Order Fulfillment App |
-| --- | --- | --- |
-| **Focus** | Single carrier integration | Multi-carrier, multi-branch dispatch |
-| **Decision maker** | Merchant picks carrier | Your app auto-assigns best carrier |
-| **Inventory** | Not managed | Managed across branches |
-| **Complexity** | Lower | Higher |
+|                    | Shipping App               | Order Fulfillment App                |
+| ------------------ | -------------------------- | ------------------------------------ |
+| **Focus**          | Single carrier integration | Multi-carrier, multi-branch dispatch |
+| **Decision maker** | Merchant picks carrier     | Your app auto-assigns best carrier   |
+| **Inventory**      | Not managed                | Managed across branches              |
+| **Complexity**     | Lower                      | Higher                               |
 
 ---
 
@@ -44,13 +44,15 @@ Carrier delivers → your app updates order status
 
 ## Key Events
 
-| Event | Description | Your action |
-| --- | --- | --- |
-| `order.created` | New order placed | Evaluate, assign branch + carrier |
-| `order.status.updated` | Status changed by merchant | Sync with carrier if relevant |
-| `order.cancelled` | Order cancelled | Cancel shipment if already created |
-| `shipping.shipment.creating` | Rate request (sync) | Return rates from assigned carrier |
-| `shipping.shipment.created` | Confirmed — create label | Create label, set tracking |
+| Event                     | Description                | Your action                        |
+| ------------------------- | -------------------------- | ---------------------------------- |
+| `order.created`           | New order placed           | Evaluate, assign branch + carrier  |
+| `order.status.updated`    | Status changed by merchant | Sync with carrier if relevant      |
+| `order.cancelled`         | Order cancelled            | Cancel shipment if already created |
+| `order.shipment.creating` | Rate request (sync)        | Return rates from assigned carrier |
+
+> There is no `.created` event — once the merchant confirms a rate, create the label
+> with the carrier and set label + tracking via the Shipping API (see shipment-cycle.md).
 
 ---
 
@@ -101,7 +103,10 @@ Content-Type: application/json
 Implement routing rules based on your business model:
 
 ```ts
-async function assignCarrier(order: Order, branches: Branch[]): Promise<Assignment> {
+async function assignCarrier(
+  order: Order,
+  branches: Branch[],
+): Promise<Assignment> {
   // 1. Find branches with all items in stock
   const availableBranches = await filterByStock(branches, order.items);
 
@@ -112,7 +117,7 @@ async function assignCarrier(order: Order, branches: Branch[]): Promise<Assignme
   const carrier = await selectCarrierForZone(
     nearestBranch.city,
     order.receiver.address.city,
-    order.is_cod
+    order.is_cod,
   );
 
   return { branch: nearestBranch, carrier };
@@ -133,10 +138,10 @@ interface CarrierAdapter {
 
 // Register adapters
 const carriers: Record<string, CarrierAdapter> = {
-  'aramex':  new AramexAdapter(),
-  'smsa':    new SmsaAdapter(),
-  'dhl':     new DhlAdapter(),
-  'naqel':   new NaqelAdapter(),
+  aramex: new AramexAdapter(),
+  smsa: new SmsaAdapter(),
+  dhl: new DhlAdapter(),
+  naqel: new NaqelAdapter(),
 };
 
 // Use in fulfillment handler
@@ -163,36 +168,36 @@ Content-Type: application/json
 }
 ```
 
-| Status value | Meaning |
-| --- | --- |
-| `pending` | Order received, not yet processed |
-| `in_progress` | Being prepared at branch |
-| `shipping` | Handed to carrier |
-| `delivered` | Confirmed delivery |
-| `cancelled` | Order cancelled |
-| `returned` | Return received |
+| Status value  | Meaning                           |
+| ------------- | --------------------------------- |
+| `pending`     | Order received, not yet processed |
+| `in_progress` | Being prepared at branch          |
+| `shipping`    | Handed to carrier                 |
+| `delivered`   | Confirmed delivery                |
+| `cancelled`   | Order cancelled                   |
+| `returned`    | Return received                   |
 
 ---
 
 ## Webhook Handler for Fulfillment
 
 ```ts
-app.post('/webhook', verifySignature, async (req, res) => {
+app.post("/webhook", verifySignature, async (req, res) => {
   const { event, data } = req.body;
 
   switch (event) {
-    case 'order.created': {
-      res.status(200).send('OK'); // acknowledge fast
+    case "order.created": {
+      res.status(200).send("OK"); // acknowledge fast
       const assignment = await assignCarrier(data);
       await fulfillOrder(data, assignment);
       break;
     }
-    case 'order.cancelled':
-      res.status(200).send('OK');
+    case "order.cancelled":
+      res.status(200).send("OK");
       await cancelFulfillment(data.id);
       break;
 
-    case 'shipping.shipment.creating': {
+    case "order.shipment.creating": {
       const rates = await getRatesForOrder(data);
       return res.json({ success: true, data: { rates } });
     }
@@ -204,9 +209,9 @@ app.post('/webhook', verifySignature, async (req, res) => {
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
+| Topic                          | Link                              |
+| ------------------------------ | --------------------------------- |
 | Order Fulfillment App overview | https://docs.salla.dev/doc-423001 |
-| Fulfillment App Cycle | https://docs.salla.dev/doc-423000 |
-| Setup Fulfillment App | https://docs.salla.dev/doc-423002 |
-| Test Fulfillment App | https://docs.salla.dev/doc-423003 |
+| Fulfillment App Cycle          | https://docs.salla.dev/doc-423000 |
+| Setup Fulfillment App          | https://docs.salla.dev/doc-423002 |
+| Test Fulfillment App           | https://docs.salla.dev/doc-423003 |

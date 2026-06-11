@@ -1,13 +1,16 @@
 ---
-name: salla-general-app
+name: salla-create-app
 description: >
-  Use when a developer wants to create or build a Salla app end to end —
-  from app creation through OAuth, webhooks, store events, storefront
-  snippets, embedded pages, App Functions, and app-type-specific configuration
-  (communication or shipping).
+  Step-by-step flow to create, configure, and publish a Salla app with the Salla
+  Partners MCP: create the app (category, sub_category_id, logo upload), connect OAuth
+  scopes + webhook URL, subscribe events, then branch by capability — snippets (salla-
+  snippets), embedded pages (salla-embedded-app), App Functions (salla-app-functions),
+  settings (salla-app-settings) — and publish. Use for "create a new Salla app" or any
+  create-to-publish step. Type deltas: salla-shipping-app, salla-communication-app. Deep
+  mechanics live in the routed skills.
 ---
 
-# Salla App Builder Flow
+# Salla App Creation Flow
 
 Build a complete Salla app by **performing the actions**, not just describing them.
 Each step calls a Salla Partners MCP tool to do the work. Follow the steps in order —
@@ -17,13 +20,13 @@ complete each gate before moving to the next.
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
 
-| Tool | What it does |
-| --- | --- |
-| `salla_reference` | Look up `categories`, `scopes`, `countries`, `cities` |
-| `salla_upload` | Upload a logo/file → returns a file `id` |
-| `salla_apps` | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` |
-| `salla_events` | `list` subscribable events / `subscribe` an app to slugs |
-| `salla_functions` | `list` / `get` / `delete` an app's App Functions |
+| Tool              | What it does                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `salla_reference` | Look up `categories`, `scopes`, `countries`, `cities`                                        |
+| `salla_upload`    | Upload a logo/file → returns a file `id`                                                     |
+| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` |
+| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                     |
+| `salla_functions` | `list` / `get` / `delete` an app's App Functions                                             |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -53,16 +56,16 @@ Use the answers to tailor Steps 1, 4–7.
    `width`/`height` — confirm they satisfy the rule, then use the returned `id`.
 3. **Create the app.** Call `salla_apps` with `action: "create"` and:
 
-| Field | Requirement |
-| --- | --- |
-| `name` | string (→ English) or locale map `{en, ar}` |
-| `type` | from step 1 (`private` or a public category) |
-| `short_description` | 50–200 chars |
-| `app_url` | URL |
-| `email` | support email |
-| `logo` | file `id` from `salla_upload` |
-| `sub_category_id` | required when `type` is `app` / `shipping` |
-| `is_paid` | optional, boolean |
+| Field               | Requirement                                  |
+| ------------------- | -------------------------------------------- |
+| `name`              | string (→ English) or locale map `{en, ar}`  |
+| `type`              | from step 1 (`private` or a public category) |
+| `short_description` | 50–200 chars                                 |
+| `app_url`           | URL                                          |
+| `email`             | support email                                |
+| `logo`              | file `id` from `salla_upload`                |
+| `sub_category_id`   | required when `type` is `app` / `shipping`   |
+| `is_paid`           | optional, boolean                            |
 
 The result returns the new `app_id` — carry it through every later step.
 
@@ -91,8 +94,8 @@ the available scopes:
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
 Store the returned **webhook secret** securely; it verifies the HMAC-SHA256 signature on
-every webhook. Signature-verification code → [`references/webhook-events.md`](references/webhook-events.md).
-Token-handling (Easy vs Custom mode) → [`references/oauth-patterns.md`](references/oauth-patterns.md).
+every webhook. Signature-verification code → **`salla-webhooks`** skill.
+Token-handling (Easy vs Custom mode) → **`salla-app-auth`** skill.
 
 **Gate:** "Scopes + redirect + webhook applied (no `_partial`). Is your webhook URL live
 and returning 200, with the secret stored?"
@@ -106,18 +109,22 @@ and returning 200, with the secret stored?"
 2. Ask: "Which domains does your app react to?" Subscribe only to what's needed by
    calling `salla_events` with `action: "subscribe"`, `app_id`, and `events: [...slugs]`.
 
+> **Hookable rule:** before subscribing a webhook, check whether an App Function trigger
+> exists for the event (see **`salla-app-functions`**) — prefer the App Function.
+
 Common slugs by domain:
 
-| Domain | Key events |
-| --- | --- |
-| Lifecycle (always) | `app.store.authorize`, `app.updated`, `app.subscription.started` |
-| Orders | `order.created`, `order.updated`, `order.status.updated` |
-| Products | `product.created`, `product.updated`, `product.deleted` |
-| Customers | `customer.created`, `customer.updated` |
-| Shipments | `shipping.shipment.creating`, `shipping.shipment.created`, `shipping.shipment.cancelled` |
+| Domain             | Key events                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Lifecycle (always) | `app.store.authorize`, `app.updated`, `app.subscription.started`                                                           |
+| Orders             | `order.created`, `order.updated`, `order.status.updated`                                                                   |
+| Products           | `product.created`, `product.updated`, `product.deleted`                                                                    |
+| Customers          | `customer.created`, `customer.updated`                                                                                     |
+| Shipments          | `order.shipment.creating`, `order.shipment.cancelled`, `order.shipment.return.creating`, `order.shipment.return.cancelled` |
 
 > A `webhook_url` must be set (Step 2) before events will deliver. Unknown slugs are
-> rejected with the valid list — pick from it.
+> rejected with the valid list — pick from it (`salla_events action=list` is the source
+> of truth; note there is no `order.shipment.created` event).
 
 **Gate:** "Subscribed. Trigger one event from the demo store and confirm your webhook
 receives it."
@@ -128,7 +135,7 @@ receives it."
 
 Ask: "Does your app need to inject HTML/JS into the merchant's storefront?"
 
-- **Yes** → follow the **`salla-storefront-snippets`** skill (it uses `salla_snippets`
+- **Yes** → follow the **`salla-snippets`** skill (it uses `salla_snippets`
   to create the snippet).
 - **No** → skip to Step 5.
 
@@ -148,17 +155,11 @@ Ask: "Does your app need a custom UI inside the Salla merchant dashboard?"
 
 Ask: "Does your app need serverless handlers triggered by Salla events?"
 
-- **Yes** → follow the **`salla-app-builder`** skill for the App Function source,
-  context shape, and `Resp` API.
+- **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
+  context shape, `Resp` API, timeouts, and lifecycle-event handling.
 
 Inspect deployed functions with `salla_functions` (`action: "list" | "get" | "delete"`).
 **Deployment is done by Salla when you publish the app** — there is no deploy tool.
-
-Key requirements:
-- Handle `app.store.authorize` to store `access_token` + `refresh_token` + expiry.
-- Use `context.settings` for per-merchant configuration.
-- Sync actions: **< 500 ms** | Async events: **30 s** timeout.
-- Always return `Resp.success().setData({})` or `Resp.error().setMessage("…")`.
 
 **Gate:** "Function source ready and `salla_functions action=list` shows it after a test
 publish?"
@@ -177,15 +178,18 @@ Needs per-merchant config (API keys, toggles, URLs)? → follow the
 ### Communication App
 
 Sends messages on behalf of merchants (WhatsApp, SMS, email):
-- Create with `type` = the communication category (`salla_reference action=categories`).
-- Handle events: `communication.sms.send`, `communication.whatsapp.send`,
-  `communication.email.send`.
-- Return delivery status in the webhook response payload.
-- Payload reference → [`salla-app-builder/references/communication-app.md`](../salla-app-builder/references/communication-app.md)
+
+- Create with `type` = the communication category — **no `sub_category_id`** for
+  communication apps.
+- **Publish blocker:** you must declare supported features via
+  `POST /apps/{id}/supported-features` (`sms_local`, `sms_international`, `email_all`,
+  `whatsapp`) **before** publishing — submitting without them returns 403.
+- Full flow (channels, payloads, delivery status) → **`salla-communication-app`** skill.
 
 ### Shipping App
 
 Integrates a carrier or fulfillment provider:
+
 - Must be **Public** — Shipping Apps cannot be Private.
 - Follow the **`salla-shipping-app`** skill (it uses `salla_shipping` for zones/settings
   and `salla_apps` for the full lifecycle).
@@ -198,8 +202,14 @@ Integrates a carrier or fulfillment provider:
    event to verify end-to-end behavior.
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
-   private-publish; optional `update_note`). Complete the publishing sections in the
-   Portal (Basic Information → Configurations → Features → Pricing → Contact → Trial).
+   private-publish; optional `update_note`). Payload facts (verified):
+   - `action` is **always required**: `"save"` (draft) or `"submit"` (full validation).
+   - Upload media first via `salla_upload` → integer image IDs: `logo` (≥ 250×250, 1:1)
+     and `screenshots` as `[{image: id}]`, **min 4, max 6**.
+   - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
+     `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
+   - `trial_description` is a plain string, **≥ 30 chars**.
+   - `support_email` is required when `contact_method = "email"`.
 4. Once approved the app is live on https://apps.salla.sa/en.
 
 Testing guide: https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/
@@ -211,11 +221,11 @@ Publishing guide: https://salla.dev/blog/standards-salla-apps-publications/
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
-| Partners Portal | https://portal.salla.partners/ |
-| Apps Marketplace | https://apps.salla.sa/en |
-| Webhooks guide + event list | https://docs.salla.dev/421119m0 |
-| App Events (lifecycle) | https://docs.salla.dev/doc-421413 |
-| Salla Admin API reference | https://docs.salla.dev/doc-421117 |
-| Developer community (Telegram) | https://t.me/salladev |
+| Topic                          | Link                              |
+| ------------------------------ | --------------------------------- |
+| Partners Portal                | https://portal.salla.partners/    |
+| Apps Marketplace               | https://apps.salla.sa/en          |
+| Webhooks guide + event list    | https://docs.salla.dev/421119m0   |
+| App Events (lifecycle)         | https://docs.salla.dev/doc-421413 |
+| Salla Admin API reference      | https://docs.salla.dev/doc-421117 |
+| Developer community (Telegram) | https://t.me/salladev             |

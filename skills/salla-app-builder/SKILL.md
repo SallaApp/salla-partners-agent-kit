@@ -8,6 +8,10 @@ description: >
   (salla-app-functions), settings (salla-app-settings) — and publish. Use for "create a
   new Salla app" or any create-to-publish step. Type deltas: salla-shipping-app,
   salla-communication-app. Deep mechanics live in the routed skills.
+license: Copyright (c) 2026 Salla
+metadata:
+  authors: Hazem Khaled
+  version: 1.0
 ---
 
 # Salla App Builder — Create an App from Scratch

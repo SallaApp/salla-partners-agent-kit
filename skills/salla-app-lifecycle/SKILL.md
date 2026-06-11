@@ -45,21 +45,21 @@ payload shape before coding. The **Salla Partners MCP** _performs actions_:
 
 ### Event Catalog (reference)
 
-| Event                       | When                             | What to do                                                                                                     |
-| --------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `app.installed`             | First install                    | Provision merchant resources, set defaults                                                                     |
+| Event                       | When                                                                                                | What to do                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `app.installed`             | First install                                                                                       | Provision merchant resources, set defaults                                                                     |
 | `app.store.authorize`       | App installed or updated (never on token refresh — that's your own `grant_type=refresh_token` call) | Save/update `access_token` + `refresh_token` + expiry per merchant                                             |
-| `app.updated`               | Merchant updates the app         | Salla fires `app.store.authorize` right after — wait for it for new tokens                                     |
-| `app.settings.updated`      | Merchant saves app settings      | Apply new values from `data.settings` — **this event activates the app** (install → settings.updated → active) |
-| `app.trial.started`         | Trial begins                     | Enable trial features                                                                                          |
-| `app.trial.expired`         | Trial ended without upgrade      | Restrict access                                                                                                |
-| `app.trial.canceled`        | Trial cancelled                  | Restrict access                                                                                                |
-| `app.subscription.started`  | Paid plan **or addon** activated | Unlock features; branch on `data.item_type`                                                                    |
-| `app.subscription.renewed`  | Plan/addon renewed               | Confirm active; store new `data.end_date` / `renew_date`                                                       |
-| `app.subscription.expired`  | Plan/addon lapsed                | Restrict access, notify merchant                                                                               |
-| `app.subscription.canceled` | Plan/addon cancelled             | Restrict access                                                                                                |
-| `app.uninstalled`           | Merchant removes the app         | Clean up per retention/GDPR policy — see Step 4                                                                |
-| `app.feedback.created`      | Merchant leaves a review         | Log rating/comment                                                                                             |
+| `app.updated`               | Merchant updates the app                                                                            | Salla fires `app.store.authorize` right after — wait for it for new tokens                                     |
+| `app.settings.updated`      | Merchant saves app settings                                                                         | Apply new values from `data.settings` — **this event activates the app** (install → settings.updated → active) |
+| `app.trial.started`         | Trial begins                                                                                        | Enable trial features                                                                                          |
+| `app.trial.expired`         | Trial ended without upgrade                                                                         | Restrict access                                                                                                |
+| `app.trial.canceled`        | Trial cancelled                                                                                     | Restrict access                                                                                                |
+| `app.subscription.started`  | Paid plan **or addon** activated                                                                    | Unlock features; branch on `data.item_type`                                                                    |
+| `app.subscription.renewed`  | Plan/addon renewed                                                                                  | Confirm active; store new `data.end_date` / `renew_date`                                                       |
+| `app.subscription.expired`  | Plan/addon lapsed                                                                                   | Restrict access, notify merchant                                                                               |
+| `app.subscription.canceled` | Plan/addon cancelled                                                                                | Restrict access                                                                                                |
+| `app.uninstalled`           | Merchant removes the app                                                                            | Clean up per retention/GDPR policy — see Step 4                                                                |
+| `app.feedback.created`      | Merchant leaves a review                                                                            | Log rating/comment                                                                                             |
 
 > `app.subscription.*` and `app.trial.*` fire for **both** plans and addons — the
 > `data.item_type` (`"plan"` | `"addon"`) tells them apart. Full subscription payload +

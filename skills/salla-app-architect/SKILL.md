@@ -7,10 +7,6 @@ description: >
   its capability. Also the entry point on platforms without agent support. For a
   specific task (OAuth, webhooks, settings, billing, publishing…), go straight
   to the dedicated skill named below.
-license: Copyright (c) 2026 Salla
-metadata:
-  authors: Hazem Khaled
-  version: 1.0
 ---
 
 # Salla App Architect — Master Router

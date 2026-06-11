@@ -5,8 +5,8 @@ Guidance for any AI agent working in (or installed from) this repository.
 ## What this is
 
 Skills for building **Salla Partner apps** end to end — create, hook events, build UI,
-monetize, publish — designed to pair with the
-[Salla Partners MCP](https://github.com/SallaApp/partners-mcp) action tools.
+monetize, publish — designed to pair with the **Salla Partners MCP** action tools (a private remote
+server — connect over HTTP per `docs/getting-started.md`).
 
 ## Routing (this file is the ambient master router)
 

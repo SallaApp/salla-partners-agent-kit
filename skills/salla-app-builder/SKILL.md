@@ -60,16 +60,16 @@ Use the answers to tailor Steps 1, 4–7.
    `width`/`height` — confirm they satisfy the rule, then use the returned `id`.
 3. **Create the app.** Call `salla_apps` with `action: "create"` and:
 
-| Field               | Requirement                                  |
-| ------------------- | -------------------------------------------- |
-| `name`              | string (→ English) or locale map `{en, ar}`  |
-| `type`              | from step 1 (`private` or a public category) |
-| `short_description` | 50–200 chars                                 |
-| `app_url`           | URL                                          |
-| `email`             | support email                                |
-| `logo`              | file `id` from `salla_upload`                |
-| `sub_category_id`   | required when `type` is `app` / `shipping`   |
-| `is_paid`           | optional, boolean                            |
+| Field                        | Requirement                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `name` + `name_ar`           | **bilingual** — the API rejects missing variants (`name_ar` defaults to `name`) |
+| `type`                       | from step 1 (`private` or a public category)                                    |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                       |
+| `app_url`                    | URL                                                                             |
+| `email`                      | support email                                                                   |
+| `logo`                       | file `id` from `salla_upload`                                                   |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                      |
+| `is_paid`                    | optional, boolean                                                               |
 
 The result returns the new `app_id` — carry it through every later step.
 
@@ -186,7 +186,7 @@ Sends messages on behalf of merchants (WhatsApp, SMS, email):
 - Create with `type` = the communication category — **no `sub_category_id`** for
   communication apps.
 - **Publish blocker:** you must declare supported features via
-  `POST /apps/{id}/supported-features` (`sms_local`, `sms_international`, `email_all`,
+  `salla_settings action=set_features` (`sms_local`, `sms_international`, `email_all`,
   `whatsapp`) **before** publishing — submitting without them returns 403.
 - Full flow (channels, payloads, delivery status) → **`salla-communication-app`** skill.
 

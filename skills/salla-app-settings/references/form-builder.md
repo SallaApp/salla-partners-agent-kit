@@ -38,39 +38,46 @@ Two things to configure:
     {
       "id": "api_key",
       "type": "text",
-      "label": "API Key",
+      "label": { "en": "API Key", "ar": "مفتاح API" },
       "required": true,
-      "placeholder": "Enter your carrier API key",
+      "placeholder": {
+        "en": "Enter your carrier API key",
+        "ar": "أدخل مفتاح API"
+      },
       "public": false
     },
     {
       "id": "sandbox_mode",
       "type": "toggle",
-      "label": "Sandbox Mode",
+      "label": { "en": "Sandbox Mode", "ar": "وضع الاختبار" },
       "default": false
     },
     {
       "id": "environment",
       "type": "select",
-      "label": "Environment",
+      "label": { "en": "Environment", "ar": "البيئة" },
       "options": [
-        { "value": "production", "label": "Production" },
-        { "value": "staging", "label": "Staging" }
+        {
+          "value": "production",
+          "label": { "en": "Production", "ar": "الإنتاج" }
+        },
+        { "value": "staging", "label": { "en": "Staging", "ar": "التجريبي" } }
       ],
       "default": "production"
     },
     {
       "id": "webhook_url",
       "type": "url",
-      "label": "Callback URL",
+      "label": { "en": "Callback URL", "ar": "رابط الاستجابة" },
       "required": false
     }
   ]
 }
 ```
 
-Field identifier is **`id`**; `label` / `placeholder` / `description` are plain strings
-(not bilingual objects). `public: true` marks a value as safe for client-side use
+Field identifier is **`id`**; `label` / `placeholder` / `description` are **bilingual
+objects `{en, ar}`** — the API rejects fields with a missing variant. `public: true`
+marks a value as safe for client-side use
 (e.g. tracking IDs) — API keys and secrets must stay `public: false` (server/App
 Function only).
 

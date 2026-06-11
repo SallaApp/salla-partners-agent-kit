@@ -44,7 +44,7 @@ Ask before starting:
 ## Step 1 — Design the Settings Schema
 
 Define the fields based on Step 0. Keep the schema **flat** — nested objects are not
-supported. Each field is an object (`id`, `label`, `type`, …).
+supported. Each field is an object (`id`, `label`, `type`, …); `label` / `placeholder` / `description` are **bilingual objects `{en, ar}`** — the API fails when a variant is missing.
 
 | Type              | Example field                         |
 | ----------------- | ------------------------------------- |

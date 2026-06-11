@@ -97,7 +97,22 @@ approve access. The minted partner token is valid for ~14 days, after which the 
 re-runs the login automatically.
 
 > Replace `<MCP_URL>` with your environment's `/mcp` endpoint (e.g.
-> `https://<your-salla-mcp-host>/mcp`).
+> `https://<your-salla-mcp-host>/mcp`). The server is private — get the URL from your
+> Salla contact; all clients connect over HTTP (OAuth login on first use).
+
+### Zero-config via the checked-in `.mcp.json`
+
+This repo ships `.mcp.json` (project scope, read by Claude Code and other
+`.mcp.json`-aware clients) and `.cursor/mcp.json` (Cursor), both pointing at the
+`SALLA_MCP_URL` environment variable. With the repo in your workspace, just:
+
+```bash
+export SALLA_MCP_URL="<MCP_URL>"   # add to your shell profile or .env
+```
+
+and restart the client — no per-client wiring needed. For clients that don't expand
+env vars, replace the variable with the literal URL in a local copy. The per-client
+sections below cover standalone (non-repo) installs.
 
 ### Claude Code
 

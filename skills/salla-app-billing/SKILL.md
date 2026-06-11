@@ -5,7 +5,7 @@ description: >
   pricing endpoint) and billed by Salla. Track merchant plan state from
   app.subscription.* / app.trial.* events (one payload family — item_type distinguishes
   plan vs addon), gate features by the merchant's combined plan + addon entitlements
-  (features[]), reconcile via Partners API GET /apps/{app_id}/subscriptions, and meter
+  (features[]), reconcile via salla_apps action=subscriptions, and meter
   usage-based billing against the subscription balance. In-app addon purchase UI →
   salla-addon-purchase; event wiring → salla-app-lifecycle.
 
@@ -34,11 +34,11 @@ moving on. Steps 1, 2 and 5 **perform actions** with the Salla Partners MCP; Ste
 **Two MCPs:** `apidog-mcp-server` (site-id `451700`) is _read-only_ — confirm payloads and
 the subscriptions schema before coding. The **Salla Partners MCP** _performs actions_:
 
-| Tool            | Action               | What it does                                                       |
-| --------------- | -------------------- | ------------------------------------------------------------------ |
-| `salla_apps`    | `publish`            | Submit the app for publishing (pricing is set in the publish flow) |
-| `salla_events`  | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`                  |
-| `salla_request` | `search` / `call`    | Call the read-only `GET /apps/{app_id}/subscriptions`              |
+| Tool           | Action               | What it does                                                       |
+| -------------- | -------------------- | ------------------------------------------------------------------ |
+| `salla_apps`   | `publish`            | Submit the app for publishing (pricing is set in the publish flow) |
+| `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`                  |
+| `salla_apps`   | `subscriptions`      | Read-only merchant subscriptions for the app (reconciliation)      |
 
 > There is **no Merchant-API endpoint** for a store's own subscription. Plan state is
 > **event-driven** (`app.subscription.*` / `app.trial.*`) and queryable from the
@@ -157,19 +157,8 @@ missed events.
 
 ## Step 5 — Reconcile via the Partners API
 
-After downtime (a missed webhook), reconcile against the read-only subscriptions endpoint
-through the `salla_request` tool:
-
-1. `salla_request mode=search`, `keyword: "subscriptions"` → find the `operationId`.
-2. `salla_request mode=call`, `operationId`, `path_params: { app_id }` → the response.
-
-`salla_request` is GET-only and may be off by default (`MCP_EXPOSE_GENERIC_TOOLS`); if it
-isn't exposed, fall back to the raw call:
-
-```http
-GET /apps/{app_id}/subscriptions
-Authorization: Bearer <token>
-```
+After downtime (a missed webhook), reconcile with `salla_apps action=subscriptions`
+(`app_id`) — the read-only merchant-subscriptions lookup.
 
 This endpoint returns subscriptions for **all merchants** of the app. Always filter the
 response by merchant ID before updating any stored state — applying another merchant's
@@ -224,7 +213,7 @@ stored entitlement set, never the raw event).
 For `on_demand` plans, meter each billable action against the merchant's **subscription
 balance**: check the remaining balance before performing the action, decrement as usage
 occurs, and block (or warn) when exhausted. Reconcile balances and subscription state via
-`GET /apps/{app_id}/subscriptions` (Step 5).
+`salla_apps action=subscriptions` (Step 5).
 
 ---
 

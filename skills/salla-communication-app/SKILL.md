@@ -30,8 +30,8 @@ Before publishing you MUST declare the channels the app serves:
 
 - MCP: `salla_settings action=set_features` with any of `sms_local`,
   `sms_international`, `email_all`, `whatsapp`.
-- Raw API: `POST /apps/{id}/supported-features` with `{"features": [...]}`;
-  read current + the full types schema via `GET /apps/{id}/supported-features`.
+- Read current features + the full types schema: `salla_settings action=list_features`.
+  (The tool wraps the supported-features endpoints — never call them directly.)
 
 Publishing without features fails with **403 `communication_app_not_have_features`**.
 

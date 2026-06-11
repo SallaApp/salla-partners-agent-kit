@@ -2,7 +2,7 @@
 
 Build Salla Apps with AI. This plugin gives any coding agent (Claude, Cursor, Codex,
 Gemini, Copilot, and more) the **skills** to reason about the Salla platform natively
-and — together with the [Partners MCP](https://github.com/SallaApp/partners-mcp) — the
+and — together with the Partners MCP (a private remote server, connected over HTTP) — the
 **tools** to act on it: create, configure, hook, monetize, and publish apps without
 touching the Portal UI.
 

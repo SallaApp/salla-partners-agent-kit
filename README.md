@@ -16,8 +16,17 @@ npx skills add SallaApp/salla-partners-ai-plugin
 claude plugin marketplace add SallaApp/salla-partners-ai-plugin
 ```
 
-For full setup — installing the skills **and** connecting the Partners MCP action tools
-for Claude Code, Cursor, Claude Desktop, Codex, and other MCP clients — see
+Per-agent notes:
+
+| Agent              | Install                                                                                                                           |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Claude Code**    | `claude plugin marketplace add SallaApp/salla-partners-ai-plugin` (skills + the `salla-app-architect` agent), or `npx skills add` |
+| **Cursor**         | `npx skills add …`, or clone this repo into the workspace — `.cursor/skills/` mirrors `skills/`                                   |
+| **GitHub Copilot** | works on this repo out of the box via `.github/skills/`; elsewhere use `npx skills add`                                           |
+| **Codex / others** | `npx skills add …` or copy `skills/` to your agent's skills directory                                                             |
+
+Cross-agent conventions live in [AGENTS.md](AGENTS.md). For full setup — installing the
+skills **and** connecting the Partners MCP action tools — see
 **[docs/getting-started.md](docs/getting-started.md)**.
 
 ## How it's organized

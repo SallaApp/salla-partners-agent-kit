@@ -8,11 +8,31 @@ Skills for building **Salla Partner apps** end to end — create, hook events, b
 monetize, publish — designed to pair with the
 [Salla Partners MCP](https://github.com/SallaApp/partners-mcp) action tools.
 
-## How to use the skills
+## Routing (this file is the ambient master router)
 
-- **Start at the router**: the `salla-app-expert` skill dispatches any Salla intent
-  to the right skill (on Claude Code, the `salla-app-expert` agent in `agents/`
-  plays this role). Creating an app from scratch → `salla-app-builder`.
+When this repo sits in your workspace, these rules ARE the router — load the matching
+skill before acting. On platforms that install the skills instead, the same routing
+lives in the `salla-app-expert` skill (and, on Claude Code, the `salla-app-expert`
+agent). One routing brain, three surfaces — keep them in sync.
+
+| Intent                                            | Skill                     |
+| ------------------------------------------------- | ------------------------- |
+| Broad / unsure                                    | `salla-app-expert`        |
+| Create / configure / publish an app end to end    | `salla-app-builder`       |
+| OAuth, tokens, refresh                            | `salla-app-auth`          |
+| Webhook transport (register, verify, idempotency) | `salla-webhooks`          |
+| Install / trial / subscription events             | `salla-app-lifecycle`     |
+| Serverless handlers on Salla triggers             | `salla-app-functions`     |
+| Storefront JS / e-commerce events                 | `salla-snippets`          |
+| Dashboard iframe UI                               | `salla-embedded-app`      |
+| Merchant settings                                 | `salla-app-settings`      |
+| Plans, addons, entitlements, balance              | `salla-app-billing`       |
+| In-app addon purchase                             | `salla-addon-purchase`    |
+| SMS / WhatsApp / email apps                       | `salla-communication-app` |
+| Carriers, shipments, labels                       | `salla-shipping-app`      |
+| Direct Admin API calls                            | `salla-api-core`          |
+| Find the right doc / API schema                   | `salla-docs`              |
+
 - **The hookable rule** (how behavior attaches to the platform): shopper's browser →
   snippet (`salla-snippets`); an App Function trigger exists → App Function
   (`salla-app-functions`, preferred); otherwise → webhook (`salla-webhooks`).

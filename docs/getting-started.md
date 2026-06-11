@@ -62,17 +62,18 @@ checkpoints (**Gates**), and inline links to references.
 
 **Router (start here)**
 
-- `salla-app-builder` — the master router: hookable rule (snippet vs App Function vs webhook), intent → skill routes, capability → MCP tool map. On clients that support agents, the `salla-app-architect` agent plays this role.
+- `salla-app-architect` — the master router: hookable rule (snippet vs App Function vs webhook), intent → skill routes, capability → MCP tool map. On clients that support agents, the `salla-app-architect` agent plays this role.
 
 **Core / foundation**
 
 - `salla-api-core` — Admin API base: auth, requests, pagination, errors, rate limits.
 - `salla-app-auth` — OAuth 2.0 (Easy vs Custom mode), token storage, the refresh-mutex danger zone.
 - `salla-webhooks` — webhook transport: registration, signature verification, idempotency, debugging.
+- `salla-docs` — find the right doc or API schema (scoped entry points + the apidog docs MCP); avoids the oversized llms.txt index.
 
 **Build an app end to end**
 
-- `salla-create-app` — create → OAuth/webhooks → events → capability branches → publish.
+- `salla-app-builder` — create → OAuth/webhooks → events → capability branches → publish.
 - `salla-app-settings` — define the merchant settings form, validation URL, features.
 - `salla-embedded-app` — iframe pages inside the merchant dashboard (SDK, auth, theme).
 - `salla-snippets` — Device Mode (browser) vs Cloud Mode (App Function) storefront integrations.
@@ -187,7 +188,7 @@ The skills are written to **drive these tools**. A typical session:
 
 ```
 You:    "Create a private Salla app called Acme Sync"
-Agent:  (loads the salla-create-app skill → follows its workflow)
+Agent:  (loads the salla-app-builder skill → follows its workflow)
         1. salla_reference action=categories      → resolve type / sub_category_id
         2. salla_upload url=…logo.png              → file id (checks 1:1, ≥250×250)
         3. salla_apps action=create …             → returns app_id

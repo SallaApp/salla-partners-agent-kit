@@ -5,8 +5,8 @@ description: >
   salla_embedded_pages, init @salla.sa/embedded-sdk, verify the short-lived session
   token server-side (never the OAuth introspect endpoint), sync theme/locale/RTL from
   init's layout, and use native Page/Nav/UI modules (No-Chrome rule). Use for embedded
-  pages, dashboard UI, SDK modules, or token/401 issues. Selling addons in-app → salla-
-  addon-purchase; publish flow → salla-create-app.
+  pages, dashboard UI, SDK modules, or token/401 issues. Selling addons in-app →
+  salla-addon-purchase; publish flow → salla-app-builder.
 ---
 
 # Salla Embedded App Flow
@@ -198,7 +198,7 @@ production."
 ## Step 6 — Publish
 
 Embedded pages go live when the parent app is published. Follow the publishing checklist
-in the publish step of **`salla-create-app`**.
+in the publish step of **`salla-app-builder`**.
 
 ---
 

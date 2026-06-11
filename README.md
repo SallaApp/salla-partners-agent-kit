@@ -26,16 +26,16 @@ A Salla app is **reactions to events attached at hookables**. The plugin mirrors
 
 - **Master agent** — [`agents/salla-app-architect.md`](agents/salla-app-architect.md):
   routes intent → skills → MCP tools, end to end. For clients that support agent prompts.
-- **Master router skill** — [`salla-app-builder`](skills/salla-app-builder/SKILL.md):
-  the same routing as a plain skill, for clients that don't. Holds the hookable rule
-  (snippet vs App Function vs webhook) and the intent → skill map.
-- **13 composable skills** — each owns one domain and hands off to the others:
+- **Master router skill** — [`salla-app-architect`](skills/salla-app-architect/SKILL.md):
+  the same routing as a plain skill, for clients that don't support agent prompts. Holds
+  the hookable rule (snippet vs App Function vs webhook) and the intent → skill map.
+- **14 composable skills** — each owns one domain and hands off to the others:
 
 | Layer                    | Skills                                                                                 |
 | ------------------------ | -------------------------------------------------------------------------------------- |
-| Foundation               | `salla-api-core` · `salla-app-auth` · `salla-webhooks`                                 |
+| Foundation               | `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`                  |
 | Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` |
-| App types                | `salla-create-app` · `salla-shipping-app` · `salla-communication-app`                  |
+| App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                 |
 | Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase`                   |
 
 Each skill is a workflow: a discovery step, numbered steps with gates, and references

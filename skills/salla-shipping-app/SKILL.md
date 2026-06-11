@@ -7,7 +7,7 @@ description: >
   return) — shipment.creating is also an App Function trigger (preferred, salla-app-
   functions) — and set labels/tracking via the Shipping API. Use for any carrier, rate,
   label, tracking, COD, cancellation, or return task. Shipping Company ID is assigned
-  only by Salla. Publish → salla-create-app.
+  only by Salla. Publish → salla-app-builder.
 ---
 
 # Salla Shipping App Flow

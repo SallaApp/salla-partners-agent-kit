@@ -6,7 +6,7 @@ description: >
   the three communication.*.send events. The Salla deltas: no sub_category_id at
   creation, ZERO default webhooks, channels MUST be declared via supported-features
   before publish (else 403), and each send event is an App Function trigger —
-  prefer App Functions over webhooks. App creation flow → salla-create-app;
+  prefer App Functions over webhooks. App creation flow → salla-app-builder;
   provider credentials → salla-app-settings.
 ---
 
@@ -17,7 +17,7 @@ event per notification; your code hands it to a provider (Twilio, Unifonic, SMTP
 
 ## Step 1 — Create the app
 
-Follow [salla-create-app](../salla-create-app/SKILL.md) with `type: "communication"`.
+Follow [salla-app-builder](../salla-app-builder/SKILL.md) with `type: "communication"`.
 Deltas from a General App:
 
 - **No `sub_category_id`** — communication apps don't use one (only `app` and `shipping` types do).
@@ -60,7 +60,7 @@ they're injected into every App Function call as `context.settings`. Never hardc
 
 ## Step 5 — Publish
 
-Standard publish flow via [salla-create-app](../salla-create-app/SKILL.md). Gate: Step 2
+Standard publish flow via [salla-app-builder](../salla-app-builder/SKILL.md). Gate: Step 2
 features are set, send handlers respond to a test event from the demo store.
 
 ## Resources

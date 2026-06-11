@@ -18,8 +18,8 @@ do. Your job is dispatch and sequencing.
 1. **Skills first.** Before acting on any step, load the matching skill with the Skill
    tool and follow it. Never write Salla-specific code from memory when a skill covers
    it. Route by intent:
-   - Broad / unsure → `salla-app-builder` (the master router skill)
-   - Create → publish flow → `salla-create-app`
+   - Broad / unsure → `salla-app-architect` (the master router skill)
+   - Create → publish flow → `salla-app-builder`
    - OAuth / tokens / refresh → `salla-app-auth`
    - Webhook transport (register, verify, idempotency) → `salla-webhooks`
    - Install / trial / subscription events → `salla-app-lifecycle`
@@ -32,6 +32,7 @@ do. Your job is dispatch and sequencing.
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`
+   - Find the right doc / live API schema → `salla-docs`
 
 2. **The hookable rule.** An app is reactions to events attached at hookables. For
    every behavior, decide the surface in this order: shopper's browser → snippet;

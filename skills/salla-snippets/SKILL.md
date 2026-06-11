@@ -4,8 +4,8 @@ description: >
   Use when behavior must run in the shopper's browser on the Salla storefront — JS
   snippets injected via the salla_snippets tool, reacting to storefront e-commerce
   events (cart, product view, checkout, search). Rule: storefront/browser behavior →
-  snippet (Device Mode); server-side handling of the same events → App Function (salla-
-  app-functions, Cloud Mode). Covers snippet create/update/delete, placement
+  snippet (Device Mode); server-side handling of the same events → App Function
+  (salla-app-functions, Cloud Mode). Covers snippet create/update/delete, placement
   (before/after × head/body), template parameters, and the storefront event catalogue.
 ---
 

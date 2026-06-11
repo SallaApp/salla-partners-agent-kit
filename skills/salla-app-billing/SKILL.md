@@ -84,7 +84,7 @@ Pricing wizard step is a UI helper that batches everything into the single
   carrying its price and `features[]`. An optional trial period can be enabled per plan.
 - `addons` — extra purchasables, allowed with **all** pricing types.
 - `action: "save" | "submit"` is always required — full payload →
-  salla-create-app's publish step.
+  salla-app-builder's publish step.
 
 | Plan type        | Use                                                                       |
 | ---------------- | ------------------------------------------------------------------------- |

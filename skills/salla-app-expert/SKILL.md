@@ -58,18 +58,18 @@ before reaching for a webhook.
 When the **Salla Partners MCP** server is connected, do the work with these tools instead
 of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `action`:
 
-| Capability                                   | Tool · actions                                                                                  |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Create / configure / publish apps            | `salla_apps` · `list` `get` `create` `update` `connect` (OAuth+webhooks) `set_status` `publish` |
-| Events / webhooks                            | `salla_events` · `list` `subscribe`                                                             |
-| Storefront snippets                          | `salla_snippets` · `list` `parameters` `create` `update` `delete`                               |
-| Embedded pages                               | `salla_embedded_pages` · `list` `create` `update` `delete`                                      |
-| Onboarding steps                             | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                             |
-| App settings & features                      | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`            |
-| Shipping zones & settings                    | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                       |
-| App Functions                                | `salla_functions` · `list` `get` `delete`                                                       |
-| File upload (logos)                          | `salla_upload`                                                                                  |
-| Lookups (categories/scopes/countries/cities) | `salla_reference`                                                                               |
+| Capability                            | Tool · actions                                                                                  |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Create / configure / publish apps     | `salla_apps` · `list` `get` `create` `update` `connect` (OAuth+webhooks) `set_status` `publish` |
+| Events / webhooks                     | `salla_events` · `list` `subscribe`                                                             |
+| Storefront snippets                   | `salla_snippets` · `list` `parameters` `create` `update` `delete`                               |
+| Embedded pages                        | `salla_embedded_pages` · `list` `create` `update` `delete`                                      |
+| Onboarding steps                      | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                             |
+| App settings & features               | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`            |
+| Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                       |
+| App Functions                         | `salla_functions` · `list` `get` `delete`                                                       |
+| File upload (logos)                   | `salla_upload`                                                                                  |
+| Lookups (categories/countries/cities) | `salla_reference`                                                                               |
 
 The routed skills drive these tools step by step — follow the skill, not the raw API.
 

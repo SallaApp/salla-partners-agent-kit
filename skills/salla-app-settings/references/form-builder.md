@@ -38,45 +38,41 @@ Two things to configure:
     {
       "id": "api_key",
       "type": "text",
-      "label": { "en": "API Key", "ar": "مفتاح API" },
+      "label": "API Key",
       "required": true,
-      "placeholder": {
-        "en": "Enter your carrier API key",
-        "ar": "أدخل مفتاح API"
-      },
+      "placeholder": "Enter your carrier API key",
+      "multilanguage": true,
       "public": false
     },
     {
       "id": "sandbox_mode",
       "type": "toggle",
-      "label": { "en": "Sandbox Mode", "ar": "وضع الاختبار" },
+      "label": "Sandbox Mode",
       "default": false
     },
     {
       "id": "environment",
       "type": "select",
-      "label": { "en": "Environment", "ar": "البيئة" },
+      "label": "Environment",
       "options": [
-        {
-          "value": "production",
-          "label": { "en": "Production", "ar": "الإنتاج" }
-        },
-        { "value": "staging", "label": { "en": "Staging", "ar": "التجريبي" } }
+        { "value": "production", "label": "Production" },
+        { "value": "staging", "label": "Staging" }
       ],
       "default": "production"
     },
     {
       "id": "webhook_url",
       "type": "url",
-      "label": { "en": "Callback URL", "ar": "رابط الاستجابة" },
+      "label": "Callback URL",
       "required": false
     }
   ]
 }
 ```
 
-Field identifier is **`id`**; `label` / `placeholder` / `description` are **bilingual
-objects `{en, ar}`** — the API rejects fields with a missing variant. `public: true`
+Field identifier is **`id`**; `label` / `placeholder` / `description` are **plain
+strings**. To translate a field's text, set `multilanguage: true` on it — there are no
+inline `{en, ar}` objects. `public: true`
 marks a value as safe for client-side use
 (e.g. tracking IDs) — API keys and secrets must stay `public: false` (server/App
 Function only).
@@ -130,7 +126,7 @@ Always verify the `Authorization: Bearer` signature (HMAC-SHA256, Web Crypto `su
 ## Critical Rules
 
 1. **Always send ALL keys on POST** — partial updates set omitted keys to `null`
-2. **Labels must be bilingual** — provide both `en` and `ar` for all user-visible text
+2. **Labels are plain strings** — set `multilanguage: true` on a field to translate its text (no inline `{en, ar}` objects)
 3. **Never store sensitive values client-side** — always read from `context.settings` in App Functions
 4. **Validate on your server** — don't trust values without server-side validation
 

@@ -26,7 +26,7 @@ These steps drive the **Salla Partners MCP** tools. Each is one tool with an `ac
 
 | Tool              | What it does                                                                                 |
 | ----------------- | -------------------------------------------------------------------------------------------- |
-| `salla_reference` | Look up `categories`, `scopes`, `countries`, `cities`                                        |
+| `salla_reference` | Look up `categories`, `countries`, `cities`                                                  |
 | `salla_upload`    | Upload a logo/file → returns a file `id`                                                     |
 | `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` |
 | `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                     |
@@ -51,10 +51,13 @@ Use the answers to tailor Steps 1, 4–7.
 
 ## Step 1 — Create the App
 
-1. **Resolve the category.** Call `salla_reference` with `action: "categories"` to get
-   valid `type` / `sub_category_id` values. `type` is `"private"` for a private app, or
-   a public category value (e.g. `app`, `shipping`, `communication`). For `app` /
-   `shipping`, a `sub_category_id` is required.
+1. **Resolve the category.** Call `salla_reference` with `action: "categories"` and the
+   `type` (e.g. `app`, `shipping`). It returns both `main_categories` and
+   `sub_categories`. `type` is `"private"` for a private app, or a public category value
+   (e.g. `app`, `shipping`, `communication`). For `app` / `shipping`, a `sub_category_id`
+   is required and **must be a sub-category id** (pick from `sub_categories` — for `app`
+   these are POS, OMS, Subscription, Cross-sell/Upsell, Manage Store, AI, Others). The
+   `main_category_id` used at publish is a **main** category (from `main_categories`).
 2. **Upload the logo.** Call `salla_upload` with a public `url` or `base64`. The logo
    must be a **square (1:1) image, ≥ 250×250 px**. The result returns `id` plus
    `width`/`height` — confirm they satisfy the rule, then use the returned `id`.
@@ -81,12 +84,13 @@ The result returns the new `app_id` — carry it through every later step.
 
 ## Step 2 — OAuth, Scopes & Webhook Connection
 
-Configure OAuth and webhooks in **one** `salla_apps action=connect` call. First look up
-the available scopes:
+Configure OAuth and webhooks in **one** `salla_apps action=connect` call. First check the
+app's valid scope slugs and current selection:
 
-1. Call `salla_reference` with `action: "scopes"` and the `app_id` to list scope slugs
-   and their current selection. Request only the minimum the app needs (e.g.
-   `offline_access` for refresh tokens, `orders.read`, `products.read`).
+1. Call `salla_apps` with `action: "get"` and the `app_id` to read the valid scope slugs,
+   their current selection, and any per-app disabled flags. (There is **no** scope-catalog
+   reference endpoint.) Request only the minimum the app needs (e.g. `offline_access` for
+   refresh tokens, `orders.read`, `products.read`).
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
    - `scopes` — map of `slug → "read" | "read_write"`
    - `redirect_urls` — OAuth redirect URL(s)

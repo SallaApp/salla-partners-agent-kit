@@ -44,7 +44,7 @@ Ask before starting:
 ## Step 1 — Design the Settings Schema
 
 Define the fields based on Step 0. Keep the schema **flat** — nested objects are not
-supported. Each field is an object (`id`, `label`, `type`, …); `label` / `placeholder` / `description` are **bilingual objects `{en, ar}`** — the API fails when a variant is missing.
+supported. Each field is an object (`id`, `label`, `type`, …); `label` / `placeholder` / `description` are **plain strings**. For translation, set `multilanguage: true` on the field — there are no inline `{en, ar}` objects.
 
 | Type              | Example field                         |
 | ----------------- | ------------------------------------- |
@@ -62,8 +62,8 @@ Field-object reference → [`references/form-builder.md`](references/form-builde
 ## Step 2 — Register the Form
 
 1. Call `salla_settings` with `action: "define_form"`, the `app_id`, and `settings` (the
-   array of field objects from Step 1). Provide bilingual labels (English + Arabic) on
-   each field.
+   array of field objects from Step 1). Give each field a plain-string `label`; set
+   `multilanguage: true` on any field whose text should be translated.
 2. If you need server-side validation, call `salla_settings` with
    `action: "set_validation_url"`, `app_id`, and `validation_url`. Salla POSTs the values
    there before saving — respond with field errors or `200 OK`.

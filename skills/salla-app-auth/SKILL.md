@@ -19,11 +19,11 @@ MCP; the token handling is runtime code.
 
 ## Tools & MCPs
 
-| Tool              | Action               | What it does                                                    |
-| ----------------- | -------------------- | --------------------------------------------------------------- |
-| `salla_reference` | `scopes`             | List the app's OAuth scope slugs + current selection            |
-| `salla_apps`      | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call |
-| `salla_events`    | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)         |
+| Tool           | Action               | What it does                                                    |
+| -------------- | -------------------- | --------------------------------------------------------------- |
+| `salla_apps`   | `get`                | Read the app's valid OAuth scope slugs + current selection      |
+| `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call |
+| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)         |
 
 > Easy Mode is required for all published App Store apps. Custom Mode is for local dev and
 > Postman testing only. Docs: https://docs.salla.dev/421118m0 · App Events:
@@ -60,8 +60,9 @@ MCP; the token handling is runtime code.
 
 Set up the OAuth + webhook config that makes tokens flow. Do this with the Partners MCP:
 
-1. **Scopes** — list available slugs: `salla_reference action=scopes`, `app_id`. Always
-   include `offline_access` (required for refresh tokens).
+1. **Scopes** — read the valid slugs + current selection from `salla_apps action=get`,
+   `app_id` (there is no scope-catalog reference endpoint). Always include
+   `offline_access` (required for refresh tokens).
 2. **Connect** — `salla_apps action=connect`, `app_id`, with `scopes`
    (`slug → "read" | "read_write"`), and for Easy Mode `webhook_url` +
    `webhook_security_strategy: "signature"` + `generate_secret: true`; for Custom Mode
@@ -300,8 +301,8 @@ Authorization: Bearer <access_token>
 
 ### OAuth scopes
 
-Always include `offline_access` (space-separated in the auth URL). Confirm the latest list
-via `salla_reference action=scopes`:
+Always include `offline_access` (space-separated in the auth URL). Confirm the app's valid
+slugs via `salla_apps action=get`:
 
 ```text
 offline_access          required for refresh tokens

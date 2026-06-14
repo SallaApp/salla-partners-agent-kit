@@ -19,13 +19,13 @@ Salla Partners MCP tools. Follow the steps in order — complete each gate befor
 
 ## Tools
 
-| Tool              | Action                                          | What it does                                |
-| ----------------- | ----------------------------------------------- | ------------------------------------------- |
-| `salla_reference` | `categories`                                    | Get the shipping `type` + `sub_category_id` |
-| `salla_upload`    | —                                               | Upload the logo → file `id`                 |
-| `salla_apps`      | `create` / `connect` / `set_status` / `publish` | Create + configure OAuth/webhooks + publish |
-| `salla_events`    | `list` / `subscribe`                            | Subscribe to shipment events                |
-| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings`      | Configure shipping zones + settings         |
+| Tool              | Action                                          | What it does                                                          |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| `salla_reference` | `categories`                                    | Get the shipping `type`; pick `sub_category_id` from `sub_categories` |
+| `salla_upload`    | —                                               | Upload the logo → file `id`                                           |
+| `salla_apps`      | `create` / `connect` / `set_status` / `publish` | Create + configure OAuth/webhooks + publish                           |
+| `salla_events`    | `list` / `subscribe`                            | Subscribe to shipment events                                          |
+| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings`      | Configure shipping zones + settings                                   |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Carry the `app_id`
 > through every step. If a tool returns "Salla session expired", re-run the login flow.
@@ -47,9 +47,11 @@ Ask before starting:
 
 ## Step 1 — Create the App
 
-1. Resolve the category: `salla_reference action=categories type=shipping` → the
-   shipping `type` and its `sub_category_id`. The `sub_category_id` **must be a shipping
-   sub-category** (45 / 46 / 54) — a non-shipping sub-category is rejected.
+1. Resolve the category: `salla_reference action=categories type=shipping` → returns
+   `main_categories` and `sub_categories`. The `sub_category_id` **must be a shipping
+   sub-category** picked from `sub_categories` (45 / 46 / 54) — a non-shipping
+   sub-category is rejected. (The `main_category_id` used at publish comes from
+   `main_categories`.)
 2. Upload the logo: `salla_upload` (square 1:1, ≥ 250×250 px) → file `id`.
 3. Create it: `salla_apps action=create` with `type` = shipping, `sub_category_id`,
    `name`, `short_description` (50–200), `app_url`, `email`, `logo`. Shipping apps are
@@ -69,8 +71,8 @@ Full walkthrough: https://docs.salla.dev/doc-422995
 
 ## Step 2 — OAuth, Scopes & Webhook Connection
 
-Configure OAuth + webhooks in one `salla_apps action=connect` call (see
-`salla_reference action=scopes` for available scope slugs):
+Configure OAuth + webhooks in one `salla_apps action=connect` call (read the valid scope
+slugs from `salla_apps action=get` — there is no scope-catalog reference endpoint):
 
 - `scopes` — shipping + order access (`slug → "read" | "read_write"`)
 - `redirect_urls`, `webhook_url`, `webhook_security_strategy: "signature"`
@@ -165,7 +167,7 @@ request → label → tracking → cancellation → return.
 **Publishing:** `salla_apps action=publish`, `app_id` (optional `update_note`). Complete
 the publishing sections in the Portal. Two shipping-specific blockers:
 
-- The `sub_category_id` must be a shipping sub-category
+- The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).
 - The **Shipping Company ID** must already be assigned by Salla
   (shipping-team@salla.sa) — publication is blocked until it is set.

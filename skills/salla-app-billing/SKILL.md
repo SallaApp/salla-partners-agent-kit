@@ -27,12 +27,14 @@ the subscriptions schema before coding. The **Salla Partners MCP** _performs act
 | -------------- | -------------------- | ------------------------------------------------------------------ |
 | `salla_apps`   | `publish`            | Submit the app for publishing (pricing is set in the publish flow) |
 | `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`                  |
-| `salla_apps`   | `subscriptions`      | Read-only merchant subscriptions for the app (reconciliation)      |
+| `salla_apps`   | `subscriptions`      | Read-only: ALL the company's app subscriptions (reconciliation)    |
 
 > There is **no Merchant-API endpoint** for a store's own subscription. Plan state is
-> **event-driven** (`app.subscription.*` / `app.trial.*`) and queryable from the
-> **Partners API** keyed by `app_id`. Treat events as the source of truth, the endpoint as
-> reconciliation. Docs: https://docs.salla.dev/doc-421412 (Apps API) ·
+> **event-driven** (`app.subscription.*` / `app.trial.*`) and reconcilable from the
+> **Partners API** — a **company-scoped** `GET /subscriptions/apps` that returns ALL your
+> company's app subscriptions (filter by `app_id` and merchant client-side). Treat events
+> as the source of truth, the endpoint as reconciliation. Docs:
+> https://docs.salla.dev/doc-421412 (Apps API) ·
 > https://docs.salla.dev/421413m0 (App Events). Related: salla-app-lifecycle (event
 > wiring) · salla-addon-purchase (in-app purchase UI).
 
@@ -146,12 +148,13 @@ missed events.
 
 ## Step 5 — Reconcile via the Partners API
 
-After downtime (a missed webhook), reconcile with `salla_apps action=subscriptions`
-(`app_id`) — the read-only merchant-subscriptions lookup.
+After downtime (a missed webhook), reconcile with `salla_apps action=subscriptions` — the
+read-only subscriptions lookup (`GET /subscriptions/apps`).
 
-This endpoint returns subscriptions for **all merchants** of the app. Always filter the
-response by merchant ID before updating any stored state — applying another merchant's
-subscription data silently corrupts plan gating.
+This endpoint is **company-scoped**: it returns subscriptions across **all of your
+company's apps and all their merchants**, not a single app. Always filter the response by
+`app_id` **and** merchant ID before updating any stored state — applying another app's or
+merchant's subscription data silently corrupts plan gating.
 
 ```json
 {
@@ -169,7 +172,7 @@ subscription data silently corrupts plan gating.
 
 | Field                               | Notes                                                                                |
 | ----------------------------------- | ------------------------------------------------------------------------------------ |
-| `merchant`                          | **Filter on this** before updating stored state                                      |
+| `merchant`                          | **Filter on this** (plus `app_id`) before updating stored state                      |
 | `item_type`                         | `"plan"` \| `"addon"` — filter to `plan` for plan state                              |
 | `plan_type`                         | `free` \| `once` \| `recurring` \| `on_demand`                                       |
 | `plan_name`                         | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it) |

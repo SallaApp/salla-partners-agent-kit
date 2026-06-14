@@ -49,6 +49,9 @@ GET https://accounts.salla.sa/oauth2/user/info
 Authorization: Bearer <access_token>
 ```
 
+> **Note:** This endpoint is on `accounts.salla.sa`, not the Admin API base
+> (`api.salla.dev`). Do **not** prefix it with `BASE`.
+
 `data.merchant.id` is the stable internal key — cache it rather than re-fetching per request.
 
 Token error cases (all return **401**):
@@ -84,12 +87,12 @@ A 2xx response always wraps `data`:
 { "status": 200, "success": true, "data": {} }
 ```
 
-| Code | Meaning                             |
-| ---- | ----------------------------------- |
-| 200  | OK — request succeeded              |
-| 201  | Created — resource inserted/updated |
-| 202  | Accepted — resource deleted         |
-| 204  | No Content — success, no body       |
+| Code | Meaning                                |
+| ---- | -------------------------------------- |
+| 200  | OK — request succeeded (incl. updates) |
+| 201  | Created — new resource inserted        |
+| 202  | Accepted — resource deleted            |
+| 204  | No Content — success, no body          |
 
 Minimal request helper (TypeScript):
 
@@ -119,7 +122,7 @@ async function sallaRequest<T>(
     });
   }
 
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204 || res.status === 202) return undefined as T;
   return res.json() as Promise<T>;
 }
 ```

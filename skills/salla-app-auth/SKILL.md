@@ -100,7 +100,7 @@ then on `app.store.authorize` **upsert** `access_token` / `refresh_token` /
 `expires * 1000` keyed by `merchant`, and return 200 immediately. Full handler code:
 [references/app-events.md](references/app-events.md).
 
-Easy Mode checklist: webhook URL set (Step 2) · scope includes `offline_access` ·
+Easy Mode checklist: webhook URL set (Step 2) · OAuth authorize URL `scope` includes `offline_access` (authorize URL only — not in the `connect` scopes map) ·
 `app.store.authorize` subscribed · DB stores `access_token` / `refresh_token` /
 `token_expires_at` per merchant · handler upserts (not inserts).
 

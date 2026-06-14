@@ -170,14 +170,14 @@ merchant's subscription data silently corrupts plan gating.
 }
 ```
 
-| Field                               | Notes                                                                                |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| `merchant`                          | **Filter on this** (plus `app_id`) before updating stored state                      |
-| `item_type`                         | `"plan"` \| `"addon"` — filter to `plan` for plan state                              |
-| `plan_type`                         | `free` \| `once` \| `recurring` \| `on_demand`                                       |
-| `plan_name`                         | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it) |
-| `price` / `start_date` / `end_date` | nullable                                                                             |
-| `quantity`                          | seats/units                                                                          |
+| Field                               | Notes                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `merchant`                          | **Filter on this** (plus `app_id`) before updating stored state                                                                            |
+| `item_type`                         | `"plan"` \| `"addon"` — filter to `plan` for plan state                                                                                    |
+| `plan_type`                         | `free` \| `once` \| `recurring` \| `on_demand` (`on_demand` is the event/reconciliation-side value for plans published as `pay_as_you_go`) |
+| `plan_name`                         | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)                                                       |
+| `price` / `start_date` / `end_date` | nullable                                                                                                                                   |
+| `quantity`                          | seats/units                                                                                                                                |
 
 Use this to reconcile — not as your hot path.
 

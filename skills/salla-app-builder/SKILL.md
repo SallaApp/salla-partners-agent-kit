@@ -30,7 +30,6 @@ These steps drive the **Salla Partners MCP** tools. Each is one tool with an `ac
 | `salla_upload`    | Upload a logo/file → returns a file `id`                                                     |
 | `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` |
 | `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                     |
-| `salla_functions` | `list` / `get` / `delete` an app's App Functions                                             |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -52,10 +51,10 @@ Use the answers to tailor Steps 1, 4–7.
 ## Step 1 — Create the App
 
 1. **Resolve the category.** Call `salla_reference` with `action: "categories"` and the
-   `type` (e.g. `app`, `shipping`). It returns both `main_categories` and
-   `sub_categories`. `type` is `"private"` for a private app, or a public category value
-   (e.g. `app`, `shipping`, `communication`). For `app` / `shipping`, a `sub_category_id`
-   is required and **must be a sub-category id** (pick from `sub_categories` — for `app`
+   `type` (`"app"` or `"shipping"`). It returns both `main_categories` and
+   `sub_categories`. Private apps use `type: "app"` here — `"private"` is **not** a valid
+   `salla_reference` category type. For `app` / `shipping`, a `sub_category_id` is
+   required and **must be a sub-category id** (pick from `sub_categories` — for `app`
    these are POS, OMS, Subscription, Cross-sell/Upsell, Manage Store, AI, Others). The
    `main_category_id` used at publish is a **main** category (from `main_categories`).
 2. **Upload the logo.** Call `salla_upload` with a public `url` or `base64`. The logo
@@ -93,10 +92,11 @@ app's valid scope slugs and current selection:
 
 1. Call `salla_apps` with `action: "get"` and the `app_id` to read the valid scope slugs,
    their current selection, and any per-app disabled flags. (There is **no** scope-catalog
-   reference endpoint.) Request only the minimum the app needs (e.g. `offline_access` for
-   refresh tokens, `orders.read`, `products.read`).
+   reference endpoint.) Request only the minimum the app needs.
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
-   - `scopes` — map of `slug → "read" | "read_write"`
+   - `scopes` — map of `slug → "read" | "read_write"` (e.g.
+     `{"orders": "read", "products": "read"}`). Pass **only** the resource map here —
+     `offline_access` belongs in the OAuth authorize URL, not in the `scopes` map.
    - `redirect_urls` — OAuth redirect URL(s)
    - `webhook_url` — your webhook receiver
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
@@ -170,11 +170,12 @@ Ask: "Does your app need serverless handlers triggered by Salla events?"
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
   context shape, `Resp` API, timeouts, and lifecycle-event handling.
 
-Inspect deployed functions with `salla_functions` (`action: "list" | "get" | "delete"`).
-**Deployment is done by Salla when you publish the app** — there is no deploy tool.
+**Deployment is done by Salla when you publish the app** (`salla_apps action=publish`) —
+there is no separate deploy tool. To inspect, edit, or remove deployed functions, use the
+Partners Portal → **App Functions** tab (no MCP tool exists for this).
 
-**Gate:** "Function source ready and `salla_functions action=list` shows it after a test
-publish?"
+**Gate:** "Function source ready and the App Functions tab in the Portal shows it after a
+test publish?"
 
 ---
 

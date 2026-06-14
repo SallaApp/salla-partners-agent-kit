@@ -17,11 +17,12 @@ platform knowledge itself — it routes you to the skill that does, at the right
 
 ## App types
 
-| Type          | Delta                                                                                                                           |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| General       | Needs `sub_category_id` → [salla-app-builder](../salla-app-builder/SKILL.md)                                                    |
-| Shipping      | Shipping sub-category, 4 default shipment webhooks, Salla-set Company ID → [salla-shipping-app](../salla-shipping-app/SKILL.md) |
-| Communication | No sub-category; must declare channels before publish → [salla-communication-app](../salla-communication-app/SKILL.md)          |
+| Type          | Delta                                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| General       | Needs `sub_category_id`; use `type: "app"` in `salla_reference` → [salla-app-builder](../salla-app-builder/SKILL.md)             |
+| Private       | Same flow as General (`type: "app"` category tree, needs `sub_category_id`) → [salla-app-builder](../salla-app-builder/SKILL.md) |
+| Shipping      | Shipping sub-category, 4 default shipment webhooks, Salla-set Company ID → [salla-shipping-app](../salla-shipping-app/SKILL.md)  |
+| Communication | No sub-category; must declare channels before publish → [salla-communication-app](../salla-communication-app/SKILL.md)           |
 
 ## Choosing the surface (the hookable rule)
 
@@ -31,7 +32,7 @@ Every behavior attaches at exactly one surface. Decide in this order:
 2. **An App Function trigger exists for the event?** → App Function (**preferred** — runs inside Salla, no server) → [salla-app-functions](../salla-app-functions/SKILL.md)
 3. **Otherwise** → webhook to your server → [salla-webhooks](../salla-webhooks/SKILL.md)
 
-Check triggers via the `salla_functions` tool or salla-app-functions' event reference
+Check available triggers via salla-app-functions' event reference
 before reaching for a webhook.
 
 ## Route by intent
@@ -67,7 +68,7 @@ of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `acti
 | Onboarding steps                      | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                             |
 | App settings & features               | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`            |
 | Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                       |
-| App Functions                         | `salla_functions` · `list` `get` `delete`                                                       |
+| App Functions                         | Partners Portal → App Functions tab (no MCP tool — deploy via `salla_apps` · `publish`)         |
 | File upload (logos)                   | `salla_upload`                                                                                  |
 | Lookups (categories/countries/cities) | `salla_reference`                                                                               |
 

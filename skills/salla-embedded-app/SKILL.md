@@ -54,7 +54,9 @@ the `app_id`, and:
 Both `create` and `update` return `{"page": {}}` (empty object) on success — this is
 normal, not a failure. Call `salla_embedded_pages action=list` to get the page id and
 verify the change. Use `update` / `delete` to change or remove a page. (Optional) add post-install onboarding with `salla_onboarding_steps
-action=create`.
+action=create` — `slug` accepts **lowercase letters and digits only** (no hyphens
+or underscores); `action=update` is a **full revalidation** — resend `icon`,
+`title`, and `slug` together (a partial update 422s).
 
 **Manual fallback:** Portal → **App Details → Embedded Pages → Add page**.
 

@@ -95,6 +95,12 @@ Use `salla_shipping` instead of the Portal form:
    `salla_shipping action=set_zones`, `app_id`, `shipping: {…zones payload…}`.
 3. Set carrier settings: `salla_shipping action=set_settings`, `app_id`, `setting_id`,
    `company_types`, `support_change_name`, `service_type_ids`.
+   > **Limitation:** on a brand-new shipping app `has_shipping_settings` is `false`
+   > and `set_settings` returns **404** because the `setting_id` does not exist yet
+   > and is **not discoverable via the MCP** (`get_zones` returns a zone id, not the
+   > setting id). The settings record is created through the Portal's shipping
+   > onboarding flow; retrieve the `setting_id` from there before calling
+   > `set_settings`.
 
 You still set a **Shipping Settings URL** in the Portal — the page Salla loads in the
 merchant dashboard to collect carrier credentials (API key, account number).

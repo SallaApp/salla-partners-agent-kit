@@ -80,7 +80,9 @@ then **inject it as a storefront snippet** with the tool:
    ("before" — the only accepted value), `tag` ("head" | "body"), `content` (the snippet
    body). Verify with `salla_snippets action=list`; use `update` / `delete` to change or
    remove it. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`,
-   and `content` together (it is not a partial patch).
+   and `content` together (it is not a partial patch). `action=update` returns
+   `{"snippet":{}}` (empty object) on success — call `action=list` to verify the
+   change.
 
    **Raw Partner-API deltas** (only if bypassing the tool): both create AND update send
    the code in the obfuscated field **`c8fbt33yM0`** (update is not a plain `content`

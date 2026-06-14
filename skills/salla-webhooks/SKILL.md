@@ -88,8 +88,8 @@ SallaWebhook.on("all", (eventBody, userArgs) => {
 });
 
 app.post("/webhook", (req, res) => {
+  res.status(200).end(); // respond fast (< 3 s), then process
   SallaWebhook.checkActions(req.body, req.headers.authorization, {});
-  res.status(200).end();
 });
 
 app.listen(8081);
@@ -154,8 +154,7 @@ if (!verifySignature($payload, $signature, getenv('SALLA_WEBHOOK_SECRET'))) {
 1. Set the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
    `webhook_security_strategy: "signature"`, `generate_secret: true` (optional
    `webhook_headers`).
-2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events
-action=subscribe`, `app_id`, `events: [...]`.
+2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events action=subscribe`, `app_id`, `events: [...]`.
 
 ### Store-level webhooks (Admin API, merchant token)
 

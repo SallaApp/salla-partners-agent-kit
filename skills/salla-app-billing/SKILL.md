@@ -47,7 +47,7 @@ the subscriptions schema before coding. The **Salla Partners MCP** _performs act
 
 Both flow through the same `app.subscription.*` events. **This skill owns plans, addons,
 entitlement gating, and usage billing.** Buying addons in-app → salla-addon-purchase.
-`plan_type` values: `free` · `once` (one-time / trial) · `recurring` (monthly/yearly) ·
+`plan_type` values: `free` · `once` (one-time) · `recurring` (monthly/yearly) ·
 `on_demand` (Pay As You Go).
 
 ---
@@ -70,21 +70,24 @@ Plans **and addons are defined inside the publish payload** submitted by
 Pricing wizard step is a UI helper that batches everything into the single
 `POST /app/{id}/publish` body (verified):
 
-- `plan_type` — `"free"` | `"one_time"` | `"recurring"` | `"pay_as_you_go"` (required).
-- `plans` — for recurring pricing: up to **8 plans** (0–4 monthly, 0–4 yearly), each
-  carrying its price and `features[]`. An optional trial period can be enabled per plan.
+- `plan_type` — `"free"` | `"recurring"` | `"once"` | `"on_demand"` (required; these are the exact API values — there is no `one_time` or `pay_as_you_go`).
+- `plans` — for recurring pricing: up to **8 plans** (0–4 monthly, 0–4 yearly), each carrying
+  bilingual `name {en,ar}`, `price`, a `recurring` field (`"monthly"` | `"yearly"` | `"free"`),
+  and `additional_features[]`.
+- Trial is set ONCE at the top level, not per plan: `plan_trial` (integer days, min 1, capped by
+  the company's max-trial-days — default 7) plus `trial_description` (30–1000 chars).
 - `addons` — extra purchasables, allowed with **all** pricing types.
 - `action: "save" | "submit"` is always required — full payload →
   salla-app-builder's publish step.
 
-| Plan type        | Use                                                                       |
-| ---------------- | ------------------------------------------------------------------------- |
-| Free             | No charge                                                                 |
-| Monthly / Yearly | Recurring (`plan_type: recurring`)                                        |
-| Trial            | Time-boxed free access before a paid plan                                 |
-| One-Time         | Single charge (`plan_type: one_time`)                                     |
-| Pay As You Go    | Usage / on-demand (`plan_type: pay_as_you_go`; events report `on_demand`) |
-| Addon            | Extra on top of a plan (defined in `addons`)                              |
+| Plan type        | Use                                          |
+| ---------------- | -------------------------------------------- |
+| Free             | No charge                                    |
+| Monthly / Yearly | Recurring (`plan_type: recurring`)           |
+| Trial            | Time-boxed free access before a paid plan    |
+| One-Time         | Single charge (`plan_type: one_time`)        |
+| Pay As You Go    | Usage / on-demand (`plan_type: on_demand`)   |
+| Addon            | Extra on top of a plan (defined in `addons`) |
 
 After the app exists, **App details → Custom Plans** exposes per-merchant/tailored plans.
 
@@ -170,14 +173,14 @@ merchant's subscription data silently corrupts plan gating.
 }
 ```
 
-| Field                               | Notes                                                                                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `merchant`                          | **Filter on this** (plus `app_id`) before updating stored state                                                                            |
-| `item_type`                         | `"plan"` \| `"addon"` — filter to `plan` for plan state                                                                                    |
-| `plan_type`                         | `free` \| `once` \| `recurring` \| `on_demand` (`on_demand` is the event/reconciliation-side value for plans published as `pay_as_you_go`) |
-| `plan_name`                         | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)                                                       |
-| `price` / `start_date` / `end_date` | nullable                                                                                                                                   |
-| `quantity`                          | seats/units                                                                                                                                |
+| Field                               | Notes                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `merchant`                          | **Filter on this** (plus `app_id`) before updating stored state                                   |
+| `item_type`                         | `"plan"` \| `"addon"` — filter to `plan` for plan state                                           |
+| `plan_type`                         | `free` \| `once` \| `recurring` \| `on_demand` (same values in the publish payload and in events) |
+| `plan_name`                         | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)              |
+| `price` / `start_date` / `end_date` | nullable                                                                                          |
+| `quantity`                          | seats/units                                                                                       |
 
 Use this to reconcile — not as your hot path.
 

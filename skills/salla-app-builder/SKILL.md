@@ -62,16 +62,16 @@ Use the answers to tailor Steps 1, 4–7.
    `width`/`height` — confirm they satisfy the rule, then use the returned `id`.
 3. **Create the app.** Call `salla_apps` with `action: "create"` and:
 
-| Field                        | Requirement                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------- |
-| `name` + `name_ar`           | **bilingual** — the API rejects missing variants (`name_ar` defaults to `name`) |
-| `type`                       | from step 1 (`private` or a public category)                                    |
-| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                       |
-| `app_url`                    | URL                                                                             |
-| `email`                      | support email                                                                   |
-| `logo`                       | file `id` from `salla_upload`                                                   |
-| `sub_category_id`            | required when `type` is `app` / `shipping`                                      |
-| `is_paid`                    | optional, boolean                                                               |
+| Field                        | Requirement                                                                                                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name` + `name_ar`           | **bilingual** — the API rejects missing variants (`name_ar` defaults to `name`). Both must be globally unique; `name_ar` must be plain Arabic letters with NO diacritics/tashkeel (e.g. هريفاي, not هرّفاي) |
+| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                   |
+| `app_url`                    | URL                                                                                                                                                                                                         |
+| `email`                      | support email                                                                                                                                                                                               |
+| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                               |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                  |
+| `is_paid`                    | optional, boolean                                                                                                                                                                                           |
 
 The result returns the new `app_id` — carry it through every later step.
 
@@ -226,6 +226,9 @@ Integrates a carrier or fulfillment provider:
      and `screenshots` as `[{image: id}]`, **min 3** (required at submit).
    - `categories` and `main_category_id` are **main** categories (`type=app` from
      `salla_reference`), distinct from the `sub_category_id` used at create time.
+   - Publishing **snapshots** the app's current snippets into the publication (with new
+     ids), so `salla_apps action=get` shows both the live snippet and its publication
+     copy — expected, not a duplicate-bug.
    - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
      `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
    - `trial_description` is a plain string, **≥ 30 chars**.

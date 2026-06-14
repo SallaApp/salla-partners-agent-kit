@@ -61,18 +61,24 @@ MCP; the token handling is runtime code.
 Set up the OAuth + webhook config that makes tokens flow. Do this with the Partners MCP:
 
 1. **Scopes** — read the valid slugs + current selection from `salla_apps action=get`,
-   `app_id` (there is no scope-catalog reference endpoint). Always include
-   `offline_access` (required for refresh tokens).
+   `app_id` (there is no scope-catalog reference endpoint).
 2. **Connect** — `salla_apps action=connect`, `app_id`, with `scopes`
-   (`slug → "read" | "read_write"`), and for Easy Mode `webhook_url` +
+   (`{ "<slug>": "read" | "read_write" }` — slug and access level are separate keys,
+   e.g. `{"orders": "read_write"}`). For Easy Mode also pass `webhook_url` +
    `webhook_security_strategy: "signature"` + `generate_secret: true`; for Custom Mode
-   `redirect_urls`. (Set trusted IPs here too — Part: IP whitelisting below.)
+   pass `redirect_urls`. (Set trusted IPs here too — Part: IP whitelisting below.)
+
+   > **`offline_access` does NOT go in the `connect` scopes map.** It is an OAuth2
+   > token scope that enables refresh tokens and belongs only in the authorize URL
+   > (space-delimited, e.g. `scope=offline_access orders.read_write`). The `connect`
+   > map takes resource slugs only (e.g. `{"orders": "read_write"}`).
+
 3. **Subscribe** — `salla_events action=subscribe`, `app_id`,
    `events: ["app.store.authorize"]` (plus other lifecycle events you need).
 
 **Manual fallback:** Partners Portal → App Keys / Webhooks / App Scope.
 
-**Gate:** "`offline_access` in scope, webhook (or redirect) set, and `app.store.authorize`
+**Gate:** "Webhook (or redirect) set, resource scopes applied, and `app.store.authorize`
 subscribed?"
 
 ---
@@ -301,23 +307,29 @@ Authorization: Bearer <access_token>
 
 ### OAuth scopes
 
-Always include `offline_access` (space-separated in the auth URL). Confirm the app's valid
-slugs via `salla_apps action=get`:
+There are two distinct scope contexts — do not mix them:
+
+**1. `salla_apps action=connect` scopes map** — resource scopes only, slug + level as
+separate fields:
+
+```json
+{ "orders": "read_write", "products": "read", "customers": "read_write" }
+```
+
+**2. OAuth authorize URL** — space-delimited dotted strings. Include `offline_access`
+here (it is an OAuth token scope that enables refresh tokens, not a resource scope):
 
 ```text
-offline_access          required for refresh tokens
-orders.read_write
-products.read_write
-customers.read_write
-branches.read_write
-settings.read
-webhooks.read_write
-payments.read
-taxes.read_write
-specialoffers.read_write
-categories.read_write
-brands.read_write
-metadata.read_write
+scope=offline_access orders.read_write products.read customers.read_write
+```
+
+`offline_access` must NOT be put in the `connect` scopes map. Confirm the app's valid
+resource slugs via `salla_apps action=get`:
+
+```text
+orders          products        customers       branches
+settings        webhooks        payments        taxes
+specialoffers   categories      brands          metadata
 ```
 
 ### App events

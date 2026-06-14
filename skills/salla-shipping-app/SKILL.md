@@ -88,7 +88,9 @@ OAuth patterns → **`salla-app-auth`** skill.
 
 Use `salla_shipping` instead of the Portal form:
 
-1. Inspect current zones: `salla_shipping action=get_zones`, `app_id`.
+1. Inspect current zones: `salla_shipping action=get_zones`, `app_id`. **Note:** a newly
+   created shipping app already has a pre-seeded default zone (All Countries → All Cities,
+   fixed fee) — a non-empty response does not mean you've already configured it.
 2. Set zones (regions/countries your carrier covers, package types, COD):
    `salla_shipping action=set_zones`, `app_id`, `shipping: {…zones payload…}`.
 3. Set carrier settings: `salla_shipping action=set_settings`, `app_id`, `setting_id`,

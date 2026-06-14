@@ -76,6 +76,10 @@ Use the answers to tailor Steps 1, 4–7.
 
 The result returns the new `app_id` — carry it through every later step.
 
+> **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
+> success — the Portal does not echo changed fields. Always follow up with
+> `salla_apps action=get` to confirm the update was applied.
+
 **Manual fallback:** Portal → **My Apps → Create App**.
 
 **Gate:** "App created — confirm the returned `app_id` (`salla_apps action=get`)."
@@ -212,8 +216,15 @@ Integrates a carrier or fulfillment provider:
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
    private-publish; optional `update_note`). Payload facts (verified):
    - `action` is **always required**: `"save"` (draft) or `"submit"` (full validation).
+   - **`save` is NOT fully lenient** — it still requires `name: {en, ar}` and
+     `short_description: {en, ar}` (bilingual nested objects). Heavier fields (logo id,
+     screenshots, plans, etc.) are only required at `submit`.
+   - `name`, `short_description`, and other user-facing text are bilingual nested objects:
+     `{en: "…", ar: "…"}` — not flat strings.
    - Upload media first via `salla_upload` → integer image IDs: `logo` (≥ 250×250, 1:1)
-     and `screenshots` as `[{image: id}]`, **min 4, max 6**.
+     and `screenshots` as `[{image: id}]`, **min 3** (required at submit).
+   - `categories` and `main_category_id` are **main** categories (`type=app` from
+     `salla_reference`), distinct from the `sub_category_id` used at create time.
    - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
      `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
    - `trial_description` is a plain string, **≥ 30 chars**.

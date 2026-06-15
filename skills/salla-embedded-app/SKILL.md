@@ -67,16 +67,12 @@ merchant dashboard sidebar?"
 
 ## Step 2 — Install & Initialize the SDK
 
-**NPM:**
+**Install the npm package — do NOT rely on a CDN global.** Import `embedded` from the
+package so TypeScript validates the method names; the CDN build's global name/shape can
+differ and silently break boot (don't assume `window.SallaEmbedded`).
 
 ```bash
 npm install @salla.sa/embedded-sdk
-```
-
-**CDN:**
-
-```html
-<script src="https://cdn.salla.network/embedded-sdk/latest/index.js"></script>
 ```
 
 Initialize on every page load:
@@ -87,6 +83,10 @@ import { embedded } from "@salla.sa/embedded-sdk";
 const { layout } = await embedded.init({ debug: false });
 ```
 
+> Verify the **current** method surface against the package types / docs before calling a
+> module — the SDK evolves and guessed method names fail at runtime. Use the CDN only as a
+> last resort for non-bundled pages, and confirm its exported global name first.
+
 Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)
 
 ---
@@ -96,24 +96,37 @@ Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guid
 Verify the merchant's identity **before** rendering any content. Never trust the token
 client-side only.
 
+The token is short-lived — use it to **bootstrap your own app session** (set a signed
+cookie / JWT after introspection); don't treat the embedded token as a long-lived API
+credential. Call `embedded.ready()` ONLY after the session is verified **and** the page's
+data is loaded — otherwise the dashboard reveals an empty/broken iframe.
+
 ```ts
 const token = embedded.auth.getToken();
 if (!token) {
-  // App was opened outside Salla — render a "please open inside the dashboard" message and stop.
+  // Opened outside Salla — render "please open inside the dashboard" and stop.
   return;
 }
 
-const authOk = await fetch("/api/verify-token", {
+const res = await fetch("/api/verify-token", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ token }),
-}).then((res) => res.ok);
+});
 
-if (!authOk) {
-  // Verification failed — show an error state. Trigger embedded.auth.refresh() to retry with a fresh token.
+if (res.status === 401) {
+  // Token expired → refresh FIRST (Salla re-renders the iframe with a fresh token).
+  embedded.auth.refresh();
+  return;
+}
+if (!res.ok) {
+  // Auth fully failed → destroy so the dashboard doesn't hang on a dead iframe.
+  embedded.destroy();
   return;
 }
 
+// Backend set your app session cookie; now load this page's data, THEN reveal.
+await loadDashboardData();
 embedded.ready(); // signals the dashboard to show the iframe
 ```
 
@@ -158,11 +171,18 @@ Design tokens, RTL patterns → [`references/design-guidelines.md`](references/d
 
 Based on your needs from Step 0, implement the relevant modules:
 
-**Auth — refresh on 401:**
+**Auth — refresh-first recovery (never destroy on a recoverable 401):**
 
 ```ts
-embedded.auth.refresh(); // Salla re-renders iframe with a fresh token
+// On a 401 / expired token: refresh FIRST — Salla re-renders the iframe with a fresh one.
+embedded.auth.refresh();
+
+// Only when auth is unrecoverable (introspect rejects a fresh token, app suspended):
+embedded.destroy(); // tears down the iframe so the dashboard doesn't hang
 ```
+
+Order matters: a transient expiry must `refresh()`, not `destroy()`. Reserve `destroy()`
+for genuine, unrecoverable auth failure.
 
 **Page — title and in-dashboard navigation:**
 

@@ -78,8 +78,10 @@ then **inject it as a storefront snippet** with the tool:
    `app_id`.
 3. Inject it: `salla_snippets action=create`, `app_id`, `name` (required), `place`
    ("before" — the only accepted value), `tag` ("head" | "body"), `content` (the snippet
-   body). Verify with `salla_snippets action=list`; use `update` / `delete` to change or
-   remove it. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`,
+   body). **Dedup first:** call `salla_snippets action=list` and `update`/`delete` any
+   existing snippet for this app before creating — stacked duplicates double-render the UI
+   and double-fire events. Verify with `salla_snippets action=list`; use `update` /
+   `delete` to change or remove it. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`,
    and `content` together (it is not a partial patch). `action=update` returns
    `{"snippet":{}}` (empty object) on success — call `action=list` to verify the
    change.
@@ -93,6 +95,26 @@ then **inject it as a storefront snippet** with the tool:
 
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)
+
+#### Storefront UI compliance (when the snippet renders visible UI)
+
+A snippet that **draws on the page** must look native to the store's Twilight theme — not
+a standalone SaaS badge. Before shipping visible UI:
+
+- **Inherit theme tokens** — use Twilight CSS variables (`--color-primary`, `--color-text`,
+  `--font-main`, spacing/radius vars). Don't hardcode fonts, colors, borders, or shadows
+  (fallbacks only).
+- **Use Salla Icons** (`sicon-*` classes) — not custom glyphs/emoji/dots.
+- **Match the product page** — adopt the surrounding spacing/density and insert near the
+  relevant product element, not as a floating card.
+- **RTL + locale** — most storefronts are Arabic/RTL; honor `dir`/`lang` and mirror layout.
+- **Verify live** — open an **installed demo store** (`salla_apps action=demo_stores` →
+  `url`) and screenshot the product page. UI that "runs" in code is not proof it looks
+  right.
+
+Full guidance → [salla-ui-compliance](../salla-ui-compliance/SKILL.md). Docs: theme
+https://docs.salla.dev/421877m0 · CSS variables https://docs.salla.dev/421945m0 · Salla
+Icons https://docs.salla.dev/422550m0 · single product page https://docs.salla.dev/422561m0.
 
 ### Cloud Mode
 

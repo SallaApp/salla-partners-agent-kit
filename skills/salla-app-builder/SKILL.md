@@ -127,8 +127,14 @@ and returning 200, with the secret stored?"
 2. Ask: "Which domains does your app react to?" Subscribe only to what's needed by
    calling `salla_events` with `action: "subscribe"`, `app_id`, and `events: [...slugs]`.
 
-> **Hookable rule:** before subscribing a webhook, check whether an App Function trigger
-> exists for the event (see **`salla-app-functions`**) — prefer the App Function.
+> **Hookable rule — App Functions first.** BEFORE subscribing a webhook for a STORE event
+> (order / product / cart / customer …), check the App Function trigger catalog
+> (**`salla-app-functions`**) and prefer an App Function: it runs inside Salla, reads
+> `context.settings`, and calls the Salla API without your own token/refresh plumbing or
+> signature verification. Use **webhooks only** for lifecycle/auth events with no trigger —
+> `app.store.authorize` (delivers Easy-Mode tokens), install/uninstall, trial/subscription.
+> The clean split: **lifecycle/auth → webhook · store automation → App Function ·
+> storefront UI → snippet · merchant config → embedded dashboard.**
 
 Common slugs by domain:
 
@@ -250,7 +256,21 @@ Integrates a carrier or fulfillment provider:
      `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
    - `trial_description` is a plain string, **≥ 30 chars**.
    - `support_email` is required when `contact_method = "email"`.
-4. Once approved the app is live on https://apps.salla.sa/en.
+4. **Consistency gate (before submit / review).** Re-read and confirm everything is in
+   sync — a config change that isn't re-saved into the publication ships a stale snapshot:
+   - `salla_apps action=get` — scopes, webhook/redirect URLs, status are as intended.
+   - **Publication draft matches the app** — `publication_last_save.app_settings` (plus
+     logo / categories / plans) reflect your latest config; **re-save the publication after
+     ANY config change** (settings schema, snippet, scope) or review uses the old snapshot.
+   - **No duplicate snippets** — `salla_snippets action=list` shows one per purpose.
+   - **Embedded page** — `salla_embedded_pages action=list` URL is reachable and loads.
+   - **Webhook ↔ App Function split** is correct (lifecycle/auth on webhooks; store events
+     on App Functions where a trigger exists).
+   - **Settings save** verified on a real demo store (salla-app-settings save smoke test).
+
+   Full readback → **salla-publication-consistency**; live checks → **salla-live-testing**.
+
+5. Once approved the app is live on https://apps.salla.sa/en.
 
 Testing guide: https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/
 Publishing guide: https://salla.dev/blog/standards-salla-apps-publications/

@@ -58,14 +58,9 @@ async function bootstrapApp() {
     // Signal ready to the dashboard shell
     embedded.ready();
     embedded.page.setTitle(layout?.locale === "ar" ? "تطبيقي" : "My App");
-
-    // React to theme changes without reloading
-    embedded.onThemeChange?.((newTheme: string) => {
-      document.documentElement.setAttribute("data-theme", newTheme);
-    });
   } catch (err) {
     console.error("Handshake failed", err);
-    embedded.destroy();
+    // Render an error/"open inside Salla" state; on an expired session call embedded.auth.refresh().
   }
 }
 
@@ -180,8 +175,8 @@ async function fetchOrders(merchantId: number) {
 
 ## Resources
 
-| Topic                         | Link                                                   |
-| ----------------------------- | ------------------------------------------------------ |
-| Authentication guide          | https://docs.salla.dev/1919160                         |
-| Exchange-authority introspect | https://api.salla.dev/exchange-authority/v1/introspect |
-| Auth Module reference         | https://docs.salla.dev/embedded-sdk/modules/auth.md    |
+| Topic                         | Link                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| Authentication guide          | https://docs.salla.dev/embedded-sdk/authentication                                  |
+| Exchange-authority introspect | https://api.salla.dev/exchange-authority/v1/introspect                              |
+| Auth Module reference         | https://docs.salla.dev/embedded-sdk/modules/auth/get-token |

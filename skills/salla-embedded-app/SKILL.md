@@ -34,9 +34,9 @@ Ask before starting:
 1. **What does this page do?** (settings UI, analytics dashboard, addon purchase, etc.)
 2. **Which SDK modules will you need?**
    - `auth` — token + refresh
-   - `page` — title, resize
-   - `nav` — action buttons, breadcrumbs
-   - `ui` — toasts, modals, loading
+   - `page` — title, navigation, redirect, resize
+   - `nav` — action buttons, navbar tabs
+   - `ui` — toasts, confirm dialogs, loading, breadcrumbs
    - `checkout` — addon purchase
 3. **Does the page need to sell addons?** (activates the Checkout module)
 
@@ -96,7 +96,7 @@ client-side only.
 ```ts
 const token = embedded.auth.getToken();
 if (!token) {
-  embedded.destroy();
+  // App was opened outside Salla — render a "please open inside the dashboard" message and stop.
   return;
 }
 
@@ -107,7 +107,7 @@ const authOk = await fetch("/api/verify-token", {
 }).then((res) => res.ok);
 
 if (!authOk) {
-  embedded.destroy();
+  // Verification failed — show an error state. Trigger embedded.auth.refresh() to retry with a fresh token.
   return;
 }
 
@@ -130,7 +130,8 @@ a demo store token."
 
 ## Step 4 — Sync Theme & Locale
 
-Use the `layout` from `embedded.init()` — do not read query params manually:
+Theme, locale, and direction come from the `layout` returned by `embedded.init()` — do not read
+query params manually:
 
 ```ts
 if (layout) {
@@ -141,11 +142,10 @@ if (layout) {
     layout.locale === "ar" ? "rtl" : "ltr",
   );
 }
-
-embedded.onThemeChange?.((newTheme) => {
-  document.documentElement.setAttribute("data-theme", newTheme);
-});
 ```
+
+`layout` is the source of truth for appearance; re-apply it whenever the SDK re-initializes (e.g.
+after `embedded.auth.refresh()` reloads the iframe).
 
 Design tokens, RTL patterns → [`references/design-guidelines.md`](references/design-guidelines.md)
 
@@ -161,28 +161,36 @@ Based on your needs from Step 0, implement the relevant modules:
 embedded.auth.refresh(); // Salla re-renders iframe with a fresh token
 ```
 
-**Page — set title:**
+**Page — title and in-dashboard navigation:**
 
 ```ts
 embedded.page.setTitle("My App");
+embedded.page.navigate("/orders"); // route the dashboard (SPA); also redirect() and resize()
 ```
 
 **Nav — action button:**
 
 ```ts
-embedded.nav.setAction({ title: "Save", value: "save" });
-embedded.nav.onAction((action) => {
-  if (action.value === "save") saveChanges();
+embedded.nav.setAction({ title: "Save", value: "save", icon: "sicon-check" }); // icon optional
+const unsubscribe = embedded.nav.onActionClick((value) => {
+  if (value === "save") saveChanges();
 });
+// Clear the action when the merchant navigates away from this view:
+embedded.nav.clearAction();
 ```
 
-**UI — toasts and loading:**
+**UI — toasts, loading, confirm, breadcrumbs:**
 
 ```ts
 embedded.ui.toast.success("Saved!");
 embedded.ui.toast.error("Something went wrong");
 embedded.ui.loading.show();
 embedded.ui.loading.hide();
+const ok = await embedded.ui.confirm({
+  title: "Delete?",
+  message: "This cannot be undone.",
+});
+embedded.ui.breadcrumbs.hide(); // or .show()
 ```
 
 **Checkout — addon purchase (if applicable):**
@@ -204,15 +212,15 @@ in the publish step of **`salla-app-builder`**.
 
 ## Resources
 
-| Topic                 | Link                                                    |
-| --------------------- | ------------------------------------------------------- |
-| Getting Started       | https://docs.salla.dev/1950922                          |
-| Authentication        | https://docs.salla.dev/1919160                          |
-| Auth Module           | https://docs.salla.dev/embedded-sdk/modules/auth.md     |
-| Page Module           | https://docs.salla.dev/embedded-sdk/modules/page.md     |
-| Nav Module            | https://docs.salla.dev/embedded-sdk/modules/nav.md      |
-| UI Module             | https://docs.salla.dev/embedded-sdk/modules/ui.md       |
-| Checkout Module       | https://docs.salla.dev/embedded-sdk/modules/checkout.md |
-| Token Introspect      | https://docs.salla.dev/6394918f0.md                     |
-| App Design Guidelines | https://docs.salla.dev/1929178                          |
-| Playground Testing    | https://docs.salla.dev/1929235                          |
+| Topic                  | Link                                                                 |
+| ---------------------- | -------------------------------------------------------------------- |
+| Overview (hub)         | https://docs.salla.dev/embedded-sdk/overview                         |
+| Installation           | https://docs.salla.dev/embedded-sdk/installation                     |
+| Create an embedded app | https://docs.salla.dev/embedded-sdk/create-app                       |
+| Authentication         | https://docs.salla.dev/embedded-sdk/authentication                   |
+| App Design Guidelines  | https://docs.salla.dev/embedded-sdk/design-guidelines                |
+| Playground / testing   | https://docs.salla.dev/embedded-sdk/playground                       |
+| SDK module methods     | [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md) |
+
+> Per-module pages (auth/page/nav/ui/checkout) don't have public URLs yet — use the bundled
+> [`sdk-modules-guide.md`](references/sdk-modules-guide.md) for method signatures.

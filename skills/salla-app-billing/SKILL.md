@@ -85,7 +85,7 @@ Pricing wizard step is a UI helper that batches everything into the single
 | Free             | No charge                                    |
 | Monthly / Yearly | Recurring (`plan_type: recurring`)           |
 | Trial            | Time-boxed free access before a paid plan    |
-| One-Time         | Single charge (`plan_type: one_time`)        |
+| One-Time         | Single charge (`plan_type: once`)            |
 | Pay As You Go    | Usage / on-demand (`plan_type: on_demand`)   |
 | Addon            | Extra on top of a plan (defined in `addons`) |
 

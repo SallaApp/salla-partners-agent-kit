@@ -57,9 +57,10 @@ Use the answers to tailor Steps 1, 4–7.
    required and **must be a sub-category id** (pick from `sub_categories` — for `app`
    these are POS, OMS, Subscription, Cross-sell/Upsell, Manage Store, AI, Others). The
    `main_category_id` used at publish is a **main** category (from `main_categories`).
-2. **Upload the logo.** Call `salla_upload` with a public `url` or `base64`. The logo
-   must be a **square (1:1) image, ≥ 250×250 px**. The result returns `id` plus
-   `width`/`height` — confirm they satisfy the rule, then use the returned `id`.
+2. **Upload the logo.** Call `salla_upload` with a public image `source_url`. The logo
+   must be a **square (1:1) image, ≥ 250×250 px** — ensure the source image satisfies
+   that **before** uploading. The result returns only `{id, url}` (no dimensions are
+   echoed), so use the returned `id`.
 3. **Create the app.** Call `salla_apps` with `action: "create"` and:
 
 | Field                        | Requirement                                                                                                                                                                                                 |
@@ -100,7 +101,9 @@ app's valid scope slugs and current selection:
    - `redirect_urls` — OAuth redirect URL(s)
    - `webhook_url` — your webhook receiver
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
-   - `generate_secret: true` — mints + returns the webhook signing secret
+   - `generate_secret: true` — mints + returns the webhook signing secret. An app
+     already has a secret from creation, so this **rotates** it — don't regenerate if
+     the current secret is already deployed and in use.
    - `trusted_ips`, `webhook_headers`
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
@@ -136,7 +139,7 @@ Common slugs by domain:
 
 > A `webhook_url` must be set (Step 2) before events will deliver. Unknown slugs are
 > rejected with the valid list — pick from it (`salla_events action=list` is the source
-> of truth; note there is no `order.shipment.created` event).
+> of truth).
 
 **Gate:** "Subscribed. Trigger one event from the demo store and confirm your webhook
 receives it."

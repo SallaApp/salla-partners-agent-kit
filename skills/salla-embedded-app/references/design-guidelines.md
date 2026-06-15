@@ -204,21 +204,21 @@ Use native Salla UI toasts and confirms where possible. For inline buttons:
 
 ## Do / Don't
 
-| Do                                               | Don't                                      |
-| ------------------------------------------------ | ------------------------------------------ |
-| Use `embedded.ui.toast` for feedback             | Show your own custom toast overlays        |
-| Use `window.confirm()` only as fallback          | Build custom confirm modals                |
-| Use `embedded.nav.setAction` for primary actions | Duplicate the Save button inside the page  |
-| Match the dashboard theme                        | Use hardcoded colors                       |
-| Support RTL text alignment                       | Use `text-align: left` globally            |
-| Call `embedded.ready()` after bootstrap          | Let the dashboard show a blank iframe      |
-| Use bilingual labels everywhere                  | Show English-only text to Arabic merchants |
+| Do                                               | Don't                                             |
+| ------------------------------------------------ | ------------------------------------------------- |
+| Use `embedded.ui.toast` for feedback             | Show your own custom toast overlays               |
+| Use `embedded.ui.confirm()` for confirmations    | Build custom confirm modals or `window.confirm()` |
+| Use `embedded.nav.setAction` for primary actions | Duplicate the Save button inside the page         |
+| Match the dashboard theme                        | Use hardcoded colors                              |
+| Support RTL text alignment                       | Use `text-align: left` globally                   |
+| Call `embedded.ready()` after bootstrap          | Let the dashboard show a blank iframe             |
+| Use bilingual labels everywhere                  | Show English-only text to Arabic merchants        |
 
 ---
 
 ## Resources
 
-| Topic                 | Link                           |
-| --------------------- | ------------------------------ |
-| App Design Guidelines | https://docs.salla.dev/1929178 |
-| Playground Testing    | https://docs.salla.dev/1929235 |
+| Topic                 | Link                                                  |
+| --------------------- | ----------------------------------------------------- |
+| App Design Guidelines | https://docs.salla.dev/embedded-sdk/design-guidelines |
+| Playground / testing  | https://docs.salla.dev/embedded-sdk/playground        |

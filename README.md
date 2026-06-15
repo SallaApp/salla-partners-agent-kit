@@ -38,14 +38,14 @@ A Salla app is **reactions to events attached at hookables**. The plugin mirrors
 - **Master router skill** — [`salla-app-expert`](skills/salla-app-expert/SKILL.md):
   the same routing as a plain skill, for clients that don't support agent prompts. Holds
   the hookable rule (snippet vs App Function vs webhook) and the intent → skill map.
-- **14 composable skills** — each owns one domain and hands off to the others:
+- **15 composable skills** — each owns one domain and hands off to the others:
 
-| Layer                    | Skills                                                                                 |
-| ------------------------ | -------------------------------------------------------------------------------------- |
-| Foundation               | `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`                  |
-| Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` |
-| App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                 |
-| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase`                   |
+| Layer                    | Skills                                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Foundation               | `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`                                           |
+| Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
+| App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                          |
+| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase`                                            |
 
 Each skill is a workflow: a discovery step, numbered steps with gates, and references
 loaded only when needed. Descriptions are the routing interface — agents pick the right

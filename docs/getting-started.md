@@ -104,15 +104,9 @@ re-runs the login automatically.
 
 This repo ships `.mcp.json` (project scope, read by Claude Code and other
 `.mcp.json`-aware clients) and `.cursor/mcp.json` (Cursor), both pointing at the
-`SALLA_MCP_URL` environment variable. With the repo in your workspace, just:
-
-```bash
-export SALLA_MCP_URL="<MCP_URL>"   # add to your shell profile or .env
-```
-
-and restart the client — no per-client wiring needed. For clients that don't expand
-env vars, replace the variable with the literal URL in a local copy. The per-client
-sections below cover standalone (non-repo) installs.
+production endpoint `https://mcp.salla.dev/partners`. With the repo in your workspace,
+just open the client and complete the OAuth login on first use — no per-client wiring
+needed. The per-client sections below cover standalone (non-repo) installs.
 
 ### Claude Code
 
@@ -228,7 +222,7 @@ these as labelled code steps.
 
 | Symptom                             | Fix                                                                                                                                                     |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools don't appear                  | Confirm the MCP server is added and shows "connected" (Claude Code: `/mcp`; Cursor: Settings → MCP). Re-check `<MCP_URL>` ends in `/partners`.               |
+| Tools don't appear                  | Confirm the MCP server is added and shows "connected" (Claude Code: `/mcp`; Cursor: Settings → MCP). Re-check `<MCP_URL>` ends in `/partners`.          |
 | `Salla session expired — reconnect` | The partner token lapsed (~14 days). Re-run the client's MCP login/authorize to mint a new one.                                                         |
 | Browser login didn't open           | For stdio bridges, run the `mcp-remote` command once in a terminal to complete OAuth, then restart the client.                                          |
 | A tool says it's unknown/disabled   | Some tools are gated by server config (e.g. `salla_request`, `salla_functions`). Use the curated tool for that task, or contact your Salla admin.       |

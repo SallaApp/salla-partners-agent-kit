@@ -59,11 +59,11 @@ they can render as broken form-builder output and fail to save. Rules:
 | Control                 | Schema                                                                           |
 | ----------------------- | -------------------------------------------------------------------------------- |
 | Switch                  | `type: "boolean"`, `format: "switch"`, `value: true`, `icon: "sicon-toggle-off"` |
-| Checkbox                | `type: "boolean"`, `format: "checkbox"`                                           |
+| Checkbox                | `type: "boolean"`, `format: "checkbox"`                                          |
 | Text / email / password | `type: "string"`, `format: "text" \| "email" \| "password"`                      |
 | Integer / float         | `type: "number"`, `format: "integer" \| "float"` (+ `minimum`, `maximum`)        |
 | Single choice           | `type: "items"`, `format: "radio-list" \| "dropdown-list"` (+ `options`)         |
-| Multi choice            | `type: "items"`, `format: "checkbox-list"` (+ `options`)                          |
+| Multi choice            | `type: "items"`, `format: "checkbox-list"` (+ `options`)                         |
 
 Common props: `id` (snake_case), `type`, `format`, `label`, `value` (default),
 `required`, `public`, `icon`, `placeholder`, `labelHTML`, `multilanguage`. Example switch:

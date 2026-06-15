@@ -24,12 +24,12 @@ complete each gate before moving to the next.
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
 
-| Tool              | What it does                                                                                 |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| `salla_reference` | Look up `categories`, `countries`, `cities`                                                  |
-| `salla_upload`    | Upload a logo/file → returns a file `id`                                                     |
+| Tool              | What it does                                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference` | Look up `categories`, `countries`, `cities`                                                                            |
+| `salla_upload`    | Upload a logo/file → returns a file `id`                                                                               |
 | `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` / `demo_stores` (testing) |
-| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                     |
+| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                               |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -229,6 +229,7 @@ Integrates a carrier or fulfillment provider:
    trigger each subscribed event to verify end-to-end behavior. Surface these links to the
    user. You can also open the app itself in the Portal:
    `https://portal.salla.partners/apps/{app_id}`.
+
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
    private-publish; optional `update_note`). Payload facts (verified):

@@ -63,11 +63,13 @@ own chrome.
 
 ## Step 2 — Define the Addon
 
-The addon must exist as a plan of type **Addon** in the Partners Portal (Pricing / Custom
-Plans) before it can be purchased. Each addon has an `item_slug` you'll match on later. See
-**salla-app-billing** for how plans/addons are defined.
+Addons are defined in the **`addons` array of the publish payload** submitted via
+`salla_apps action=publish` — there is no separate pricing endpoint (see
+**salla-app-billing** Step 1 for the full payload shape). After publishing, the addon
+appears under the Portal's **App Details → Custom Plans** section. Know the addon's
+`item_slug` before proceeding — you'll match on it in the activation webhook.
 
-**Gate:** "Addon defined as an Addon plan, and you know its `item_slug`?"
+**Gate:** "Addon defined in the publish payload and published; you know its `item_slug`?"
 
 ---
 

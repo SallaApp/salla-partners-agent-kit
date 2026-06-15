@@ -26,10 +26,12 @@ actions** with the Salla Partners MCP.
   payload.
 - **Salla Partners MCP** — _performs actions_:
 
-| Tool              | Action                    | What it does                            |
-| ----------------- | ------------------------- | --------------------------------------- |
-| `salla_apps`      | `publish`                 | Publish the app (= deploy the function) |
-| `salla_functions` | `list` / `get` / `delete` | Inspect or remove deployed functions    |
+| Tool         | Action    | What it does                            |
+| ------------ | --------- | --------------------------------------- |
+| `salla_apps` | `publish` | Publish the app (= deploy the function) |
+
+> **No MCP tool exists for inspecting or deleting deployed functions.** To view, edit,
+> or delete a deployed App Function, use the Partners Portal → **App Functions** tab.
 
 > Sync actions must finish in **< 500 ms**; async events get **30 s**. `Resp`,
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** —
@@ -56,6 +58,9 @@ Ask before starting:
 Query `apidog-mcp-server` (site-id `451700`) for the event's exact `payload.data` shape
 **before** writing any handler. The event → typed-context mapping and the supported
 trigger list live in **[references/event-contexts.md](references/event-contexts.md)**.
+
+> **Fallback:** If `apidog-mcp-server` is not connected, consult
+> https://docs.salla.dev/1726818m0 for the trigger event payload shape.
 
 **Gate:** "Do you have the confirmed `payload.data` field names for this event?"
 
@@ -212,11 +217,10 @@ MCP instead of clicking Publish:
 - **Publish (= deploy):** `salla_apps action=publish`, `app_id` (optional `update_note`).
   Salla deploys the function on publish; installed merchants get the update
   automatically. There is **no deploy tool** — publishing is the deploy.
-- **Inspect deployed:** `salla_functions action=list`, `app_id` (optional `category`,
-  e.g. `"custom_scripts_events"`); `action=get` with a `trigger` for one function's source.
-- **Remove:** `salla_functions action=delete`, `app_id`, `trigger` (e.g. `"order.created"`).
+- **Inspect / edit / remove deployed functions:** use the Partners Portal →
+  **App Functions** tab (no MCP tool exists for this).
 
-**Gate:** "`salla_functions action=list` shows the function after publish?"
+**Gate:** "The App Functions tab in the Portal shows the function after publish?"
 
 ---
 

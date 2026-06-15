@@ -6,7 +6,7 @@ description: >
   events (cart, product view, checkout, search). Rule: storefront/browser behavior →
   snippet (Device Mode); server-side handling of the same events → App Function
   (salla-app-functions, Cloud Mode). Covers snippet create/update/delete, placement
-  (before/after × head/body), template parameters, and the storefront event catalogue.
+  (before × head/body), template parameters, and the storefront event catalogue.
 ---
 
 # Salla Storefront Snippets Flow
@@ -77,14 +77,19 @@ then **inject it as a storefront snippet** with the tool:
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.
 3. Inject it: `salla_snippets action=create`, `app_id`, `name` (required), `place`
-   ("before" | "after"), `tag` ("head" | "body"), `content` (the snippet body). Verify
-   with `salla_snippets action=list`; use `update` / `delete` to change or remove it.
+   ("before" — the only accepted value), `tag` ("head" | "body"), `content` (the snippet
+   body). Verify with `salla_snippets action=list`; use `update` / `delete` to change or
+   remove it. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`,
+   and `content` together (it is not a partial patch). `action=update` returns
+   `{"snippet":{}}` (empty object) on success — call `action=list` to verify the
+   change.
 
-   **Raw Partner-API deltas** (only if bypassing the tool): the create/update body sends
-   the code in the obfuscated field **`c8fbt33yM0`** — the `salla_snippets` tool maps
-   `content` to it for you, but a raw `content` field gets a 422; GET returns `content`
-   plus a CDN `url` rather than guaranteed inline code; DELETE responds **202**;
-   placement is the same `place` ("before"/"after") × `tag` ("head"/"body") pair.
+   **Raw Partner-API deltas** (only if bypassing the tool): both create AND update send
+   the code in the obfuscated field **`c8fbt33yM0`** (update is not a plain `content`
+   field) — the `salla_snippets` tool maps `content` to it for you, but a raw `content`
+   field gets a 422; GET returns `content` plus a CDN `url` rather than guaranteed inline
+   code; DELETE responds **202**; placement `place` accepts only `"before"`, paired with
+   `tag` ("head"/"body").
 
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)

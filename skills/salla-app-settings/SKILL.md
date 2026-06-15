@@ -44,14 +44,14 @@ Ask before starting:
 ## Step 1 — Design the Settings Schema
 
 Define the fields based on Step 0. Keep the schema **flat** — nested objects are not
-supported. Each field is an object (`id`, `label`, `type`, …); `label` / `placeholder` / `description` are **bilingual objects `{en, ar}`** — the API fails when a variant is missing.
+supported. Each field is an object (`id`, `label`, `type`, …); `label` / `placeholder` / `description` are **plain strings**. For translation, set `multilanguage: true` on the field — there are no inline `{en, ar}` objects.
 
-| Type              | Example field                         |
-| ----------------- | ------------------------------------- |
-| `string`          | API key, endpoint URL, email          |
-| `string` (secret) | Password, secret token                |
-| `number`          | Contract number, timeout              |
-| `boolean`         | Feature toggle, fast delivery enabled |
+| Type      | Example field                         |
+| --------- | ------------------------------------- |
+| `text`    | API key, endpoint URL, email          |
+| `number`  | Contract number, timeout              |
+| `boolean` | Feature toggle, fast delivery enabled |
+| `select`  | Dropdown choice                       |
 
 Field-object reference → [`references/form-builder.md`](references/form-builder.md)
 
@@ -62,8 +62,8 @@ Field-object reference → [`references/form-builder.md`](references/form-builde
 ## Step 2 — Register the Form
 
 1. Call `salla_settings` with `action: "define_form"`, the `app_id`, and `settings` (the
-   array of field objects from Step 1). Provide bilingual labels (English + Arabic) on
-   each field.
+   array of field objects from Step 1). Give each field a plain-string `label`; set
+   `multilanguage: true` on any field whose text should be translated.
 2. If you need server-side validation, call `salla_settings` with
    `action: "set_validation_url"`, `app_id`, and `validation_url`. Salla POSTs the values
    there before saving — respond with field errors or `200 OK`.
@@ -81,7 +81,9 @@ Optional for most apps — **required before publish for communication apps** (c
 declaration; see [salla-communication-app](../salla-communication-app/SKILL.md)).
 Manage the flags with the tool:
 
-- Read current: `salla_settings action=list_features`, `app_id`.
+- Read current: `salla_settings action=list_features`, `app_id`. **Note:** returns 404
+  for non-communication apps — this is expected; `list_features` is only meaningful for
+  communication-type apps.
 - Set them: `salla_settings action=set_features`, `app_id`, `features: [...]`.
 
 ---

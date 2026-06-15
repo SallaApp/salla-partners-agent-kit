@@ -2,7 +2,7 @@
 name: salla-app-lifecycle
 description: >
   The single owner of Salla's 13 app lifecycle webhook events — app.installed,
-  app.store.authorize, app.settings.updated, app.uninstalled, app.trial.*,
+  app.store.authorize, app.updated, app.settings.updated, app.uninstalled, app.trial.*,
   app.subscription.*, app.feedback.created. Use when provisioning on install, cleaning
   up on uninstall, or building the merchant state machine (installed → trial → active →
   expired → uninstalled). Events redeliver — handlers must be idempotent and upsert by
@@ -82,8 +82,9 @@ with the Partners MCP:
    secret for HMAC verification).
 2. List valid slugs: `salla_events action=list`, `app_id`.
 3. Subscribe: `salla_events action=subscribe`, `app_id`, `events: [...]` — e.g.
-   `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,
-   `app.subscription.started`, `app.subscription.renewed`, `app.subscription.expired`.
+   `app.installed`, `app.store.authorize`, `app.updated`, `app.settings.updated`,
+   `app.uninstalled`, `app.trial.started`, `app.subscription.started`,
+   `app.subscription.renewed`, `app.subscription.expired`, `app.feedback.created`.
 
 Inspect the app's current configuration any time with `salla_apps action=get`, `app_id`.
 

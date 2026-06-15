@@ -26,11 +26,10 @@ These steps drive the **Salla Partners MCP** tools. Each is one tool with an `ac
 
 | Tool              | What it does                                                                                 |
 | ----------------- | -------------------------------------------------------------------------------------------- |
-| `salla_reference` | Look up `categories`, `scopes`, `countries`, `cities`                                        |
+| `salla_reference` | Look up `categories`, `countries`, `cities`                                                  |
 | `salla_upload`    | Upload a logo/file → returns a file `id`                                                     |
 | `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` |
 | `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                     |
-| `salla_functions` | `list` / `get` / `delete` an app's App Functions                                             |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -51,27 +50,34 @@ Use the answers to tailor Steps 1, 4–7.
 
 ## Step 1 — Create the App
 
-1. **Resolve the category.** Call `salla_reference` with `action: "categories"` to get
-   valid `type` / `sub_category_id` values. `type` is `"private"` for a private app, or
-   a public category value (e.g. `app`, `shipping`, `communication`). For `app` /
-   `shipping`, a `sub_category_id` is required.
+1. **Resolve the category.** Call `salla_reference` with `action: "categories"` and the
+   `type` (`"app"` or `"shipping"`). It returns both `main_categories` and
+   `sub_categories`. Private apps use `type: "app"` here — `"private"` is **not** a valid
+   `salla_reference` category type. For `app` / `shipping`, a `sub_category_id` is
+   required and **must be a sub-category id** (pick from `sub_categories` — for `app`
+   these are POS, OMS, Subscription, Cross-sell/Upsell, Manage Store, AI, Others). The
+   `main_category_id` used at publish is a **main** category (from `main_categories`).
 2. **Upload the logo.** Call `salla_upload` with a public `url` or `base64`. The logo
    must be a **square (1:1) image, ≥ 250×250 px**. The result returns `id` plus
    `width`/`height` — confirm they satisfy the rule, then use the returned `id`.
 3. **Create the app.** Call `salla_apps` with `action: "create"` and:
 
-| Field                        | Requirement                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------- |
-| `name` + `name_ar`           | **bilingual** — the API rejects missing variants (`name_ar` defaults to `name`) |
-| `type`                       | from step 1 (`private` or a public category)                                    |
-| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                       |
-| `app_url`                    | URL                                                                             |
-| `email`                      | support email                                                                   |
-| `logo`                       | file `id` from `salla_upload`                                                   |
-| `sub_category_id`            | required when `type` is `app` / `shipping`                                      |
-| `is_paid`                    | optional, boolean                                                               |
+| Field                        | Requirement                                                                                                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name` + `name_ar`           | **bilingual** — the API rejects missing variants (`name_ar` defaults to `name`). Both must be globally unique; `name_ar` must be plain Arabic letters with NO diacritics/tashkeel (e.g. هريفاي, not هرّفاي) |
+| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                   |
+| `app_url`                    | URL                                                                                                                                                                                                         |
+| `email`                      | support email                                                                                                                                                                                               |
+| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                               |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                  |
+| `is_paid`                    | optional, boolean                                                                                                                                                                                           |
 
 The result returns the new `app_id` — carry it through every later step.
+
+> **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
+> success — the Portal does not echo changed fields. Always follow up with
+> `salla_apps action=get` to confirm the update was applied.
 
 **Manual fallback:** Portal → **My Apps → Create App**.
 
@@ -81,14 +87,16 @@ The result returns the new `app_id` — carry it through every later step.
 
 ## Step 2 — OAuth, Scopes & Webhook Connection
 
-Configure OAuth and webhooks in **one** `salla_apps action=connect` call. First look up
-the available scopes:
+Configure OAuth and webhooks in **one** `salla_apps action=connect` call. First check the
+app's valid scope slugs and current selection:
 
-1. Call `salla_reference` with `action: "scopes"` and the `app_id` to list scope slugs
-   and their current selection. Request only the minimum the app needs (e.g.
-   `offline_access` for refresh tokens, `orders.read`, `products.read`).
+1. Call `salla_apps` with `action: "get"` and the `app_id` to read the valid scope slugs,
+   their current selection, and any per-app disabled flags. (There is **no** scope-catalog
+   reference endpoint.) Request only the minimum the app needs.
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
-   - `scopes` — map of `slug → "read" | "read_write"`
+   - `scopes` — map of `slug → "read" | "read_write"` (e.g.
+     `{"orders": "read", "products": "read"}`). Pass **only** the resource map here —
+     `offline_access` belongs in the OAuth authorize URL, not in the `scopes` map.
    - `redirect_urls` — OAuth redirect URL(s)
    - `webhook_url` — your webhook receiver
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
@@ -162,11 +170,12 @@ Ask: "Does your app need serverless handlers triggered by Salla events?"
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
   context shape, `Resp` API, timeouts, and lifecycle-event handling.
 
-Inspect deployed functions with `salla_functions` (`action: "list" | "get" | "delete"`).
-**Deployment is done by Salla when you publish the app** — there is no deploy tool.
+**Deployment is done by Salla when you publish the app** (`salla_apps action=publish`) —
+there is no separate deploy tool. To inspect, edit, or remove deployed functions, use the
+Partners Portal → **App Functions** tab (no MCP tool exists for this).
 
-**Gate:** "Function source ready and `salla_functions action=list` shows it after a test
-publish?"
+**Gate:** "Function source ready and the App Functions tab in the Portal shows it after a
+test publish?"
 
 ---
 
@@ -208,8 +217,18 @@ Integrates a carrier or fulfillment provider:
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
    private-publish; optional `update_note`). Payload facts (verified):
    - `action` is **always required**: `"save"` (draft) or `"submit"` (full validation).
+   - **`save` is NOT fully lenient** — it still requires `name: {en, ar}` and
+     `short_description: {en, ar}` (bilingual nested objects). Heavier fields (logo id,
+     screenshots, plans, etc.) are only required at `submit`.
+   - `name`, `short_description`, and other user-facing text are bilingual nested objects:
+     `{en: "…", ar: "…"}` — not flat strings.
    - Upload media first via `salla_upload` → integer image IDs: `logo` (≥ 250×250, 1:1)
-     and `screenshots` as `[{image: id}]`, **min 4, max 6**.
+     and `screenshots` as `[{image: id}]`, **min 3** (required at submit).
+   - `categories` and `main_category_id` are **main** categories (`type=app` from
+     `salla_reference`), distinct from the `sub_category_id` used at create time.
+   - Publishing **snapshots** the app's current snippets into the publication (with new
+     ids), so `salla_apps action=get` shows both the live snippet and its publication
+     copy — expected, not a duplicate-bug.
    - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
      `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
    - `trial_description` is a plain string, **≥ 30 chars**.

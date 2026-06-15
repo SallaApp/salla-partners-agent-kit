@@ -20,8 +20,8 @@ connecting the MCP is what turns them into an agent that performs the actions fo
 - A supported AI client: **Claude Code**, **Cursor**, **Claude Desktop**, **Codex**, or
   any MCP-capable client.
 - **Node.js 18+** (for the `npx skills` installer and the `mcp-remote` bridge).
-- The **MCP server URL** for your environment (the `/mcp` endpoint), e.g.
-  `https://<your-salla-mcp-host>/mcp`. Get the canonical URL from the Salla Developers
+- The **MCP server URL** for your environment (the `/partners` endpoint), e.g.
+  `https://mcp.salla.dev/partners`. Get the canonical URL from the Salla Developers
   Portal / your Salla contact — referred to below as `<MCP_URL>`.
 
 ---
@@ -96,8 +96,8 @@ You add it once; on first use your browser opens the Salla Developers Portal to 
 approve access. The minted partner token is valid for ~14 days, after which the client
 re-runs the login automatically.
 
-> Replace `<MCP_URL>` with your environment's `/mcp` endpoint (e.g.
-> `https://<your-salla-mcp-host>/mcp`). The server is private — get the URL from your
+> Replace `<MCP_URL>` with your environment's `/partners` endpoint (e.g.
+> `https://mcp.salla.dev/partners`). The server is private — get the URL from your
 > Salla contact; all clients connect over HTTP (OAuth login on first use).
 
 ### Zero-config via the checked-in `.mcp.json`
@@ -228,7 +228,7 @@ these as labelled code steps.
 
 | Symptom                             | Fix                                                                                                                                                     |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools don't appear                  | Confirm the MCP server is added and shows "connected" (Claude Code: `/mcp`; Cursor: Settings → MCP). Re-check `<MCP_URL>` ends in `/mcp`.               |
+| Tools don't appear                  | Confirm the MCP server is added and shows "connected" (Claude Code: `/mcp`; Cursor: Settings → MCP). Re-check `<MCP_URL>` ends in `/partners`.               |
 | `Salla session expired — reconnect` | The partner token lapsed (~14 days). Re-run the client's MCP login/authorize to mint a new one.                                                         |
 | Browser login didn't open           | For stdio bridges, run the `mcp-remote` command once in a terminal to complete OAuth, then restart the client.                                          |
 | A tool says it's unknown/disabled   | Some tools are gated by server config (e.g. `salla_request`, `salla_functions`). Use the curated tool for that task, or contact your Salla admin.       |

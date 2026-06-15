@@ -25,6 +25,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 | Serverless handlers on Salla triggers             | `salla-app-functions`     |
 | Storefront JS / e-commerce events                 | `salla-snippets`          |
 | Dashboard iframe UI                               | `salla-embedded-app`      |
+| Public App-Store view / builder blocks            | `salla-app-ui-builder`    |
 | Merchant settings                                 | `salla-app-settings`      |
 | Plans, addons, entitlements, balance              | `salla-app-billing`       |
 | In-app addon purchase                             | `salla-addon-purchase`    |

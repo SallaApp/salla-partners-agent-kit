@@ -76,6 +76,7 @@ checkpoints (**Gates**), and inline links to references.
 - `salla-app-builder` — create → OAuth/webhooks → events → capability branches → publish.
 - `salla-app-settings` — define the merchant settings form, validation URL, features.
 - `salla-embedded-app` — iframe pages inside the merchant dashboard (SDK, auth, theme).
+- `salla-app-ui-builder` — customize the public App-Store view: add/edit/reorder builder blocks (App Information, Features, Pricing, FAQ…).
 - `salla-snippets` — Device Mode (browser) vs Cloud Mode (App Function) storefront integrations.
 - `salla-shipping-app` — shipping/fulfillment apps: zones, settings, shipment lifecycle.
 - `salla-communication-app` — SMS/WhatsApp/email channel apps: supported features, send events.
@@ -194,6 +195,8 @@ parameter:
 | `salla_upload`           | —                                                                           | Upload an image/document → returns a file `id` (e.g. for an app logo)      |
 | `salla_reference`        | `categories` · `scopes` · `countries` · `cities`                            | Read-only lookups other tools need                                         |
 | `salla_request`          | `mode: search` · `mode: call` (not `action`)                                | Generic GET fallback for partner endpoints (may be disabled by the server) |
+
+> **App Builder (public App-Store view) has no dedicated tool yet.** Images go through `salla_upload` and the three read endpoints through `salla_request` (when enabled); the block mutations (add/edit/reorder/delete/init/reset) are direct Partners API calls today, planned as a `salla_app_builder` tool. The `salla-app-ui-builder` skill drives this end to end.
 
 ---
 

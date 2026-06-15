@@ -43,7 +43,8 @@ Upload the file first, then reference it. An `image` field's current files come 
 
 ```jsonc
 // upload returns { id, url }:
-//   POST /api/upload/image   (multipart "file")  → { "data": { "id": 176983, "url": "https://…" } }
+//   MCP (preferred): salla_upload (url or base64)        → { "id": 176983, "url": "https://…" }
+//   Direct fallback: POST /api/upload/image (multipart "file") → { "data": { "id": 176983, "url": "https://…" } }
 "logo": [ { "id": 176983, "url": "https://salla-dev-portal.s3…/a.jpg" } ]
 ```
 
@@ -55,7 +56,7 @@ The portal's phone widget holds `{ value, code }`; flatten to just the dialed st
 
 ```jsonc
 // widget: { "value": "+966500000000", "code": "SA" }
-"phone": "+966500000000"
+"support_whatsapp": "+966500000000"
 ```
 
 ### Color → hex string
@@ -80,10 +81,10 @@ If a field has `conditions` (e.g. `image_orientation` shown only when `view_sect
 ### Plain string / email / url / number → primitive
 
 ```jsonc
-"telegram": "@my_app",          // string
-"email": "support@my-app.com",  // email
-"links.url": "https://my-app.com", // url
-"images_per_row": 3             // number (respect min/max)
+"support_telegram": "@my_app",          // string
+"support_email": "support@my-app.com",  // email
+"app_url": "https://my-app.com",        // url
+"images_per_row": 3                     // number (respect min/max)
 ```
 
 ---
@@ -99,6 +100,7 @@ PUT /api/apps/{appId}/builder/blocks/2038173539
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
+
 ```json
 {
   "title": { "ar": "لماذا تطبيقنا؟", "en": "Why our app?" },
@@ -109,17 +111,23 @@ Content-Type: application/json
   "bg_color_dark": "#0b0b0b",
   "features": [
     {
-      "features.image": [ { "id": 176983, "url": "https://salla-dev-portal.s3…/a.jpg" } ],
+      "features.image": [
+        { "id": 176983, "url": "https://salla-dev-portal.s3…/a.jpg" }
+      ],
       "features.title": { "ar": "سريع", "en": "Fast" },
       "features.description": { "ar": "أداء فوري", "en": "Instant performance" }
     },
     {
-      "features.image": [ { "id": 176984, "url": "https://salla-dev-portal.s3…/b.jpg" } ],
+      "features.image": [
+        { "id": 176984, "url": "https://salla-dev-portal.s3…/b.jpg" }
+      ],
       "features.title": { "ar": "آمن", "en": "Secure" },
       "features.description": { "ar": "حماية كاملة", "en": "Fully protected" }
     },
     {
-      "features.image": [ { "id": 176985, "url": "https://salla-dev-portal.s3…/c.jpg" } ],
+      "features.image": [
+        { "id": 176985, "url": "https://salla-dev-portal.s3…/c.jpg" }
+      ],
       "features.title": { "ar": "سهل", "en": "Simple" },
       "features.description": { "ar": "إعداد بسيط", "en": "Easy setup" }
     }
@@ -135,12 +143,12 @@ Content-Type: application/json
 
 A 422 returns `fields` keyed by dotted paths. Map each back to a field id (and collection index/language) to correct the payload:
 
-| Error key | Means |
-| --- | --- |
-| `title.en` | The `title` field is missing its `en` value. |
-| `view_section` | The `view_section` dropdown value is missing/invalid. |
-| `features` | The collection item count is outside `minLength`..`maxLength`. |
+| Error key             | Means                                                              |
+| --------------------- | ------------------------------------------------------------------ |
+| `title.en`            | The `title` field is missing its `en` value.                       |
+| `view_section`        | The `view_section` dropdown value is missing/invalid.              |
+| `features`            | The collection item count is outside `minLength`..`maxLength`.     |
 | `features.0.title.ar` | Item **0** of `features` is missing `features.title`'s `ar` value. |
-| `features.1.image` | Item **1** of `features` is missing its image. |
+| `features.1.image`    | Item **1** of `features` is missing its image.                     |
 
 The portal normalizes these paths to form-field keys in `formErrorsMapper.ts`; for direct API use, the dotted path itself tells you the field id, the collection index, and the language to fix.

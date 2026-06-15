@@ -45,6 +45,7 @@ before reaching for a webhook.
 | Serverless handlers on Salla triggers                              | [salla-app-functions](../salla-app-functions/SKILL.md)         |
 | Storefront JS / e-commerce events                                  | [salla-snippets](../salla-snippets/SKILL.md)                   |
 | Iframe UI inside the merchant dashboard                            | [salla-embedded-app](../salla-embedded-app/SKILL.md)           |
+| Public App-Store view — builder blocks (add/edit/reorder)          | [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md)       |
 | Per-merchant settings schema & values                              | [salla-app-settings](../salla-app-settings/SKILL.md)           |
 | Plans, addons, trials, entitlement gating, usage balance           | [salla-app-billing](../salla-app-billing/SKILL.md)             |
 | Selling an addon from inside the embedded UI                       | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)       |
@@ -58,18 +59,19 @@ before reaching for a webhook.
 When the **Salla Partners MCP** server is connected, do the work with these tools instead
 of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `action`:
 
-| Capability                                   | Tool · actions                                                                                  |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Create / configure / publish apps            | `salla_apps` · `list` `get` `create` `update` `connect` (OAuth+webhooks) `set_status` `publish` |
-| Events / webhooks                            | `salla_events` · `list` `subscribe`                                                             |
-| Storefront snippets                          | `salla_snippets` · `list` `parameters` `create` `update` `delete`                               |
-| Embedded pages                               | `salla_embedded_pages` · `list` `create` `update` `delete`                                      |
-| Onboarding steps                             | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                             |
-| App settings & features                      | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`            |
-| Shipping zones & settings                    | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                       |
-| App Functions                                | `salla_functions` · `list` `get` `delete`                                                       |
-| File upload (logos)                          | `salla_upload`                                                                                  |
-| Lookups (categories/scopes/countries/cities) | `salla_reference`                                                                               |
+| Capability                                   | Tool · actions                                                                                                                                                                                 |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create / configure / publish apps            | `salla_apps` · `list` `get` `create` `update` `connect` (OAuth+webhooks) `set_status` `publish`                                                                                                |
+| Events / webhooks                            | `salla_events` · `list` `subscribe`                                                                                                                                                            |
+| Storefront snippets                          | `salla_snippets` · `list` `parameters` `create` `update` `delete`                                                                                                                              |
+| Embedded pages                               | `salla_embedded_pages` · `list` `create` `update` `delete`                                                                                                                                     |
+| Onboarding steps                             | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                                                                                                                            |
+| App settings & features                      | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`                                                                                                           |
+| Shipping zones & settings                    | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                                                                                                                      |
+| App Functions                                | `salla_functions` · `list` `get` `delete`                                                                                                                                                      |
+| File upload (logos)                          | `salla_upload`                                                                                                                                                                                 |
+| App-Store view (App Builder blocks)          | images → `salla_upload`; reads → `salla_request` (if enabled); block mutations **not yet in MCP** (planned `salla_app_builder`) — see [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md) |
+| Lookups (categories/scopes/countries/cities) | `salla_reference`                                                                                                                                                                              |
 
 The routed skills drive these tools step by step — follow the skill, not the raw API.
 

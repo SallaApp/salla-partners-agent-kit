@@ -6,14 +6,17 @@ Header: `Accept-Language: ar` or `en` — controls the language of `label`, `pla
 
 > This is the **Partners** API, not the merchant Admin API. The token is the partner's portal token, not a merchant OAuth token.
 
+> **Prefer the MCP.** When the Salla Partners MCP is connected you do **not** handle the token — call the tools and the MCP attaches it. The MCP covers image upload (`salla_upload`) and, when the server enables generic tools, the three read endpoints via `salla_request` (op ids below). The auth/token instructions in this file apply only to the **direct-API fallback** for endpoints with no MCP tool (the six block mutations, and the reads when generic tools are off).
+
 ---
 
 ## Authentication & app id
 
-- **Token** — the partner's portal access token. In the Partners Portal it lives in `localStorage["partners-token"]` as `{ "access_token": "…", … }`; the axios interceptor at `ui-partners-portal-apps/src/services/http/portal-apps-instance.ts` reads it and attaches `Authorization: Bearer {access_token}`. Tokens are short-lived (hours) — always use a fresh one. To grab the current token from a logged-in portal tab:
+- **MCP (preferred)** — no token handling. `salla_upload` and `salla_request` run with the MCP-managed partner token; reconnect (re-run the login) if a tool reports "Salla session expired".
+- **Fallback token — direct API only** — for the direct calls below you need a partners access token yourself. In the Partners Portal it lives in `localStorage["partners-token"]` as `{ "access_token": "…", … }`; the axios interceptor at `ui-partners-portal-apps/src/services/http/portal-apps-instance.ts` reads it and attaches `Authorization: Bearer {access_token}`. Tokens are short-lived (hours) — always use a fresh one. To grab the current token from a logged-in portal tab:
 
   ```js
-  JSON.parse(localStorage.getItem("partners-token")).access_token
+  JSON.parse(localStorage.getItem("partners-token")).access_token;
   ```
 
 - **`appId`** — the numeric app id. Visible in the portal URL (`portal.salla.partners/apps/{appId}/…`) and under My Apps.
@@ -36,17 +39,20 @@ Every response wraps data in a standard envelope:
 
 ## Endpoints
 
-| Purpose | Method + path |
-| --- | --- |
-| List block catalog | `GET /api/apps/builder/blocks` |
-| List app's added blocks | `GET /api/apps/{appId}/builder/blocks` |
-| Get a block's field schema + values | `GET /api/apps/{appId}/builder/blocks/{blockId}` |
-| Add a block to the app | `POST /api/apps/{appId}/builder/blocks/{blockId}` |
-| Edit a block's content | `PUT /api/apps/{appId}/builder/blocks/{blockId}` |
-| Reorder blocks | `PUT /api/apps/{appId}/builder/blocks/sort` |
-| Delete a block | `DELETE /api/apps/{appId}/builder/blocks/{blockId}` |
-| Initialize required blocks | `POST /api/apps/{appId}/builder/blocks/init` |
-| Reset (remove all blocks) | `DELETE /api/apps/{appId}/builder/blocks` |
+`salla_request` op = the operationId to pass to `salla_request` with `mode: "call"` (GET-only, and only when the server enabled generic tools). Mutations have **no MCP tool yet** — they use the direct call and are planned as the `salla_app_builder` tool.
+
+| Purpose                             | Method + path                                       | MCP coverage                                                       |
+| ----------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| List block catalog                  | `GET /api/apps/builder/blocks`                      | `salla_request` op `get_api_apps_builder_blocks`                   |
+| List app's added blocks             | `GET /api/apps/{appId}/builder/blocks`              | `salla_request` op `get_api_apps_by_id_builder_blocks`             |
+| Get a block's field schema + values | `GET /api/apps/{appId}/builder/blocks/{blockId}`    | `salla_request` op `get_api_apps_by_id_builder_blocks_by_block_id` |
+| Add a block to the app              | `POST /api/apps/{appId}/builder/blocks/{blockId}`   | none — direct (planned `salla_app_builder add_block`)              |
+| Edit a block's content              | `PUT /api/apps/{appId}/builder/blocks/{blockId}`    | none — direct (planned `salla_app_builder edit_block`)             |
+| Reorder blocks                      | `PUT /api/apps/{appId}/builder/blocks/sort`         | none — direct (planned `salla_app_builder sort_blocks`)            |
+| Delete a block                      | `DELETE /api/apps/{appId}/builder/blocks/{blockId}` | none — direct (planned `salla_app_builder delete_block`)           |
+| Initialize required blocks          | `POST /api/apps/{appId}/builder/blocks/init`        | none — direct (planned `salla_app_builder init_blocks`)            |
+| Reset (remove all blocks)           | `DELETE /api/apps/{appId}/builder/blocks`           | none — direct (planned `salla_app_builder reset_blocks`)           |
+| Upload a block image                | `POST /api/upload/image`                            | **`salla_upload`** (preferred — returns `id`/`url`)                |
 
 ---
 
@@ -64,12 +70,30 @@ Returns every available block definition. `data` is an array of `BlockSchema`:
   "status": 200,
   "success": true,
   "data": [
-    { "id": 745999872,  "slug": "app-information", "label": "معلومات التطبيق",
-      "icon": "sicon-info-circle", "order": 1, "has_form": true,
-      "is_visible": true, "is_required": true, "editable": true, "preview": "https://…png" },
-    { "id": 2038173539, "slug": "app-features", "label": "ميزات التطبيق",
-      "icon": "sicon-star", "order": 2, "has_form": true,
-      "is_visible": true, "is_required": false, "editable": true, "preview": "https://…png" }
+    {
+      "id": 745999872,
+      "slug": "app-information",
+      "label": "معلومات التطبيق",
+      "icon": "sicon-info-circle",
+      "order": 1,
+      "has_form": true,
+      "is_visible": true,
+      "is_required": true,
+      "editable": true,
+      "preview": "https://…png"
+    },
+    {
+      "id": 2038173539,
+      "slug": "app-features",
+      "label": "ميزات التطبيق",
+      "icon": "sicon-star",
+      "order": 2,
+      "has_form": true,
+      "is_visible": true,
+      "is_required": false,
+      "editable": true,
+      "preview": "https://…png"
+    }
   ]
 }
 ```
@@ -163,7 +187,7 @@ Content-Type: application/json
 { "blocks": [745999872, 2038173539, 625478135] }
 ```
 
-`blocks` is the full list of the app's block ids in the desired order. Required/pinned blocks must keep their positions.
+`blocks` is the full list of the app's block ids in the desired order. Keep `app-information` first — the portal UI pins it to the top via slug validation (a frontend rule, not enforced by `is_required`). Other blocks can be freely reordered.
 
 ---
 
@@ -183,9 +207,10 @@ Removes a block from the app's view. Blocks with `is_required: true` cannot be d
 ```http
 POST /api/apps/{appId}/builder/blocks/init
 Authorization: Bearer {token}
+Content-Length: 0
 ```
 
-Seeds the app with all required blocks. Use on a fresh app whose builder is empty. Returns the seeded `BlockSchema[]`.
+**Call this first when customizing an app's view for the first time.** A fresh app's builder is empty (`GET …/blocks` → `data: []`); `init` seeds the required blocks (`app-information`, `app-pricing`) so they exist and become GET/PUT-able by id. Until you init, `GET …/blocks/{blockId}` for a required block returns **404**. Safe to call again — it ensures the required blocks are present.
 
 ---
 

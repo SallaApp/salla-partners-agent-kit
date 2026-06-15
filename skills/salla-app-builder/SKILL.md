@@ -28,7 +28,7 @@ These steps drive the **Salla Partners MCP** tools. Each is one tool with an `ac
 | ----------------- | -------------------------------------------------------------------------------------------- |
 | `salla_reference` | Look up `categories`, `countries`, `cities`                                                  |
 | `salla_upload`    | Upload a logo/file → returns a file `id`                                                     |
-| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` |
+| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` / `demo_stores` (testing) |
 | `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                     |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
@@ -217,10 +217,18 @@ Integrates a carrier or fulfillment provider:
 
 ## Step 8 — Test & Publish
 
-1. **Open the app in the Partners Portal** — `https://portal.salla.partners/apps/{app_id}`
-   — to review its configuration, then connect a demo store via **App Testing** and trigger
-   each subscribed event to verify end-to-end behavior. Always give the user this link so
-   they can test the app directly in the Portal.
+1. **Test on a demo store.** List the company's demo stores with
+   `salla_apps action=demo_stores`, `app_id`. Each store returns:
+   - `connected` — `true` means the app is already installed on that store.
+   - `install_url` — open in a browser to **install** the app on that store.
+   - `dashboard_url` — auto-login to that store's admin (to open the embedded dashboard,
+     change settings, etc.).
+   - `url` — storefront preview (to verify snippets/urgency signals on product pages).
+
+   Pick a store, open its `install_url` to install, then `dashboard_url` to manage it, and
+   trigger each subscribed event to verify end-to-end behavior. Surface these links to the
+   user. You can also open the app itself in the Portal:
+   `https://portal.salla.partners/apps/{app_id}`.
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
    private-publish; optional `update_note`). Payload facts (verified):

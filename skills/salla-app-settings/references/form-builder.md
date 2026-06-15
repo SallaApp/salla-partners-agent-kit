@@ -15,18 +15,32 @@ Two things to configure:
 
 ---
 
-## Field Types
+## Field Schema (`type` + `format`)
 
-| Type                 | UI control                  | Use for                          |
-| -------------------- | --------------------------- | -------------------------------- |
-| `text`               | Single-line input           | API keys, URLs, usernames        |
-| `password`           | Masked input                | Secrets, tokens                  |
-| `email`              | Email input with validation | Contact emails                   |
-| `number`             | Numeric input               | Timeouts, limits, IDs            |
-| `toggle` / `boolean` | On/Off switch               | Feature flags                    |
-| `select`             | Dropdown                    | Fixed option sets                |
-| `textarea`           | Multi-line input            | Long text, notes                 |
-| `url`                | URL input with validation   | Webhook endpoints, API base URLs |
+Salla's form-builder renders from `type` **+** `format` — not a single loose `type`. Bare
+aliases (`toggle`, `text`, `number`, `select`, `url`, `textarea`) are **NOT Portal-safe**:
+they can render as broken form-builder output and silently fail to save. Use:
+
+| Control                  | `type`    | `format`        | Extra props          |
+| ------------------------ | --------- | --------------- | -------------------- |
+| Switch                   | `boolean` | `switch`        | `value`, `icon`      |
+| Checkbox                 | `boolean` | `checkbox`      | `value`              |
+| Text                     | `string`  | `text`          | `placeholder`        |
+| Email                    | `string`  | `email`         |                      |
+| Password / secret        | `string`  | `password`      |                      |
+| Integer                  | `number`  | `integer`       | `minimum`, `maximum` |
+| Float                    | `number`  | `float`         | `minimum`, `maximum` |
+| Single choice (radio)    | `items`   | `radio-list`    | `options`            |
+| Single choice (dropdown) | `items`   | `dropdown-list` | `options`            |
+| Multi choice             | `items`   | `checkbox-list` | `options`            |
+
+Common props: `id` (**snake_case**), `type`, `format`, `label`, `value` (the **default** —
+required fields MUST have one), `required`, `public`, `icon` (a Salla icon, e.g.
+`sicon-toggle-off`), `placeholder`, `labelHTML`, `multilanguage`.
+
+**Labels are Arabic-first.** Most merchants are Arabic — write `label` / `description` in
+Arabic and set `multilanguage: true` to also supply English. `public: true` = safe to read
+client-side (storefront); secrets stay `public: false`.
 
 ---
 
@@ -37,38 +51,41 @@ Two things to configure:
   "fields": [
     {
       "id": "api_key",
-      "type": "text",
-      "label": "API Key",
+      "type": "string",
+      "format": "password",
+      "label": "مفتاح API",
       "required": true,
-      "placeholder": "Enter your carrier API key",
+      "value": "",
+      "placeholder": "أدخل مفتاح API",
       "multilanguage": true,
       "public": false
     },
     {
       "id": "sandbox_mode",
-      "type": "toggle",
-      "label": "Sandbox Mode",
-      "default": false
+      "type": "boolean",
+      "format": "switch",
+      "label": "الوضع التجريبي",
+      "icon": "sicon-toggle-off",
+      "value": false,
+      "public": true
     },
     {
       "id": "environment",
-      "type": "select",
-      "label": "Environment",
+      "type": "items",
+      "format": "dropdown-list",
+      "label": "البيئة",
+      "value": "production",
       "options": [
-        { "value": "production", "label": "Production" },
-        { "value": "staging", "label": "Staging" }
-      ],
-      "default": "production"
-    },
-    {
-      "id": "webhook_url",
-      "type": "url",
-      "label": "Callback URL",
-      "required": false
+        { "value": "production", "label": "الإنتاج" },
+        { "value": "staging", "label": "التجريب" }
+      ]
     }
   ]
 }
 ```
+
+`id` is **snake_case**; `value` is the default (required fields MUST set one). Bare `type`
+without `format` is not Portal-safe — see the Field Schema table above.
 
 Field identifier is **`id`**; `label` / `placeholder` / `description` are **plain
 strings**. To translate a field's text, set `multilanguage: true` on it — there are no

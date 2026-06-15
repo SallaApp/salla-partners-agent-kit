@@ -43,19 +43,48 @@ Ask before starting:
 
 ## Step 1 — Design the Settings Schema
 
-Define the fields based on Step 0. Keep the schema **flat** — nested objects are not
-supported. Each field is an object (`id`, `label`, `type`, …); `label` / `placeholder` / `description` are **plain strings**. For translation, set `multilanguage: true` on the field — there are no inline `{en, ar}` objects.
+Salla renders the merchant form from a **form-builder schema** (`type` **+** `format`).
+The loose aliases (`toggle`, bare `text` / `number` / `select`) are **NOT Portal-safe** —
+they can render as broken form-builder output and fail to save. Rules:
 
-| Type      | Example field                         |
-| --------- | ------------------------------------- |
-| `text`    | API key, endpoint URL, email          |
-| `number`  | Contract number, timeout              |
-| `boolean` | Feature toggle, fast delivery enabled |
-| `select`  | Dropdown choice                       |
+- **Flat only** — no nested objects.
+- **`id` is snake_case** (`stock_threshold`, not `stockThreshold`). camelCase ids are
+  accepted by the API but the installed-app save path is brittle with them.
+- **Every required field needs a default `value`** — without one, first activation/save
+  can fail.
+- **Arabic-first labels.** Most Salla merchants are Arabic — write `label` / `description`
+  in Arabic; set `multilanguage: true` to also provide English. Never leave Arabic blank.
+- `public: true` marks a value safe to read client-side (storefront / snippet).
+
+| Control                 | Schema                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| Switch                  | `type: "boolean"`, `format: "switch"`, `value: true`, `icon: "sicon-toggle-off"` |
+| Checkbox                | `type: "boolean"`, `format: "checkbox"`                                           |
+| Text / email / password | `type: "string"`, `format: "text" \| "email" \| "password"`                      |
+| Integer / float         | `type: "number"`, `format: "integer" \| "float"` (+ `minimum`, `maximum`)        |
+| Single choice           | `type: "items"`, `format: "radio-list" \| "dropdown-list"` (+ `options`)         |
+| Multi choice            | `type: "items"`, `format: "checkbox-list"` (+ `options`)                          |
+
+Common props: `id` (snake_case), `type`, `format`, `label`, `value` (default),
+`required`, `public`, `icon`, `placeholder`, `labelHTML`, `multilanguage`. Example switch:
+
+```json
+{
+  "id": "hurrify_enabled",
+  "type": "boolean",
+  "format": "switch",
+  "label": "تفعيل هيرفاي",
+  "icon": "sicon-toggle-off",
+  "value": true,
+  "required": false,
+  "public": true
+}
+```
 
 Field-object reference → [`references/form-builder.md`](references/form-builder.md)
 
-**Gate:** "Do you have a complete list of setting keys and their types?"
+**Gate:** "Every field uses `type`+`format`, snake_case ids, Arabic labels, and a default
+value on each required field?"
 
 ---
 
@@ -70,8 +99,10 @@ Field-object reference → [`references/form-builder.md`](references/form-builde
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
 
-**Gate:** "Form registered — open the app settings page from a demo store and confirm
-merchants see the fields."
+**Gate (save smoke test):** "Form registered — install the app on a demo store
+(`salla_apps action=demo_stores` → open a store's `install_url`, then `dashboard_url`),
+open its settings page, **change a value and SAVE**, and confirm it persists. The Portal
+accepting the schema is NOT proof the installed-app form saves — test the real save."
 
 ---
 
@@ -92,9 +123,34 @@ Manage the flags with the tool:
 
 There is no MCP tool for writing per-merchant **values** — that happens at runtime with
 the merchant's `access_token`. When `app.store.authorize` fires on install, seed any
-required defaults so the merchant starts with a working configuration. Note:
-`app.settings.updated` (fired when the merchant saves the form) is what **activates**
-the app — handle it even if you only re-read the values:
+required defaults so the merchant starts with a working configuration.
+
+> **`app.settings.updated` is the source of truth.** It fires when the merchant saves the
+> form, **activates** the app, and carries the full settings in `data.settings` — persist
+> THAT on every activation/update (don't rely solely on a GET; the webhook is authoritative
+> and you may not hold a token yet). Payload:
+>
+> ```json
+> {
+>   "event": "app.settings.updated",
+>   "merchant": 1234509876,
+>   "data": {
+>     "id": 6789012345,
+>     "app_type": "public",
+>     "settings": {
+>       "door_to_door": true,
+>       "pickup_time": "09:00:00",
+>       "box_size": ["25x25", "10x10"],
+>       "ads_activated": "true"
+>     }
+>   }
+> }
+> ```
+>
+> Note booleans may arrive as the string `"true"` — coerce defensively. Wiring →
+> [salla-app-lifecycle](../salla-app-lifecycle/SKILL.md).
+
+Seed defaults on install (handle even if you only re-read the values):
 
 ```http
 POST https://api.salla.dev/admin/v2/apps/{app_id}/settings

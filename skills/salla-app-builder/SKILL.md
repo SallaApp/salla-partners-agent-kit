@@ -74,7 +74,10 @@ Use the answers to tailor Steps 1, 4–7.
 | `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                  |
 | `is_paid`                    | optional, boolean                                                                                                                                                                                           |
 
-The result returns the new `app_id` — carry it through every later step.
+The result returns the new `app_id` — carry it through every later step. **Open the app in
+the Partners Portal to view, configure, and test it:**
+`https://portal.salla.partners/apps/{app_id}` (substitute the returned id). Surface this
+link to the user after every create.
 
 > **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
 > success — the Portal does not echo changed fields. Always follow up with
@@ -214,8 +217,10 @@ Integrates a carrier or fulfillment provider:
 
 ## Step 8 — Test & Publish
 
-1. Connect a demo store via **App Testing** in the Portal and trigger each subscribed
-   event to verify end-to-end behavior.
+1. **Open the app in the Partners Portal** — `https://portal.salla.partners/apps/{app_id}`
+   — to review its configuration, then connect a demo store via **App Testing** and trigger
+   each subscribed event to verify end-to-end behavior. Always give the user this link so
+   they can test the app directly in the Portal.
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
    private-publish; optional `update_note`). Payload facts (verified):

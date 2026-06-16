@@ -115,8 +115,9 @@ merchant can enter carrier credentials on your Shipping Settings page."
 ## Step 4 — Handle the Shipment Lifecycle
 
 Shipping apps get **four shipment webhooks by default** — do not subscribe them again.
-Verify the defaults exist with `salla_events action=list`, then implement each handler
-in your webhook receiver:
+Use `salla_events action=list` to look up the exact event slugs (it returns the available
+event catalog, not your current subscriptions), then implement each handler in your
+webhook receiver:
 
 | Event                             | What your app must do                              |
 | --------------------------------- | -------------------------------------------------- |

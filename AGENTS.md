@@ -15,31 +15,30 @@ skill before acting. On platforms that install the skills instead, the same rout
 lives in the `salla-app-expert` skill (and, on Claude Code, the `salla-app-expert`
 agent). One routing brain, three surfaces — keep them in sync.
 
-| Intent                                            | Skill                           |
-| ------------------------------------------------- | ------------------------------- |
-| Broad / unsure                                    | `salla-app-expert`              |
-| Create / configure / publish an app end to end    | `salla-app-builder`             |
-| OAuth, tokens, refresh                            | `salla-app-auth`                |
-| Webhook transport (register, verify, idempotency) | `salla-webhooks`                |
-| Install / trial / subscription events             | `salla-app-lifecycle`           |
-| Serverless handlers on Salla triggers             | `salla-app-functions`           |
-| Storefront JS / e-commerce events                 | `salla-snippets`                |
-| Dashboard iframe UI                               | `salla-embedded-app`            |
-| Public App-Store view / builder blocks            | `salla-app-ui-builder`          |
-| Merchant settings                                 | `salla-app-settings`            |
-| Plans, addons, entitlements, balance              | `salla-app-billing`             |
-| Post-install setup / onboarding steps             | `salla-app-builder`             |
-| In-app addon purchase (general / billing)         | `salla-addon-purchase`          |
-| In-app addon purchase inside an embedded iframe   | `salla-addon-purchase-embedded` |
-| Merchant OAuth flow (Easy vs Custom, token mutex) | `salla-app-authorization`       |
-| Plan state, trial/subscription reconciliation     | `salla-app-subscription-management` |
-| SMS / WhatsApp / email apps                       | `salla-communication-app`       |
-| Carriers, shipments, labels                       | `salla-shipping-app`            |
-| Direct Admin API calls                            | `salla-api-core`                |
-| Native UI (storefront + embedded)                 | `salla-ui-compliance`           |
-| Test the app on a demo store                      | `salla-live-testing`            |
-| Pre-submit publication consistency                | `salla-publication-consistency` |
-| Find the right doc / API schema                   | `salla-docs`                    |
+| Intent                                                        | Skill                           |
+| ------------------------------------------------------------- | ------------------------------- |
+| Broad / unsure                                                | `salla-app-expert`              |
+| Create / configure / publish an app end to end                | `salla-app-builder`             |
+| OAuth, tokens, refresh                                        | `salla-app-auth`                |
+| Webhook transport (register, verify, idempotency)             | `salla-webhooks`                |
+| Install / trial / subscription events                         | `salla-app-lifecycle`           |
+| Serverless handlers on Salla triggers                         | `salla-app-functions`           |
+| Storefront JS / e-commerce events                             | `salla-snippets`                |
+| Dashboard iframe UI                                           | `salla-embedded-app`            |
+| Public App-Store view / builder blocks                        | `salla-app-ui-builder`          |
+| Merchant settings                                             | `salla-app-settings`            |
+| Plans, addons, entitlements, balance, plan/subscription state | `salla-app-billing`             |
+| Post-install setup / onboarding steps                         | `salla-app-builder`             |
+| In-app addon purchase (general / billing)                     | `salla-addon-purchase`          |
+| In-app addon purchase inside an embedded iframe               | `salla-addon-purchase-embedded` |
+| Merchant OAuth flow (Easy vs Custom, token mutex)             | `salla-app-authorization`       |
+| SMS / WhatsApp / email apps                                   | `salla-communication-app`       |
+| Carriers, shipments, labels                                   | `salla-shipping-app`            |
+| Direct Admin API calls                                        | `salla-api-core`                |
+| Native UI (storefront + embedded)                             | `salla-ui-compliance`           |
+| Test the app on a demo store                                  | `salla-live-testing`            |
+| Pre-submit publication consistency                            | `salla-publication-consistency` |
+| Find the right doc / API schema                               | `salla-docs`                    |
 
 - **The hookable rule** (how behavior attaches to the platform): shopper's browser →
   snippet (`salla-snippets`); an App Function trigger exists → App Function

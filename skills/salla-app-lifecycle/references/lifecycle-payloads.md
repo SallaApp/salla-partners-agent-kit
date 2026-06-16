@@ -131,4 +131,4 @@ addon identifier for addons.
 
 Trial events (`app.trial.started` / `.expired` / `.canceled`) use the same envelope; the
 trial typically appears as a zero-price `plan_type` like `once` with `plan_name: "trail"`.
-Per-event field detail → confirm via the MCP and see **salla-app-subscription-management**.
+Per-event field detail → confirm via the MCP and see **salla-app-billing**.

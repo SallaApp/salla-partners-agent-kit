@@ -34,15 +34,16 @@ actions** with the Salla Partners MCP.
 ## Tools & MCPs
 
 **Two MCPs — different jobs:**
-- **`apidog-mcp-server`** (site-id: `451700`) — *read-only*. Query for the live event
+
+- **`apidog-mcp-server`** (site-id: `451700`) — _read-only_. Query for the live event
   list and each event's `payload.data` shape before writing a handler. Never assume a
   payload.
-- **Salla Partners MCP** — *performs actions*:
+- **Salla Partners MCP** — _performs actions_:
 
-| Tool | Action | What it does |
-| --- | --- | --- |
-| `salla_apps` | `publish` | Publish the app (= deploy the function) |
-| `salla_functions` | `list` / `get` / `delete` | Inspect or remove deployed functions |
+| Tool              | Action              | What it does                                           |
+| ----------------- | ------------------- | ------------------------------------------------------ |
+| `salla_apps`      | `publish`           | Publish the app                                        |
+| `salla_functions` | `deploy` / `delete` | Deploy or remove the app's functions (no `list`/`get`) |
 
 > Sync actions must finish in **< 500 ms**; async events get **30 s**. `Resp`,
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** —
@@ -76,10 +77,10 @@ trigger list live in **[references/event-contexts.md](references/event-contexts.
 
 ## Step 2 — Choose the Execution Type
 
-| Type | Timing | Blocks user? | Timeout | Return value effect |
-| --- | --- | --- | --- | --- |
-| **Asynchronous event** | After the operation | No | 30 s | Fire-and-forget: logged, does **not** affect the flow. |
-| **Synchronous action** | Before the operation | Yes | **< 500 ms** | Blocking: can **modify** parameters or **reject/block** the operation. |
+| Type                   | Timing               | Blocks user? | Timeout      | Return value effect                                                    |
+| ---------------------- | -------------------- | ------------ | ------------ | ---------------------------------------------------------------------- |
+| **Asynchronous event** | After the operation  | No           | 30 s         | Fire-and-forget: logged, does **not** affect the flow.                 |
+| **Synchronous action** | Before the operation | Yes          | **< 500 ms** | Blocking: can **modify** parameters or **reject/block** the operation. |
 
 - **Sync actions** (e.g. `shipment.creating`) intercept the lifecycle:
   `Resp.error().setMessage("…")` cancels the operation (message shown to the
@@ -162,10 +163,13 @@ const apiKey = context.settings?.apiKey; // optional chaining — undefined unti
 const controller = new AbortController();
 const timeout = setTimeout(() => controller.abort(), 400); // 400ms for a sync action
 try {
-  const res = await fetch("https://api.example.com/data", { signal: controller.signal });
+  const res = await fetch("https://api.example.com/data", {
+    signal: controller.signal,
+  });
   return Resp.success().setData(await res.json());
 } catch (error) {
-  if ((error as Error).name === "AbortError") console.error("External request timed out");
+  if ((error as Error).name === "AbortError")
+    console.error("External request timed out");
   return Resp.error().setMessage("Upstream timeout").setStatus(504);
 } finally {
   clearTimeout(timeout);
@@ -190,11 +194,21 @@ interface MyContextType {
   settings: Record<string, string | undefined>;
 }
 class Resp {
-  static success() { return new Resp(); }
-  static error() { return new Resp(); }
-  setStatus(_: number) { return this; }
-  setMessage(_: string) { return this; }
-  setData(_: Record<string, unknown>) { return this; }
+  static success() {
+    return new Resp();
+  }
+  static error() {
+    return new Resp();
+  }
+  setStatus(_: number) {
+    return this;
+  }
+  setMessage(_: string) {
+    return this;
+  }
+  setData(_: Record<string, unknown>) {
+    return this;
+  }
 }
 ```
 
@@ -212,14 +226,19 @@ until published).
 
 Shipping it is an **action** — use the Partners MCP instead of clicking Publish:
 
-- **Publish (= deploy):** `salla_apps action=publish`, `app_id` (optional `update_note`).
-  Salla deploys the function on publish; installed merchants get the update
-  automatically. There is **no deploy tool** — publishing is the deploy.
-- **Inspect deployed:** `salla_functions action=list`, `app_id` (optional `category`,
-  e.g. `"custom_scripts_events"`); `action=get` with a `trigger` for one function's source.
+- **Deploy the functions:** `salla_functions action=deploy`, `app_id` — deploys the app's
+  App Functions to the Salla App Builder. The tool is listed but **operator-gated**: if the
+  MCP server hasn't enabled the App Builder service it returns a clear "App Functions are
+  disabled on this deployment" error (ask the operator to enable the functions toolset).
 - **Remove:** `salla_functions action=delete`, `app_id`, `trigger` (e.g. `"order.created"`).
+- **Publish the app:** `salla_apps action=publish`, `app_id` (optional `update_note`);
+  installed merchants get the update automatically.
 
-**Gate:** "`salla_functions action=list` shows the function after publish?"
+There is **no `list`/`get` action** — inspect a deployed function in the Portal (preview
+panel / execution logs). The function **source** is authored in the Portal (or via the
+platform App-Builder API), not through `salla_functions`.
+
+**Gate:** "The Portal shows the function deployed after publish."
 
 ---
 
@@ -247,12 +266,12 @@ Checklist:
 
 ## Key Resources
 
-| Resource | URL |
-| --- | --- |
-| App Functions overview | https://docs.salla.dev/1726817m0 |
-| Get started | https://docs.salla.dev/1726815m0 |
-| Supported events | https://docs.salla.dev/1726818m0 |
-| Testing guide | https://docs.salla.dev/1726816m0 |
-| Demo store testing | https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/ |
-| Partners Portal | https://portal.salla.partners |
-| Telegram community | https://t.me/salladev |
+| Resource               | URL                                                                  |
+| ---------------------- | -------------------------------------------------------------------- |
+| App Functions overview | https://docs.salla.dev/1726817m0                                     |
+| Get started            | https://docs.salla.dev/1726815m0                                     |
+| Supported events       | https://docs.salla.dev/1726818m0                                     |
+| Testing guide          | https://docs.salla.dev/1726816m0                                     |
+| Demo store testing     | https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/ |
+| Partners Portal        | https://portal.salla.partners                                        |
+| Telegram community     | https://t.me/salladev                                                |

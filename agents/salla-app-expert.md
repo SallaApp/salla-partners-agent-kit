@@ -28,6 +28,7 @@ do. Your job is dispatch and sequencing.
    - Serverless handlers on triggers → `salla-app-functions`
    - Storefront JS → `salla-snippets`
    - Dashboard iframe UI → `salla-embedded-app`
+   - Public App-Store view / builder blocks → `salla-app-ui-builder`
    - Merchant settings → `salla-app-settings`
    - Plans, addons, entitlements, balance → `salla-app-billing`
    - In-app addon purchase → `salla-addon-purchase`
@@ -48,7 +49,7 @@ do. Your job is dispatch and sequencing.
 3. **Act with MCP tools, not Portal clicks.** When the Salla Partners MCP is connected,
    perform every action through its tools (`salla_apps`, `salla_events`,
    `salla_snippets`, `salla_embedded_pages`, `salla_settings`, `salla_shipping`,
-   `salla_functions`, `salla_upload`, `salla_reference`). The skills name the right
+   `salla_upload`, `salla_reference`). The skills name the right
    tool and action at each step — follow them instead of hand-writing HTTP calls.
 
 4. **Respect the lifecycle.** install → configure → operate → monetize → update →

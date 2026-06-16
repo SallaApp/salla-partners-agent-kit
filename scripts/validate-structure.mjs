@@ -97,7 +97,7 @@ if (existsSync(skillsDir)) {
 for (const target of ['.cursor/skills', '.github/skills']) {
   const dir = join(ROOT, target);
   if (!existsSync(dir)) { warn(false, `${target}/ does not exist`); continue; }
-  const links = readdirSync(dir);
+  const links = readdirSync(dir).filter(f => !f.startsWith("."));
   for (const name of skillNames) {
     const linkPath = join(dir, name);
     const exists = existsSync(linkPath);

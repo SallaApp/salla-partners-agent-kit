@@ -1,50 +1,38 @@
-# Salla Partners AI Plugin Foundation
+# Salla Partners AI Plugin
 
-A foundation for building an AI coding assistance plugin (Claude, Gemini, Copilot, and more) to guide agents with the right skills, commands, agents, and hooks for Salla app development.
+Build Salla apps with AI. This plugin gives any coding agent the **skills** to reason
+about the Salla platform natively and — with the Partners MCP server — the **tools** to
+act on it: create, configure, hook, monetize, and publish apps without touching the Portal.
 
-## Installation
-
-To add this plugin to your workspace:
-
-```bash
-npx skills add SallaApp/salla-partners-ai-plugin
-```
-
-For full setup — installing the skills **and** connecting the Partners MCP action tools
-for Claude Code, Cursor, Claude Desktop, Codex, and other MCP clients — see
-**[docs/getting-started.md](docs/getting-started.md)**.
-
-## Repository Structure
-
-The core capability of this plugin is the `salla-app-builder` skill which provides the following reference documents:
-
-- **[SKILL.md](skills/salla-app-builder/SKILL.md):** Main entry point mapping developer queries to reference files.
-- **[app-functions.md](skills/salla-app-builder/references/app-functions.md):** Writing Salla App Functions in TypeScript (execution context, sandbox constraints, Resp builder API).
-- **[communication-app.md](skills/salla-app-builder/references/communication-app.md):** Schema and payload reference for Salla Communication App events.
-- **[embedded-app.md](skills/salla-app-builder/references/embedded-app.md):** Configuring Embedded Pages, Salla SDK handshake, and the "No-Chrome" design rule.
-- **[oauth.md](skills/salla-app-builder/references/oauth.md):** Implementing the webhook-based "Easy Mode" OAuth flow.
-- **[salla-api.md](skills/salla-app-builder/references/salla-api.md):** Invoking Salla Admin API endpoints and reading/writing App Settings.
-- **[webhooks.md](skills/salla-app-builder/references/webhooks.md):** Signature verification, retry policy, and lifecycle webhook events.
-
-## Validation & Scoring
-
-To evaluate the quality of the skill and its reference files locally using the LLM-as-a-judge validator:
+## Install
 
 ```bash
-# Score SKILL.md and all reference files:
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli
+# Claude Code — skills + master agent
+claude plugin marketplace add SallaApp/salla-partners-ai-plugin
 
-# Force a re-evaluation of scores (bypassing cache):
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore
-
-# View scores for each individual reference file:
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore --display files
+# All other agents (Cursor, Copilot, Codex, etc.)
+npx plugins add SallaApp/salla-partners-ai-plugin
 ```
 
-## Code Quality & Formatting
+For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/getting-started.md)**.
 
-Before committing changes to any reference `.md` files, make sure to format them using Prettier:
+## Skills — 22 across 5 layers
+
+| Layer | Skills |
+| --- | --- |
+| Foundation | `salla-app-expert` · `salla-api-core` · `salla-app-auth` · `salla-app-authorization` · `salla-webhooks` · `salla-docs` |
+| Hookables | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
+| App types | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app` |
+| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded` · `salla-app-subscription-management` |
+| Quality & release | `salla-ui-compliance` · `salla-live-testing` · `salla-publication-consistency` |
+
+`salla-app-expert` is the master router — describe your goal and it picks the right skill.
+Each skill is a step-by-step workflow with checkpoints; agents load them on demand.
+
+## Validate
 
 ```bash
-pnpx prettier . --write
+npm run validate
 ```
+
+Checks skill count, metadata, file references, and symlink consistency.

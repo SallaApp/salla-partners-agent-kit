@@ -1,4 +1,4 @@
-name: 'Lint PR'
+name: "Lint PR"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -34,3 +34,4 @@ jobs:
       group: default
     steps:
       - uses: SallaApp/.CI/lint-branch@master
+

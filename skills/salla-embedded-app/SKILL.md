@@ -20,7 +20,6 @@ app. Follow the steps in order — complete each gate before moving to the next.
 | Tool                     | Action                                           | What it does                                       |
 | ------------------------ | ------------------------------------------------ | -------------------------------------------------- |
 | `salla_embedded_pages`   | `list` / `create` / `update` / `delete`          | Manage the app's embedded (iframe) dashboard pages |
-| `salla_onboarding_steps` | `list` / `create` / `update` / `delete` / `sort` | Manage post-install onboarding steps (optional)    |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected, and you need the
 > app's `app_id`. If a tool returns "Salla session expired", re-run the login flow.
@@ -53,10 +52,7 @@ the `app_id`, and:
 
 Both `create` and `update` return `{"page": {}}` (empty object) on success — this is
 normal, not a failure. Call `salla_embedded_pages action=list` to get the page id and
-verify the change. Use `update` / `delete` to change or remove a page. (Optional) add post-install onboarding with `salla_onboarding_steps
-action=create` — `slug` accepts **lowercase letters and digits only** (no hyphens
-or underscores); `action=update` is a **full revalidation** — resend `icon`,
-`title`, and `slug` together (a partial update 422s).
+verify the change. Use `update` / `delete` to change or remove a page.
 
 **Manual fallback:** Portal → **App Details → Embedded Pages → Add page**.
 

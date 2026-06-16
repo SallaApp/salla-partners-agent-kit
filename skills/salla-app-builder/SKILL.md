@@ -161,7 +161,7 @@ Ask: "Does your app need to inject HTML/JS into the merchant's storefront?"
 
 - **Yes** → follow the **`salla-snippets`** skill (it uses `salla_snippets`
   to create the snippet).
-- **No** → skip to Step 5.
+- **No** → skip to Step 5a.
 
 ---
 
@@ -170,8 +170,25 @@ Ask: "Does your app need to inject HTML/JS into the merchant's storefront?"
 Ask: "Does your app need a custom UI inside the Salla merchant dashboard?"
 
 - **Yes** → follow the **`salla-embedded-app`** skill (it uses `salla_embedded_pages`
-  to register the iframe page, plus SDK setup, auth, and theme sync). Optionally add
-  post-install onboarding steps via `salla_onboarding_steps` — covered in that skill.
+  to register the iframe page, plus SDK setup, auth, and theme sync).
+- **No** → skip to Step 5a.
+
+---
+
+## Step 5a — Post-Install Onboarding Steps (Optional)
+
+Ask: "Does your app need guided setup steps shown to the merchant right after install?"
+Common use cases: creating an account on your platform for the first time, entering
+credentials before the app activates, or configuring settings that cannot be changed
+later.
+
+- **Yes** → use `salla_onboarding_steps`:
+  1. Call `salla_onboarding_steps action=create`, `app_id` with:
+     - `slug` — **lowercase letters and digits only** (no hyphens or underscores)
+     - `icon`, `title`, `iframe_url` (the page the merchant completes this step on)
+  2. Repeat for each step, then call `action=sort` to set their order.
+  > `action=update` is a **full revalidation** — resend `slug`, `icon`, and `title`
+  > together; a partial payload 422s.
 - **No** → skip to Step 6.
 
 ---

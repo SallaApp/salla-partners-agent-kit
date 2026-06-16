@@ -49,6 +49,7 @@ before reaching for a webhook.
 | Public App-Store view — builder blocks (add/edit/reorder)          | [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md)       |
 | Per-merchant settings schema & values                              | [salla-app-settings](../salla-app-settings/SKILL.md)           |
 | Plans, addons, trials, entitlement gating, usage balance           | [salla-app-billing](../salla-app-billing/SKILL.md)             |
+| Post-install setup / onboarding steps                             | [salla-app-builder](../salla-app-builder/SKILL.md)             |
 | Selling an addon (general / billing)                               | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)       |
 | Selling an addon inside an embedded iframe                         | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | Merchant OAuth flow (Easy vs Custom mode, token storage, mutex)    | [salla-app-authorization](../salla-app-authorization/SKILL.md) |

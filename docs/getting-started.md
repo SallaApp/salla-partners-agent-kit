@@ -187,7 +187,7 @@ parameter:
 | `salla_shipping`         | `get_zones` · `set_zones` · `set_settings`                                  | Shipping zones + carrier settings                                          |
 | `salla_functions`        | `list` · `get` · `delete`                                                   | Inspect/remove deployed App Functions (deploy happens on publish)          |
 | `salla_upload`           | —                                                                           | Upload an image/document → returns a file `id` (e.g. for an app logo)      |
-| `salla_reference`        | `categories` · `scopes` · `countries` · `cities`                            | Read-only lookups other tools need                                         |
+| `salla_reference`        | `categories` · `countries` · `cities`                                       | Read-only lookups other tools need                                         |
 | `salla_request`          | `mode: search` · `mode: call` (not `action`)                                | Generic GET fallback for partner endpoints (may be disabled by the server) |
 
 > **App Builder (public App-Store view) has no dedicated tool yet.** Images go through `salla_upload` and the three read endpoints through `salla_request` (when enabled); the block mutations (add/edit/reorder/delete/init/reset) are direct Partners API calls today, planned as a `salla_app_builder` tool. The `salla-app-ui-builder` skill drives this end to end.
@@ -204,7 +204,7 @@ Agent:  (loads the salla-app-builder skill → follows its workflow)
         1. salla_reference action=categories      → resolve type / sub_category_id
         2. salla_upload url=…logo.png              → file id (checks 1:1, ≥250×250)
         3. salla_apps action=create …             → returns app_id
-        4. salla_reference action=scopes app_id=… → available scope slugs
+        4. salla_apps action=get app_id=…           → available scope slugs
         5. salla_apps action=connect …            → OAuth + webhook + secret
         6. salla_events action=subscribe …        → order.created, app.store.authorize, …
         … each step ends at a Gate so you confirm before moving on.

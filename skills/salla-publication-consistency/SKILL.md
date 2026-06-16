@@ -16,7 +16,7 @@ to review unless you re-save. This skill is the final readback before `submit`.
 
 ## The drift rule
 
-After **any** of these, re-run `salla_apps action=publish` with `publish_action: "save"`
+After **any** of these, re-run `salla_apps action=publish` with `action: "save"`
 and the full publication payload:
 
 - changed the settings schema (`salla_settings define_form`)

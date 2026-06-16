@@ -170,7 +170,8 @@ Ask: "Does your app need to inject HTML/JS into the merchant's storefront?"
 Ask: "Does your app need a custom UI inside the Salla merchant dashboard?"
 
 - **Yes** → follow the **`salla-embedded-app`** skill (it uses `salla_embedded_pages`
-  to register the iframe page, plus SDK setup, auth, and theme sync).
+  to register the iframe page, plus SDK setup, auth, and theme sync). Optionally add
+  post-install onboarding steps via `salla_onboarding_steps` — covered in that skill.
 - **No** → skip to Step 6.
 
 ---

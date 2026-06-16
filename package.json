@@ -1,0 +1,20 @@
+{
+  "name": "salla-partners-ai-plugin",
+  "version": "1.0.0",
+  "description": "Build Salla Apps with AI — 22 skills and a master agent covering the full app lifecycle: create, hook, monetize, publish.",
+  "author": {
+    "name": "Salla Dev Team",
+    "url": "https://salla.partners"
+  },
+  "homepage": "https://github.com/SallaApp/salla-partners-ai-plugin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SallaApp/salla-partners-ai-plugin.git"
+  },
+  "license": "LicenseRef-Salla-Proprietary",
+  "keywords": ["salla", "mcp", "skills", "agent", "ecommerce"],
+  "private": true,
+  "scripts": {
+    "validate": "node scripts/validate-structure.mjs"
+  }
+}

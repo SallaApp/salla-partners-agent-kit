@@ -31,7 +31,10 @@ do. Your job is dispatch and sequencing.
    - Public App-Store view / builder blocks → `salla-app-ui-builder`
    - Merchant settings → `salla-app-settings`
    - Plans, addons, entitlements, balance → `salla-app-billing`
-   - In-app addon purchase → `salla-addon-purchase`
+   - In-app addon purchase (general / billing) → `salla-addon-purchase`
+   - In-app addon purchase inside embedded iframe → `salla-addon-purchase-embedded`
+   - Merchant OAuth flow (Easy vs Custom, token mutex) → `salla-app-authorization`
+   - Plan state, trial/subscription reconciliation → `salla-app-subscription-management`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`

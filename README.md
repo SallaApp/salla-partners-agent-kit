@@ -16,7 +16,11 @@ npx skills add SallaApp/salla-partners-ai-plugin
 claude plugin marketplace add SallaApp/salla-partners-ai-plugin
 ```
 
-Per-agent notes:
+For full setup — installing the skills **and** connecting the Partners MCP action tools
+for Claude Code, Cursor, Claude Desktop, Codex, and other MCP clients — see
+**[docs/getting-started.md](docs/getting-started.md)**.
+
+## Repository Structure
 
 | Agent              | Install                                                                                                                        |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |

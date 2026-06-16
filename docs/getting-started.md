@@ -3,12 +3,12 @@
 Build and manage Salla Partner apps with an AI coding assistant. This plugin has **two
 halves that work together**:
 
-| Half             | What it is                                      | What it gives you                                                                                                                              |
-| ---------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Skills**       | Markdown workflows installed into your AI agent | The _knowledge_ — guided, step-by-step flows for every Salla app surface (OAuth, webhooks, App Functions, embedded pages, shipping, settings…) |
-| **Partners MCP** | A remote MCP server you connect to your client  | The _actions_ — tools that actually create apps, configure OAuth/webhooks, subscribe to events, define settings, publish, and more             |
+| Half | What it is | What it gives you |
+| --- | --- | --- |
+| **Skills** | Markdown workflows installed into your AI agent | The *knowledge* — guided, step-by-step flows for every Salla app surface (OAuth, webhooks, App Functions, embedded pages, shipping, settings…) |
+| **Partners MCP** | A remote MCP server you connect to your client | The *actions* — tools that actually create apps, configure OAuth/webhooks, subscribe to events, define settings, publish, and more |
 
-The skills tell the agent _how_ to build a Salla app; the MCP tools let it _do_ the work
+The skills tell the agent *how* to build a Salla app; the MCP tools let it *do* the work
 against the Salla Developers Portal. You can use the skills alone (as a reference), but
 connecting the MCP is what turns them into an agent that performs the actions for you.
 
@@ -20,8 +20,8 @@ connecting the MCP is what turns them into an agent that performs the actions fo
 - A supported AI client: **Claude Code**, **Cursor**, **Claude Desktop**, **Codex**, or
   any MCP-capable client.
 - **Node.js 18+** (for the `npx skills` installer and the `mcp-remote` bridge).
-- The **MCP server URL** for your environment (the `/partners` endpoint), e.g.
-  `https://mcp.salla.dev/partners`. Get the canonical URL from the Salla Developers
+- The **MCP server URL** for your environment (the `/mcp` endpoint), e.g.
+  `https://<your-salla-mcp-host>/mcp`. Get the canonical URL from the Salla Developers
   Portal / your Salla contact — referred to below as `<MCP_URL>`.
 
 ---
@@ -60,33 +60,24 @@ cp -R salla-partners-ai-plugin/skills/* ~/.claude/skills/
 Each skill is a **workflow** — a `Step 0 — Discover` intake, numbered steps with
 checkpoints (**Gates**), and inline links to references.
 
-**Router (start here)**
-
-- `salla-app-expert` — the master router: hookable rule (snippet vs App Function vs webhook), intent → skill routes, capability → MCP tool map. On clients that support agents, the `salla-app-expert` agent plays this role.
-
 **Core / foundation**
-
-- `salla-api-core` — Admin API base: auth, requests, pagination, errors, rate limits.
-- `salla-app-auth` — OAuth 2.0 (Easy vs Custom mode), token storage, the refresh-mutex danger zone.
-- `salla-webhooks` — webhook transport: registration, signature verification, idempotency, debugging.
-- `salla-docs` — find the right doc or API schema (scoped entry points + the apidog docs MCP); avoids the oversized llms.txt index.
+- `salla-api-core` — Admin API base: auth, requests, pagination, errors, rate limits, settings read-modify-write.
+- `salla-app-authorization` — OAuth 2.0 (Easy vs Custom mode), token storage, the refresh-mutex danger zone.
+- `salla-webhooks` — webhook server, event subscription, signature verification, idempotency.
+- `salla-app-builder` — overview + capability → tool map + App Functions reference.
 
 **Build an app end to end**
-
-- `salla-app-builder` — create → OAuth/webhooks → events → capability branches → publish.
+- `salla-general-app` — the master flow: create → OAuth/webhooks → events → snippets → embedded → functions → publish.
 - `salla-app-settings` — define the merchant settings form, validation URL, features.
 - `salla-embedded-app` — iframe pages inside the merchant dashboard (SDK, auth, theme).
-- `salla-app-ui-builder` — customize the public App-Store view: add/edit/reorder builder blocks (App Information, Features, Pricing, FAQ…).
-- `salla-snippets` — Device Mode (browser) vs Cloud Mode (App Function) storefront integrations.
+- `salla-storefront-snippets` — Device Mode (browser) vs Cloud Mode (App Function) storefront integrations.
 - `salla-shipping-app` — shipping/fulfillment apps: zones, settings, shipment lifecycle.
-- `salla-communication-app` — SMS/WhatsApp/email channel apps: supported features, send events.
 
-**App Functions, lifecycle & monetization**
-
+**App Functions & lifecycle**
 - `salla-app-functions` — serverless V8 handlers: execution types, `Resp` API, sandbox limits, deploy on publish.
-- `salla-app-lifecycle` — the 13 install/update/uninstall/trial/subscription events + merchant state machine.
-- `salla-app-billing` — plans & addons (defined in the publish payload), entitlement gating, usage balance, reconciliation.
-- `salla-addon-purchase` — in-iframe addon purchase + webhook-driven activation.
+- `salla-app-lifecycle` — install/update/uninstall/trial/subscription events + merchant state machine.
+- `salla-app-subscription-management` — pricing plans, plan-state tracking, reconciliation.
+- `salla-addon-purchase-embedded` — in-iframe addon purchase + webhook-driven activation.
 
 ---
 
@@ -97,17 +88,8 @@ You add it once; on first use your browser opens the Salla Developers Portal to 
 approve access. The minted partner token is valid for ~14 days, after which the client
 re-runs the login automatically.
 
-> Replace `<MCP_URL>` with your environment's `/partners` endpoint (e.g.
-> `https://mcp.salla.dev/partners`). The server is private — get the URL from your
-> Salla contact; all clients connect over HTTP (OAuth login on first use).
-
-### Zero-config via the checked-in `.mcp.json`
-
-This repo ships `.mcp.json` (project scope, read by Claude Code and other
-`.mcp.json`-aware clients) and `.cursor/mcp.json` (Cursor), both pointing at the
-production endpoint `https://mcp.salla.dev/partners`. With the repo in your workspace,
-just open the client and complete the OAuth login on first use — no per-client wiring
-needed. The per-client sections below cover standalone (non-repo) installs.
+> Replace `<MCP_URL>` with your environment's `/mcp` endpoint (e.g.
+> `https://<your-salla-mcp-host>/mcp`).
 
 ### Claude Code
 
@@ -176,21 +158,19 @@ afterward.
 Once connected, these tools become available. Each is one tool driven by an `action`
 parameter:
 
-| Tool                     | Actions                                                                     | Purpose                                                                    |
-| ------------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `salla_apps`             | `list` · `get` · `create` · `update` · `connect` · `set_status` · `publish` | Create, configure (OAuth + webhooks), and publish apps                     |
-| `salla_events`           | `list` · `subscribe`                                                        | Discover and subscribe an app to store/lifecycle events                    |
-| `salla_snippets`         | `list` · `parameters` · `create` · `update` · `delete`                      | Storefront snippets (HTML/JS injection)                                    |
-| `salla_embedded_pages`   | `list` · `create` · `update` · `delete`                                     | Embedded (iframe) dashboard pages                                          |
-| `salla_onboarding_steps` | `list` · `create` · `update` · `delete` · `sort`                            | Post-install onboarding steps                                              |
-| `salla_settings`         | `define_form` · `set_validation_url` · `list_features` · `set_features`     | Merchant settings form + feature flags                                     |
-| `salla_shipping`         | `get_zones` · `set_zones` · `set_settings`                                  | Shipping zones + carrier settings                                          |
-| `salla_functions`        | `list` · `get` · `delete`                                                   | Inspect/remove deployed App Functions (deploy happens on publish)          |
-| `salla_upload`           | —                                                                           | Upload an image/document → returns a file `id` (e.g. for an app logo)      |
-| `salla_reference`        | `categories` · `countries` · `cities`                                       | Read-only lookups other tools need                                         |
-| `salla_request`          | `mode: search` · `mode: call` (not `action`)                                | Generic GET fallback for partner endpoints (may be disabled by the server) |
-
-> **App Builder (public App-Store view) has no dedicated tool yet.** Images go through `salla_upload` and the three read endpoints through `salla_request` (when enabled); the block mutations (add/edit/reorder/delete/init/reset) are direct Partners API calls today, planned as a `salla_app_builder` tool. The `salla-app-ui-builder` skill drives this end to end.
+| Tool | Actions | Purpose |
+| --- | --- | --- |
+| `salla_apps` | `list` · `get` · `create` · `update` · `connect` · `set_status` · `publish` | Create, configure (OAuth + webhooks), and publish apps |
+| `salla_events` | `list` · `subscribe` | Discover and subscribe an app to store/lifecycle events |
+| `salla_snippets` | `list` · `parameters` · `create` · `update` · `delete` | Storefront snippets (HTML/JS injection) |
+| `salla_embedded_pages` | `list` · `create` · `update` · `delete` | Embedded (iframe) dashboard pages |
+| `salla_onboarding_steps` | `list` · `create` · `update` · `delete` · `sort` | Post-install onboarding steps |
+| `salla_settings` | `define_form` · `set_validation_url` · `list_features` · `set_features` | Merchant settings form + feature flags |
+| `salla_shipping` | `get_zones` · `set_zones` · `set_settings` | Shipping zones + carrier settings |
+| `salla_functions` | `list` · `get` · `delete` | Inspect/remove deployed App Functions (deploy happens on publish) |
+| `salla_upload` | — | Upload an image/document → returns a file `id` (e.g. for an app logo) |
+| `salla_reference` | `categories` · `scopes` · `countries` · `cities` | Read-only lookups other tools need |
+| `salla_request` | `search` · `call` | Generic GET fallback for partner endpoints (may be disabled by the server) |
 
 ---
 
@@ -200,11 +180,11 @@ The skills are written to **drive these tools**. A typical session:
 
 ```
 You:    "Create a private Salla app called Acme Sync"
-Agent:  (loads the salla-app-builder skill → follows its workflow)
+Agent:  (loads the salla-general-app skill → follows its workflow)
         1. salla_reference action=categories      → resolve type / sub_category_id
         2. salla_upload url=…logo.png              → file id (checks 1:1, ≥250×250)
         3. salla_apps action=create …             → returns app_id
-        4. salla_apps action=get app_id=…           → available scope slugs
+        4. salla_reference action=scopes app_id=… → available scope slugs
         5. salla_apps action=connect …            → OAuth + webhook + secret
         6. salla_events action=subscribe …        → order.created, app.store.authorize, …
         … each step ends at a Gate so you confirm before moving on.
@@ -216,20 +196,20 @@ skill") when you want a specific flow.
 
 **What stays code (no tool):** runtime pieces the MCP can't perform — receiving/verifying
 webhooks, OAuth token storage + refresh, embedded SDK calls, App Function source, and
-reading/writing per-merchant settings _values_ with the merchant token. The skills cover
+reading/writing per-merchant settings *values* with the merchant token. The skills cover
 these as labelled code steps.
 
 ---
 
 ## 6. Troubleshooting
 
-| Symptom                             | Fix                                                                                                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tools don't appear                  | Confirm the MCP server is added and shows "connected" (Claude Code: `/mcp`; Cursor: Settings → MCP). Re-check `<MCP_URL>` ends in `/partners`.          |
-| `Salla session expired — reconnect` | The partner token lapsed (~14 days). Re-run the client's MCP login/authorize to mint a new one.                                                         |
-| Browser login didn't open           | For stdio bridges, run the `mcp-remote` command once in a terminal to complete OAuth, then restart the client.                                          |
-| A tool says it's unknown/disabled   | Some tools are gated by server config (e.g. `salla_request`, `salla_functions`). Use the curated tool for that task, or contact your Salla admin.       |
-| Skill not triggering                | Mention it by name ("use the salla-app-settings skill"), or re-run `npx skills add SallaApp/salla-partners-ai-plugin` to ensure it's installed/updated. |
+| Symptom | Fix |
+| --- | --- |
+| Tools don't appear | Confirm the MCP server is added and shows "connected" (Claude Code: `/mcp`; Cursor: Settings → MCP). Re-check `<MCP_URL>` ends in `/mcp`. |
+| `Salla session expired — reconnect` | The partner token lapsed (~14 days). Re-run the client's MCP login/authorize to mint a new one. |
+| Browser login didn't open | For stdio bridges, run the `mcp-remote` command once in a terminal to complete OAuth, then restart the client. |
+| A tool says it's unknown/disabled | Some tools are gated by server config (e.g. `salla_request`, `salla_functions`). Use the curated tool for that task, or contact your Salla admin. |
+| Skill not triggering | Mention it by name ("use the salla-app-settings skill"), or re-run `npx skills add SallaApp/salla-partners-ai-plugin` to ensure it's installed/updated. |
 
 ---
 

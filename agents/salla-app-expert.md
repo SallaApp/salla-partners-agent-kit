@@ -34,6 +34,9 @@ do. Your job is dispatch and sequencing.
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`
+   - Native UI components (storefront + embedded) → `salla-ui-compliance`
+   - Test the app end-to-end on a demo store → `salla-live-testing`
+   - Pre-submit publication consistency check → `salla-publication-consistency`
    - Find the right doc / live API schema → `salla-docs`
 
 2. **The hookable rule.** An app is reactions to events attached at hookables. For

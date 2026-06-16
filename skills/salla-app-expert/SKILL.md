@@ -53,6 +53,9 @@ before reaching for a webhook.
 | SMS / WhatsApp / email channel apps                                | [salla-communication-app](../salla-communication-app/SKILL.md) |
 | Carriers, shipments, labels, tracking, returns                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)           |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits | [salla-api-core](../salla-api-core/SKILL.md)                   |
+| Native UI components (storefront + embedded)                       | [salla-ui-compliance](../salla-ui-compliance/SKILL.md)         |
+| Test the app end-to-end on a demo store                            | [salla-live-testing](../salla-live-testing/SKILL.md)           |
+| Pre-submit publication consistency check                           | [salla-publication-consistency](../salla-publication-consistency/SKILL.md) |
 | Find the right doc / live API schema                               | [salla-docs](../salla-docs/SKILL.md)                           |
 
 ## Perform actions with the Salla Partners MCP

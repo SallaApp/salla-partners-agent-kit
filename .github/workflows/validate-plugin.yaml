@@ -1,4 +1,4 @@
-name: "Lint PR"
+name: "Validate Plugin Structure"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -8,10 +8,7 @@ on:
   pull_request_target:
     types:
       - opened
-      - edited
       - synchronize
-      - labeled
-      - unlabeled
 
 permissions:
   pull-requests: read
@@ -19,19 +16,15 @@ permissions:
   checks: write
 
 jobs:
-  title:
-    name: Validate PR title
+  validate:
+    name: Validate plugin structure
     runs-on:
       group: default
     steps:
-      - uses: SallaApp/.CI/lint-pr@master
+      - uses: actions/checkout@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
-  branch:
-    name: Validate branch name
-    runs-on:
-      group: default
-    steps:
-      - uses: SallaApp/.CI/lint-branch@master
-
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/validate-structure.mjs

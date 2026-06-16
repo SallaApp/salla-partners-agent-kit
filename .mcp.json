@@ -2,8 +2,7 @@
   "mcpServers": {
     "salla-partners": {
       "type": "http",
-      "url": "https://mcp.salla.dev/partners",
-      "note": "Salla Partners MCP \u2014 OAuth on first use (browser opens the Salla Developers Portal). Provides tools to create, configure, and publish Salla Partner apps without touching the Portal UI."
+      "url": "https://mcp.salla.dev/partners"
     }
   }
 }

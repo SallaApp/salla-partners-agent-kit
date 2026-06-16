@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "salla-partners": {
+      "type": "http",
+      "url": "https://mcp.salla.dev/partners"
+    }
+  }
+}

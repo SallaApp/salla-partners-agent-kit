@@ -1,7 +1,14 @@
-# App Settings API
+# App Settings Values API (runtime — not an MCP tool)
+
+This is the **runtime, per-merchant values** API: your deployed app's backend calls it
+with **each merchant's OAuth access token** (delivered via `app.store.authorize`). It
+cannot be an MCP tool — the Partners MCP authenticates as the partner and never holds
+merchant tokens. Don't confuse it with defining the settings **form schema**, which IS
+an MCP action (`salla_settings action=define_form`, Partner API).
 
 Base URL: `https://api.salla.dev/admin/v2`
-Auth: OAuth2 (`offline_access` scope), Bearer token in header.
+Auth: the **merchant's** Bearer token (OAuth2, `offline_access` scope) — see
+[salla-app-auth](../../salla-app-auth/SKILL.md) for acquiring and refreshing it.
 
 ---
 
@@ -23,7 +30,7 @@ Fetch the current settings values for a specific merchant's store.
     "settings": {
       "email": "test@store.sa",
       "password": "123456789",
-      "contract_no.": 50,
+      "contact_no": 50,
       "fast_delivery": true
     }
   }
@@ -64,12 +71,12 @@ Update settings for a specific merchant's store.
 }
 ```
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `email` | string | Custom setting parameter |
-| `password` | string | Custom setting parameter |
+| Field           | Type    | Description              |
+| --------------- | ------- | ------------------------ |
+| `email`         | string  | Custom setting parameter |
+| `password`      | string  | Custom setting parameter |
 | `fast_delivery` | boolean | Custom setting parameter |
-| `contact_no` | number | Custom setting parameter |
+| `contact_no`    | number  | Custom setting parameter |
 
 ### Response 200
 
@@ -89,17 +96,17 @@ Returns the same body shape as the request (echoed back).
 
 ## Schema Summary
 
-| Schema | Used by |
-| --- | --- |
-| `AppSettingsBodyResponse` | GET 200 response |
+| Schema                         | Used by                               |
+| ------------------------------ | ------------------------------------- |
+| `AppSettingsBodyResponse`      | GET 200 response                      |
 | `UpdateAppSettingsBodyRequest` | POST request body + POST 200 response |
-| `NotFoundResponse` | GET/POST 403 and 404 responses |
+| `NotFoundResponse`             | GET/POST 403 and 404 responses        |
 
 ---
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
+| Topic                             | Link                                                   |
+| --------------------------------- | ------------------------------------------------------ |
 | How to build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| Salla Admin API reference | https://docs.salla.dev/doc-421117 |
+| Salla Admin API reference         | https://docs.salla.dev/doc-421117                      |

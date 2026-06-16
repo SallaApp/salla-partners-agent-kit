@@ -1,49 +1,75 @@
-# Salla Partners AI Plugin Foundation
+# Salla Partners AI Plugin
 
-A foundation for building an AI coding assistance plugin (Claude, Gemini, Copilot, and more) to guide agents with the right skills, commands, agents, and hooks for Salla app development.
+Build Salla Apps with AI. This plugin gives any coding agent (Claude, Cursor, Codex,
+Gemini, Copilot, and more) the **skills** to reason about the Salla platform natively
+and — together with the Partners MCP (a private remote server, connected over HTTP) — the
+**tools** to act on it: create, configure, hook, monetize, and publish apps without
+touching the Portal UI.
 
 ## Installation
 
-To add this plugin to your workspace:
-
 ```bash
+# Agent Skills standard (any client)
 npx skills add SallaApp/salla-partners-ai-plugin
+
+# Claude Code (as a plugin — also installs the master agent)
+claude plugin marketplace add SallaApp/salla-partners-ai-plugin
 ```
 
-For full setup — installing the skills **and** connecting the Partners MCP action tools
-for Claude Code, Cursor, Claude Desktop, Codex, and other MCP clients — see
+Per-agent notes:
+
+| Agent              | Install                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Claude Code**    | `claude plugin marketplace add SallaApp/salla-partners-ai-plugin` (skills + the `salla-app-expert` agent), or `npx skills add` |
+| **Cursor**         | `npx skills add …`, or clone this repo into the workspace — `.cursor/skills/` mirrors `skills/`                                |
+| **GitHub Copilot** | works on this repo out of the box via `.github/skills/`; elsewhere use `npx skills add`                                        |
+| **Codex / others** | `npx skills add …` or copy `skills/` to your agent's skills directory                                                          |
+
+Cross-agent conventions live in [AGENTS.md](AGENTS.md). For full setup — installing the
+skills **and** connecting the Partners MCP action tools — see
 **[docs/getting-started.md](docs/getting-started.md)**.
 
-## Repository Structure
+## How it's organized
 
-The core capability of this plugin is the `salla-app-builder` skill which provides the following reference documents:
+A Salla app is **reactions to events attached at hookables**. The plugin mirrors that:
 
-- **[SKILL.md](skills/salla-app-builder/SKILL.md):** Main entry point mapping developer queries to reference files.
-- **[app-functions.md](skills/salla-app-builder/references/app-functions.md):** Writing Salla App Functions in TypeScript (execution context, sandbox constraints, Resp builder API).
-- **[communication-app.md](skills/salla-app-builder/references/communication-app.md):** Schema and payload reference for Salla Communication App events.
-- **[embedded-app.md](skills/salla-app-builder/references/embedded-app.md):** Configuring Embedded Pages, Salla SDK handshake, and the "No-Chrome" design rule.
-- **[oauth.md](skills/salla-app-builder/references/oauth.md):** Implementing the webhook-based "Easy Mode" OAuth flow.
-- **[salla-api.md](skills/salla-app-builder/references/salla-api.md):** Invoking Salla Admin API endpoints and reading/writing App Settings.
-- **[webhooks.md](skills/salla-app-builder/references/webhooks.md):** Signature verification, retry policy, and lifecycle webhook events.
+- **Master agent** — [`agents/salla-app-expert.md`](agents/salla-app-expert.md):
+  routes intent → skills → MCP tools, end to end. For clients that support agent prompts.
+- **Master router skill** — [`salla-app-expert`](skills/salla-app-expert/SKILL.md):
+  the same routing as a plain skill, for clients that don't support agent prompts. Holds
+  the hookable rule (snippet vs App Function vs webhook) and the intent → skill map.
+- **15 composable skills** — each owns one domain and hands off to the others:
 
-## Validation & Scoring
+| Layer                    | Skills                                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Foundation               | `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`                                           |
+| Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
+| App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                          |
+| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase`                                            |
 
-To evaluate the quality of the skill and its reference files locally using the LLM-as-a-judge validator:
+Each skill is a workflow: a discovery step, numbered steps with gates, and references
+loaded only when needed. Descriptions are the routing interface — agents pick the right
+skill from the description alone.
+
+## Validation
+
+Lint every skill with the open-source `skill-validator` (static rules: frontmatter,
+structure, secret scanning). The expired-token workaround (`npm_config_userconfig`)
+is only needed if your `~/.npmrc` carries a stale token:
 
 ```bash
-# Score SKILL.md and all reference files:
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli
-
-# Force a re-evaluation of scores (bypassing cache):
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore
-
-# View scores for each individual reference file:
-skill-validator score evaluate skills/salla-app-builder --provider claude-cli --rescore --display files
+for f in skills/*/SKILL.md skills/*/references/*.md; do
+  npm_config_userconfig=/dev/null npx -y skill-validator validate "$f"
+done
 ```
+
+Notes: the tool's "code blocks without language specification" counter counts closing
+fences (ignore it), and its Overview/Parameters/Returns section warnings assume
+tool-doc layout, not agent-skill workflows.
 
 ## Code Quality & Formatting
 
-Before committing changes to any reference `.md` files, make sure to format them using Prettier:
+Before committing changes to any `.md` files, format them with Prettier:
 
 ```bash
 pnpx prettier . --write

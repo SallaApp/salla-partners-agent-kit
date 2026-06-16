@@ -9,16 +9,16 @@ Full API reference: https://docs.salla.dev/api-5578809
 
 ## Shipments
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/shipping/shipments` | List all shipments |
-| `GET` | `/shipping/shipments/{id}` | Get shipment detail |
-| `POST` | `/shipping/shipments` | Create a shipment manually |
-| `PUT` | `/shipping/shipments/{id}` | Update shipment |
-| `DELETE` | `/shipping/shipments/{id}` | Cancel/delete shipment |
-| `POST` | `/shipping/shipments/{id}/label` | Attach label URL |
-| `PUT` | `/shipping/shipments/{id}/tracking` | Set tracking number + URL |
-| `POST` | `/shipping/shipments/{id}/return` | Create return shipment |
+| Method   | Path                                | Purpose                    |
+| -------- | ----------------------------------- | -------------------------- |
+| `GET`    | `/shipping/shipments`               | List all shipments         |
+| `GET`    | `/shipping/shipments/{id}`          | Get shipment detail        |
+| `POST`   | `/shipping/shipments`               | Create a shipment manually |
+| `PUT`    | `/shipping/shipments/{id}`          | Update shipment            |
+| `DELETE` | `/shipping/shipments/{id}`          | Cancel/delete shipment     |
+| `POST`   | `/shipping/shipments/{id}/label`    | Attach label URL           |
+| `PUT`    | `/shipping/shipments/{id}/tracking` | Set tracking number + URL  |
+| `POST`   | `/shipping/shipments/{id}/return`   | Create return shipment     |
 
 ### Create Shipment
 
@@ -86,12 +86,12 @@ PUT /shipping/shipments/{id}/tracking
 
 ## Orders
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/orders` | List orders |
-| `GET` | `/orders/{id}` | Order detail |
-| `PUT` | `/orders/{id}/status` | Update fulfillment status |
-| `PUT` | `/orders/{id}/branch` | Assign to branch |
+| Method | Path                  | Purpose                   |
+| ------ | --------------------- | ------------------------- |
+| `GET`  | `/orders`             | List orders               |
+| `GET`  | `/orders/{id}`        | Order detail              |
+| `PUT`  | `/orders/{id}/status` | Update fulfillment status |
+| `PUT`  | `/orders/{id}/branch` | Assign to branch          |
 
 ### Update Order Status
 
@@ -106,35 +106,35 @@ PUT /orders/{id}/status
 }
 ```
 
-| Status | Meaning |
-| --- | --- |
-| `pending` | Received, not processed |
-| `in_progress` | Being prepared |
-| `shipping` | Handed to carrier |
-| `delivered` | Confirmed delivered |
-| `cancelled` | Cancelled |
-| `returned` | Return received |
+| Status        | Meaning                 |
+| ------------- | ----------------------- |
+| `pending`     | Received, not processed |
+| `in_progress` | Being prepared          |
+| `shipping`    | Handed to carrier       |
+| `delivered`   | Confirmed delivered     |
+| `cancelled`   | Cancelled               |
+| `returned`    | Return received         |
 
 ---
 
 ## Branches
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/store/branches` | List all branches |
-| `GET` | `/store/branches/{id}` | Branch detail |
-| `POST` | `/store/branches` | Create branch |
-| `PUT` | `/store/branches/{id}` | Update branch |
-| `DELETE` | `/store/branches/{id}` | Delete branch |
-| `PUT` | `/orders/{id}/branch` | Assign order to branch |
+| Method   | Path                   | Purpose                |
+| -------- | ---------------------- | ---------------------- |
+| `GET`    | `/store/branches`      | List all branches      |
+| `GET`    | `/store/branches/{id}` | Branch detail          |
+| `POST`   | `/store/branches`      | Create branch          |
+| `PUT`    | `/store/branches/{id}` | Update branch          |
+| `DELETE` | `/store/branches/{id}` | Delete branch          |
+| `PUT`    | `/orders/{id}/branch`  | Assign order to branch |
 
 ---
 
 ## App Settings (Shipping Config)
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/apps/{app_id}/settings` | Get merchant's carrier credentials |
+| Method | Path                      | Purpose                             |
+| ------ | ------------------------- | ----------------------------------- |
+| `GET`  | `/apps/{app_id}/settings` | Get merchant's carrier credentials  |
 | `POST` | `/apps/{app_id}/settings` | Save merchant's carrier credentials |
 
 ---
@@ -174,28 +174,8 @@ List endpoints support page-based pagination via query parameters:
 GET /shipping/shipments?page=2&per_page=30
 ```
 
-Iterate all pages until `data` is empty or fewer records than `per_page` are returned:
-
-```ts
-async function getAllShipments(token: string) {
-  const shipments = [];
-  let page = 1;
-
-  while (true) {
-    const res = await fetch(
-      `https://api.salla.dev/admin/v2/shipping/shipments?page=${page}&per_page=50`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const { data } = await res.json();
-    if (!data?.length) break;
-    shipments.push(...data);
-    if (data.length < 50) break;
-    page++;
-  }
-
-  return shipments;
-}
-```
+Iterate all pages until `data` is empty or fewer records than `per_page` are returned —
+the generic pagination loop lives in the **`salla-api-core`** skill.
 
 Error responses:
 
@@ -225,7 +205,7 @@ Test all endpoints interactively:
 
 ## Resources
 
-| Topic | Link |
-| --- | --- |
+| Topic                       | Link                               |
+| --------------------------- | ---------------------------------- |
 | Full Shipping API reference | https://docs.salla.dev/api-5578809 |
-| Salla Admin API reference | https://docs.salla.dev/doc-421117 |
+| Salla Admin API reference   | https://docs.salla.dev/doc-421117  |

@@ -23,7 +23,7 @@ Full event reference: https://docs.salla.dev/1726818m0
 
 `order.created` · `order.completed` · `order.updated` · `order.status.updated` ·
 `order.cancelled` · `order.refunded` · `order.deleted` · `order.products.updated` ·
-`order.payment.updated` · `order.coupon.updated` · `order.total_price.updated`
+`order.payment.updated` · `order.coupon.updated` · `order.total.price.updated`
 
 ## Product events
 
@@ -37,7 +37,7 @@ Full event reference: https://docs.salla.dev/1726818m0
 
 ## Customer events
 
-`customer.created` · `customer.updated` · `customer.login` · `customer.otp_request`
+`customer.created` · `customer.updated` · `customer.login` · `customer.otp.request`
 
 ## Storefront / e-commerce customer events
 
@@ -48,7 +48,7 @@ Full event reference: https://docs.salla.dev/1726818m0
 
 ## Other
 
-`abandoned_cart` · `coupon.applied` · `invoice.created` · `review.added` ·
+`abandoned.cart` · `coupon.applied` · `invoice.created` · `review.added` ·
 category / brand / store-branch / shipping-zone / shipping-company events
 
 ---

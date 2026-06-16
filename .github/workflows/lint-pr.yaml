@@ -34,3 +34,16 @@ jobs:
       group: default
     steps:
       - uses: SallaApp/.CI/lint-branch@master
+
+  validate:
+    name: Validate plugin structure
+    runs-on:
+      group: default
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/validate-structure.mjs

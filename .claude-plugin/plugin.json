@@ -15,5 +15,11 @@
     "skills",
     "agent",
     "ecommerce"
+  ],
+  "agents": [
+    "./agents/salla-app-expert.md"
+  ],
+  "commands": [
+    "./commands/audit.md"
   ]
 }

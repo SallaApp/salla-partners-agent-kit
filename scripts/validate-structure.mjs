@@ -60,6 +60,24 @@ if (existsSync(agentsDir)) {
   check(agents.length > 0, 'agents/ contains at least one agent .md file');
 }
 
+// ── 4b. Commands ──────────────────────────────────────────────────────────────
+const commandsDir = join(ROOT, 'commands');
+check(existsSync(commandsDir), 'commands/ directory exists');
+if (existsSync(commandsDir)) {
+  const cmds = readdirSync(commandsDir).filter(f => f.endsWith('.md'));
+  check(cmds.length > 0, 'commands/ contains at least one command .md file');
+}
+
+// ── 4c. plugin.json references exist ─────────────────────────────────────────
+if (plugin) {
+  for (const ref of (plugin.agents ?? [])) {
+    check(existsSync(join(ROOT, ref)), `plugin.json agents: ${ref} exists`);
+  }
+  for (const ref of (plugin.commands ?? [])) {
+    check(existsSync(join(ROOT, ref)), `plugin.json commands: ${ref} exists`);
+  }
+}
+
 // ── 5. Skills ────────────────────────────────────────────────────────────────
 const skillsDir = join(ROOT, 'skills');
 check(existsSync(skillsDir), 'skills/ directory exists');

@@ -161,7 +161,7 @@ Ask: "Does your app need to inject HTML/JS into the merchant's storefront?"
 
 - **Yes** → follow the **`salla-snippets`** skill (it uses `salla_snippets`
   to create the snippet).
-- **No** → skip to Step 5a.
+- **No** → skip to Step 5.
 
 ---
 

@@ -402,7 +402,7 @@ Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-a
 
 ## Step 7 — Event Reference
 
-Pull exact payload schemas from the MCP before writing handlers.
+Pull exact payload schemas from the public Salla docs (see salla-docs) before writing handlers.
 
 **Order:** `order.created` · `order.updated` · `order.status.updated` · `order.cancelled` ·
 `order.refunded` · `order.deleted` · `order.products.updated` · `order.payment.updated` ·

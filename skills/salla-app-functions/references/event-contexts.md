@@ -62,7 +62,7 @@ Other handlers commonly reference `OrderStatusUpdated`, `ProductAddedContext`,
 see the salla-communication-app skill).
 
 When a precise interface name isn't documented, fall back to the generic shape and type
-`payload.data` from the MCP schema for that event:
+`payload.data` from the published schema (docs.salla.dev) for that event:
 
 ```typescript
 interface GenericContext<TData = Record<string, unknown>> {

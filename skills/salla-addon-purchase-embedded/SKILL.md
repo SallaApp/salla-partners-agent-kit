@@ -114,8 +114,8 @@ embedded.ui.loading.hide();
 ## Step 5 — Start the Purchase / Billing Redirect
 
 > ⚠️ **Unverified mechanism.** The exact embedded purchase entry point is **not fully
-> documented**. Before implementing, confirm via the MCP and the `@salla.sa/embedded-sdk`
-> source/README which of these Salla actually exposes:
+> documented**. Before implementing, confirm via the public Salla docs and the
+> `@salla.sa/embedded-sdk` source/README which of these Salla actually exposes:
 >
 > - an SDK method (e.g. an `embedded.*` billing/checkout call) that opens Salla billing
 >   over the iframe, **or**

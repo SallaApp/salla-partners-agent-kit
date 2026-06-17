@@ -268,7 +268,7 @@ Response Data, Execution Time (watch it vs your timeout), Console Logs, and Erro
 
 Checklist:
 
-- [ ] `payload.data` shape confirmed via the MCP (Step 1).
+- [ ] `payload.data` shape confirmed from the public Salla docs (Step 1).
 - [ ] Sync body completes well under 500 ms (`fetch` bounded with `AbortController`).
 - [ ] `Resp.success().setData(...)` always called — `{}` if empty.
 - [ ] No npm imports / unsupported core modules; `globalThis.crypto`.

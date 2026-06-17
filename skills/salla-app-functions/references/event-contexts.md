@@ -2,10 +2,11 @@
 
 Supported triggers selectable from the Portal **Select Action** dropdown, grouped by
 category. **Always confirm the exact `payload.data` fields and the typed-context name for
-a given event via the MCP (`apidog-mcp-server`, site-id 451700) before writing a handler** —
-only a subset of context interface names is publicly documented.
+a given event in the App Functions events reference (https://docs.salla.dev/1726818m0.md)
+before writing a handler** — only a subset of context interface names is publicly
+documented.
 
-Full event reference: https://docs.salla.dev/1726818m0
+Full event reference: https://docs.salla.dev/1726818m0.md
 
 ---
 
@@ -61,7 +62,8 @@ Other handlers commonly reference `OrderStatusUpdated`, `ProductAddedContext`,
 see the salla-communication-app skill).
 
 When a precise interface name isn't documented, fall back to the generic shape and type
-`payload.data` from the MCP schema for that event:
+`payload.data` from the events reference (https://docs.salla.dev/1726818m0.md) for that
+event:
 
 ```typescript
 interface GenericContext<TData = Record<string, unknown>> {

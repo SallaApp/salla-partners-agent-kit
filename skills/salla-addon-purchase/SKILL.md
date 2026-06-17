@@ -104,7 +104,7 @@ embedded.ui.loading.hide();
 
 The purchase entry point is the embedded SDK **Checkout module** — it exposes
 **Create Checkout**, **Get App Add-Ons**, and **Subscribe for Payment**:
-https://docs.salla.dev/embedded-sdk/modules/checkout.md
+https://docs.salla.dev/embedded-sdk/modules/checkout/create.md
 
 Use **Get App Add-Ons** to list the purchasable addons, **Create Checkout** to open
 Salla's checkout for the chosen addon, and **Subscribe for Payment** to hear the payment
@@ -198,7 +198,7 @@ activateAddon() → entitlements updated → toast + UI reveal
 | Addon entitlement tracking   | salla-app-billing skill                 |
 | Feature gating               | salla-app-billing skill                 |
 | Webhook security/idempotency | salla-webhooks skill                    |
-| App Events                   | https://docs.salla.dev/421413m0         |
+| App Events                   | https://docs.salla.dev/421413m0.md      |
 | `@salla.sa/embedded-sdk`     | npm package (purchase method authority) |
 | Partners Portal              | https://salla.partners                  |
 | Telegram community           | https://t.me/salladev                   |

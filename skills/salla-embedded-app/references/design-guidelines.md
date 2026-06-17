@@ -218,7 +218,7 @@ Use native Salla UI toasts and confirms where possible. For inline buttons:
 
 ## Resources
 
-| Topic                 | Link                                                  |
-| --------------------- | ----------------------------------------------------- |
-| App Design Guidelines | https://docs.salla.dev/embedded-sdk/design-guidelines |
-| Playground / testing  | https://docs.salla.dev/embedded-sdk/playground        |
+| Topic                 | Link                                                     |
+| --------------------- | -------------------------------------------------------- |
+| App Design Guidelines | https://docs.salla.dev/embedded-sdk/design-guidelines.md |
+| Playground / testing  | https://docs.salla.dev/embedded-sdk/playground.md        |

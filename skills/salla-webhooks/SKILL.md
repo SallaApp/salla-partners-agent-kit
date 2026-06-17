@@ -1,22 +1,13 @@
 ---
 name: salla-webhooks
 description: >
-  Use this skill for any task involving Salla webhooks. Trigger when a developer is:
-  registering or updating a webhook, choosing a security strategy (Signature vs Token),
-  adding custom headers to a webhook, subscribing to store events, writing conditional
-  webhook rules, verifying webhook signatures, handling the standard payload envelope,
-  setting up a webhook server with Node.js/Express or Laravel/PHP, using the
-  @salla.sa/webhooks-actions npm package, using the Salla CLI to scaffold webhook
-  handlers, debugging webhook delivery failures, implementing idempotency, handling
-  app lifecycle events (app.store.authorize, app.installed, app.uninstalled, etc.),
-  or managing webhook versions (v1 vs v2).
-
-  Trigger also when you see: "webhook", "SallaWebhook", "webhook-actions-js",
-  "event subscription", "signature verification", "X-Salla-Signature",
-  "app.store.authorize", "order.created", "shipment.creating", "conditional webhook",
-  "webhook rule", "salla app create-webhook", or any Salla store event name.
-
-  Always use this skill before writing any webhook code.
+  Salla webhooks end to end — registering/subscribing, choosing a security strategy
+  (Signature vs Token), verifying signatures (`X-Salla-Signature`), the standard
+  payload envelope, idempotency, fast 200, conditional rules, and webhook versions
+  (v1/v2). Use when building a webhook server (Node/Express `@salla.sa/webhooks-actions`
+  or Laravel/PHP / Salla CLI), subscribing store or app events, or debugging delivery.
+  Prefer an App Function (salla-app-functions) when a trigger exists. Lifecycle event
+  handling → salla-app-lifecycle; token storage → salla-app-auth.
 ---
 
 # Salla Webhooks Flow
@@ -26,20 +17,27 @@ every delivery, respond fast, and stay idempotent. Work through the steps in ord
 complete each gate before moving on. Step 2 **performs actions** with the Salla Partners
 MCP; the server and verification are runtime code.
 
+> **Prefer an App Function when the event has one.** If a trigger exists in
+> [salla-app-functions](../salla-app-functions/SKILL.md), use it instead of a webhook — it
+> runs in Salla's sandbox (no signature to verify), gets `context.settings`, calls the
+> Salla API with built-in auth, and can run **synchronously** on action events (e.g.
+> `shipment.creating`) where the return value shapes the operation. Use a webhook only
+> when no App Function trigger covers the event.
+
 ## Tools & MCPs
 
-**Two MCPs:** `apidog-mcp-server` (site-id `451700`) is *read-only* — always query it for
-live event payload schemas; never assume a shape. The **Salla Partners MCP** *performs
-actions*:
+Confirm live event payload schemas in the webhooks reference
+(https://docs.salla.dev/421119m0.md) before coding; never assume a shape. The **Salla
+Partners MCP** _performs actions_:
 
-| Tool | Action | What it does |
-| --- | --- | --- |
-| `salla_apps` | `connect` | Set the app's `webhook_url`, security strategy, secret, custom headers |
-| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events |
+| Tool           | Action               | What it does                                                           |
+| -------------- | -------------------- | ---------------------------------------------------------------------- |
+| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, secret, custom headers |
+| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                            |
 
 > All new webhooks default to **version 2** and **Signature** security strategy.
 > Register endpoint (store-level, merchant token): `POST /admin/v2/webhooks/subscribe`.
-> Docs: https://docs.salla.dev/421119m0 · Conditional: https://docs.salla.dev/421120m0 ·
+> Docs: https://docs.salla.dev/421119m0.md · Conditional: https://docs.salla.dev/421120m0.md ·
 > Node/Express repo: https://github.com/SallaApp/webhook-actions-js
 
 ---
@@ -47,7 +45,7 @@ actions*:
 ## Step 0 — Discover
 
 1. **Which events** do you need? (lifecycle, orders, products, shipments…) — confirm exact
-   names/payloads via the apidog MCP.
+   names/payloads in the webhooks reference (https://docs.salla.dev/421119m0.md).
 2. **App-level or store-level?** App/lifecycle events → subscribe via the Partners MCP
    (`salla_events`); store-level merchant webhooks → the Admin API `webhooks/subscribe`.
 3. **Stack?** Node/Express (`@salla.sa/webhooks-actions`) or Laravel/PHP (Salla CLI)?
@@ -159,7 +157,7 @@ if (!verifySignature($payload, $signature, getenv('SALLA_WEBHOOK_SECRET'))) {
    `webhook_security_strategy: "signature"`, `generate_secret: true` (optional
    `webhook_headers`).
 2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events
-   action=subscribe`, `app_id`, `events: [...]`.
+action=subscribe`, `app_id`, `events: [...]`.
 
 ### Store-level webhooks (Admin API, merchant token)
 
@@ -170,27 +168,27 @@ if (!verifySignature($payload, $signature, getenv('SALLA_WEBHOOK_SECRET'))) {
   "url": "https://your-app.com/webhooks",
   "version": 2,
   "rule": "total > 100",
-  "headers": [ { "key": "X-My-Token", "value": "your-secret-value" } ]
+  "headers": [{ "key": "X-My-Token", "value": "your-secret-value" }]
 }
 ```
 
-| Field | Type | Notes |
-|---|---|---|
-| `name` | string | Human-readable label |
-| `event` | string | From the events list — verify via MCP |
-| `url` | string | Must accept POST requests |
-| `version` | number | Always `2` unless legacy requirement |
-| `rule` | string | Optional conditional filter — see Step 4 |
-| `headers` | array | Custom headers sent with every delivery |
-| `secret` | string | Required for Signature strategy |
+| Field     | Type   | Notes                                    |
+| --------- | ------ | ---------------------------------------- |
+| `name`    | string | Human-readable label                     |
+| `event`   | string | From the events list — verify via MCP    |
+| `url`     | string | Must accept POST requests                |
+| `version` | number | Always `2` unless legacy requirement     |
+| `rule`    | string | Optional conditional filter — see Step 4 |
+| `headers` | array  | Custom headers sent with every delivery  |
+| `secret`  | string | Required for Signature strategy          |
 
-| Action | Method + Path |
-|---|---|
-| Register | `POST /admin/v2/webhooks/subscribe` |
-| Update | `PUT /admin/v2/webhooks/{id}` |
-| List active | `GET /admin/v2/webhooks` |
-| List all events | `GET /admin/v2/webhooks/events` |
-| Deactivate | `DELETE /admin/v2/webhooks/{id}` |
+| Action          | Method + Path                       |
+| --------------- | ----------------------------------- |
+| Register        | `POST /admin/v2/webhooks/subscribe` |
+| Update          | `PUT /admin/v2/webhooks/{id}`       |
+| List active     | `GET /admin/v2/webhooks`            |
+| List all events | `GET /admin/v2/webhooks/events`     |
+| Deactivate      | `DELETE /admin/v2/webhooks/{id}`    |
 
 Re-subscribing with the same URL **updates** the existing webhook (no duplicate). Default
 version `2`, default strategy `Signature`; pass `"version": 1` only for legacy.
@@ -219,14 +217,14 @@ async function verifySignature(req: Request, secret: string): Promise<boolean> {
     new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["verify"]
+    ["verify"],
   );
 
   return crypto.subtle.verify(
     "HMAC",
     key,
     hexToBytes(signature),
-    new TextEncoder().encode(body)
+    new TextEncoder().encode(body),
   );
 }
 
@@ -283,21 +281,20 @@ condition1 AND condition2                      condition1 OR condition2
 ```
 
 Examples: `"total > 100"` · `"payment_method = mada OR price < 50"` ·
-`"status = \`active\` OR applied_to = \`first_order\`"` · `"sku = PROD-001"` ·
-`"customer_group_id = 12345"`.
+`"status = \`active\` OR applied_to = \`first_order\`"`·`"sku = PROD-001"`·`"customer_group_id = 12345"`.
 
-| Category | Key Filterable Attributes |
-|---|---|
-| Order | `total`, `price`, `payment_method`, `status`, `coupon_code` |
-| Product | `id`, `name`, `sku`, `status`, `quantity` |
-| Customer | `id`, `email`, `customer_group_id` |
-| Special Offer | `status`, `applied_to` |
-| Category | `id`, `name`, `parent_id`, `status`, `sort_order` |
-| Brand | `id`, `name`, `status` |
-| Cart | `coupon_code`, `total` |
-| Miscellaneous | `id`, `rating` |
+| Category      | Key Filterable Attributes                                   |
+| ------------- | ----------------------------------------------------------- |
+| Order         | `total`, `price`, `payment_method`, `status`, `coupon_code` |
+| Product       | `id`, `name`, `sku`, `status`, `quantity`                   |
+| Customer      | `id`, `email`, `customer_group_id`                          |
+| Special Offer | `status`, `applied_to`                                      |
+| Category      | `id`, `name`, `parent_id`, `status`, `sort_order`           |
+| Brand         | `id`, `name`, `status`                                      |
+| Cart          | `coupon_code`, `total`                                      |
+| Miscellaneous | `id`, `rating`                                              |
 
-Full attribute reference: https://docs.salla.dev/421120m0
+Full attribute reference: https://docs.salla.dev/421120m0.md
 
 ---
 
@@ -310,7 +307,9 @@ Every webhook wraps its data in the standard envelope:
   "event": "order.created",
   "merchant": 123456789,
   "created_at": "2026-05-28T13:34:45+03:00",
-  "data": { /* event-specific — verify shape via MCP */ }
+  "data": {
+    /* event-specific — verify shape via MCP */
+  }
 }
 ```
 
@@ -318,19 +317,19 @@ Every webhook wraps its data in the standard envelope:
 
 Response & retry rules — **non-negotiable:**
 
-| Rule | Detail |
-|---|---|
-| **Respond 200 immediately** | Return `200 OK` within **3 seconds** — Salla won't wait longer |
+| Rule                         | Detail                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| **Respond 200 immediately**  | Return `200 OK` within **3 seconds** — Salla won't wait longer         |
 | **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after |
-| **Retry behavior** | Salla retries **3 times** at ~5 minute intervals on non-2xx or timeout |
-| **Idempotency required** | Webhooks can be delivered more than once — always deduplicate |
+| **Retry behavior**           | Salla retries **3 times** at ~5 minute intervals on non-2xx or timeout |
+| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate          |
 
 ```typescript
 // Fast response + async processing (Express)
 app.post("/webhooks/salla", async (req, res) => {
   const valid = await verifySignature(req, process.env.SALLA_WEBHOOK_SECRET!);
   if (!valid) return res.status(401).end();
-  res.status(200).end();                       // respond immediately
+  res.status(200).end(); // respond immediately
   processWebhookAsync(req.body).catch(console.error);
 });
 ```
@@ -339,11 +338,16 @@ app.post("/webhooks/salla", async (req, res) => {
 // Idempotency — subscription_id is unique per lifecycle event; for everything else
 // hash the raw body so resource IDs (order id, product id) don't collide across updates
 async function handleWebhook(payload: WebhookPayload): Promise<void> {
-  const discriminator = (payload.data as any)?.subscription_id
-    ?? crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex').slice(0, 16);
+  const discriminator =
+    (payload.data as any)?.subscription_id ??
+    crypto
+      .createHash("sha256")
+      .update(JSON.stringify(payload))
+      .digest("hex")
+      .slice(0, 16);
   const key = `${payload.merchant}:${payload.event}:${discriminator}`;
   const seen = await db.webhookEvents.exists({ key });
-  if (seen) return;                            // already processed
+  if (seen) return; // already processed
   await db.webhookEvents.insert({ key, received_at: new Date() }); // insert BEFORE processing
   await processEvent(payload);
 }
@@ -357,16 +361,16 @@ async function handleWebhook(payload: WebhookPayload): Promise<void> {
 
 Subscribe to all of these — they keep your app in sync with merchant state:
 
-| Event | When | What to do |
-|---|---|---|
-| `app.installed` | First install | Provision resources, set defaults |
-| `app.store.authorize` | Install OR token refresh | Save/update tokens in DB per merchant |
-| `app.updated` | Merchant updates app | Salla fires `app.store.authorize` right after — wait for that |
-| `app.trial.started` | Trial begins | Enable trial features |
-| `app.subscription.started` | Paid plan activated | Mark active, unlock paid features |
-| `app.trial.expired` | Trial ended, no upgrade | Restrict access |
-| `app.subscription.expired` | Paid plan lapsed | Restrict access, notify merchant |
-| `app.uninstalled` | Merchant removes app | Clean up merchant data per retention policy |
+| Event                      | When                     | What to do                                                    |
+| -------------------------- | ------------------------ | ------------------------------------------------------------- |
+| `app.installed`            | First install            | Provision resources, set defaults                             |
+| `app.store.authorize`      | Install OR token refresh | Save/update tokens in DB per merchant                         |
+| `app.updated`              | Merchant updates app     | Salla fires `app.store.authorize` right after — wait for that |
+| `app.trial.started`        | Trial begins             | Enable trial features                                         |
+| `app.subscription.started` | Paid plan activated      | Mark active, unlock paid features                             |
+| `app.trial.expired`        | Trial ended, no upgrade  | Restrict access                                               |
+| `app.subscription.expired` | Paid plan lapsed         | Restrict access, notify merchant                              |
+| `app.uninstalled`          | Merchant removes app     | Clean up merchant data per retention policy                   |
 
 `app.store.authorize` payload:
 
@@ -374,18 +378,23 @@ Subscribe to all of these — they keep your app in sync with merchant state:
 {
   "event": "app.store.authorize",
   "merchant": 123456789,
-  "data": { "access_token": "...", "refresh_token": "...", "expires": 1234567890,
-            "scope": "orders.read_write products.read_write" }
+  "data": {
+    "access_token": "...",
+    "refresh_token": "...",
+    "expires": 1234567890,
+    "scope": "orders.read_write products.read_write"
+  }
 }
 ```
 
-Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-app-authorization**.
+Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-app-auth**.
 
 ---
 
 ## Step 7 — Event Reference
 
-Pull exact payload schemas from the MCP before writing handlers.
+Pull exact payload schemas from the webhooks reference
+(https://docs.salla.dev/421119m0.md) before writing handlers.
 
 **Order:** `order.created` · `order.updated` · `order.status.updated` · `order.cancelled` ·
 `order.refunded` · `order.deleted` · `order.products.updated` · `order.payment.updated` ·
@@ -397,6 +406,7 @@ Pull exact payload schemas from the MCP before writing handlers.
 **Product:** `product.created` · `product.deleted` · `product.quantity.low` ·
 `product.price.updated` · `product.status.updated` · `product.image.updated` ·
 `product.category.updated` · `product.brand.updated` · `product.tags.updated`
+
 > ~~`product.updated`~~ · ~~`product.available`~~ — deprecated, do not use
 
 **Shipments:** `shipment.creating` · `shipment.created` · `shipment.cancelled` · `shipment.updated`
@@ -437,13 +447,13 @@ attempt, HTTP code, and full payload — check here before debugging your server
 
 ## Key Resources
 
-| Resource | URL |
-|---|---|
-| Webhooks docs | https://docs.salla.dev/421119m0 |
-| Conditional webhooks | https://docs.salla.dev/421120m0 |
-| Node.js/Express repo | https://github.com/SallaApp/webhook-actions-js |
-| Laravel/CLI guide | https://salla.dev/blog/salla-cli-webhook-server-laravel/ |
-| Custom headers guide | https://salla.dev/blog/custom-webhook-header-is-now-available/ |
-| Best practices | https://salla.dev/blog/best-practices-to-handle-webhooks-for-salla-applications/ |
-| Partner Portal | https://salla.partners |
-| Telegram community | https://t.me/salladev |
+| Resource             | URL                                                                              |
+| -------------------- | -------------------------------------------------------------------------------- |
+| Webhooks docs        | https://docs.salla.dev/421119m0.md                                               |
+| Conditional webhooks | https://docs.salla.dev/421120m0.md                                               |
+| Node.js/Express repo | https://github.com/SallaApp/webhook-actions-js                                   |
+| Laravel/CLI guide    | https://salla.dev/blog/salla-cli-webhook-server-laravel/                         |
+| Custom headers guide | https://salla.dev/blog/custom-webhook-header-is-now-available/                   |
+| Best practices       | https://salla.dev/blog/best-practices-to-handle-webhooks-for-salla-applications/ |
+| Partner Portal       | https://salla.partners                                                           |
+| Telegram community   | https://t.me/salladev                                                            |

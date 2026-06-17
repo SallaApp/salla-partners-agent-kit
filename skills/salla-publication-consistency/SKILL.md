@@ -11,7 +11,7 @@ description: >
 # Salla Publication Consistency
 
 Salla's review uses the **saved publication snapshot** (`publication_last_save`), not your
-live app config. Any config change made after the last `publish action=save` is invisible
+live app config. Any config change made after the last `salla_apps action=publish` (`publish_action=save`) is invisible
 to review unless you re-save. This skill is the final readback before `submit`.
 
 ## The drift rule

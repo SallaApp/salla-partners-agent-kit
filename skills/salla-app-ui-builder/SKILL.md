@@ -1,13 +1,11 @@
 ---
 name: salla-app-ui-builder
 description: >
-  Use when customizing a Salla app's public App-Store view (the App Builder) — the block
-  list a merchant sees before installing. Initialize, then add/remove/reorder blocks (App
-  Information, Features, Plans, Reviews, Brands, FAQ, Stats) and edit their content. Drives
-  the Salla Partners MCP where tools exist (salla_upload for images; reads via
-  salla_request); block mutations have no MCP tool yet, so they fall back to the Partners
-  API. For create/configure/publish use salla-app-builder; for merchant settings forms,
-  salla-app-settings; to find schemas, salla-docs.
+  Customize a Salla app's public App-Store view (the App Builder) — the block list a
+  merchant sees before installing. Initialize, then add/remove/reorder blocks and edit
+  their content. Images upload via salla_upload; block reads and mutations have no MCP
+  tool yet, so they use the Partners API directly. Create/configure/publish →
+  salla-app-builder; merchant settings → salla-app-settings; schemas → salla-docs.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Abdelrahman Abdelhamid
@@ -22,18 +20,16 @@ Reference implementation (the portal UI that calls these same endpoints): `ui-pa
 
 ## Tools
 
-The App Builder is **partly** covered by the Salla Partners MCP. Use the tool where one exists; the block mutations have no tool yet and fall back to the Partners API (see the gap note).
+The App Builder is **partly** covered by the Salla Partners MCP. Use the tool where one exists (`salla_upload` for images); all block operations — reads and mutations — have no tool yet and use the Partners API directly (see the gap note).
 
-| Capability                                               | Tool · how                                                                                                                         |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Upload a block image → file `id` (+`url`)                | `salla_upload` (pass a `url` or `base64`)                                                                                          |
-| Read the block catalog / app blocks / one block's schema | `salla_request` · `mode: "call"` with the op ids below — **only if the server enabled generic tools** (`MCP_EXPOSE_GENERIC_TOOLS`) |
+| Capability                                               | Tool · how                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Upload a block image → file `id` (+`url`)                | `salla_upload` (pass a `url` or `base64`)                          |
+| Read the block catalog / app blocks / one block's schema | **No MCP tool** — call the Partners API directly (endpoints below) |
 
-`salla_request` read op ids: `get_api_apps_builder_blocks` (catalog), `get_api_apps_by_id_builder_blocks` (app blocks), `get_api_apps_by_id_builder_blocks_by_block_id` (one block + field schema).
+> **No MCP tool yet for App Builder blocks.** Listing, reading, adding, editing, reordering, deleting, initializing, and resetting blocks are **not** exposed as MCP tools — every block step uses the **direct Partners API**. These are planned as a dedicated **`salla_app_builder`** tool (actions: `list_blocks`, `get_block`, `add_block`, `edit_block`, `sort_blocks`, `delete_block`, `init_blocks`, `reset_blocks`); when it ships, this skill switches to it and the direct-API path goes away.
 
-> **No MCP tool yet for block mutations.** Adding, editing, reordering, deleting, initializing, and resetting blocks are **not** exposed as MCP tools, and `salla_request` is GET-only — so those steps use the **direct Partners API** (fallback). These six are planned as a dedicated **`salla_app_builder`** tool (actions: `list_blocks`, `get_block`, `add_block`, `edit_block`, `sort_blocks`, `delete_block`, `init_blocks`, `reset_blocks`); when it ships, this skill switches to it and the direct-API fallback goes away.
-
-> **Prerequisite:** the Salla Partners MCP server should be connected so `salla_upload` (and `salla_request`, if enabled) appear in your tool list. If it isn't, fall back to the Portal at https://portal.salla.partners and the direct-API notes below. Re-run the OAuth/login flow if a tool returns "Salla session expired — reconnect".
+> **Prerequisite:** the Salla Partners MCP server should be connected so `salla_upload` appears in your tool list. If it isn't, fall back to the Portal at https://portal.salla.partners and the direct-API notes below. Re-run the OAuth/login flow if a tool returns "Salla session expired — reconnect".
 
 ## The model
 
@@ -60,13 +56,12 @@ The App Builder is **partly** covered by the Salla Partners MCP. Use the tool wh
 
 `appId` is the numeric id of the app (visible in the portal URL / My Apps).
 
-- **MCP path** (`salla_upload`, and `salla_request` when enabled): the MCP holds and attaches the partner token for you — you don't handle it.
-- **Direct-API fallback** (every block mutation, plus the reads when generic tools are off): you need a partners access token yourself. That's the labelled "stays code" path — see [api-spec.md](references/api-spec.md) for how to obtain one. Attach it as `Authorization: Bearer {token}` and set `Accept-Language: ar` or `en` (controls the language of labels/placeholders in schema responses).
+- **MCP path** (`salla_upload`): the MCP holds and attaches the partner token for you — you don't handle it.
+- **Direct Partners API** (every block step — list, read, and mutate): you need a partners access token yourself. That's the labelled "stays code" path — see [api-spec.md](references/api-spec.md) for how to obtain one. Attach it as `Authorization: Bearer {token}` and set `Accept-Language: ar` or `en` (controls the language of labels/placeholders in schema responses).
 
 ### Step 2 — List the catalog and the app's current blocks
 
-- **MCP (if generic tools enabled):** call `salla_request` with `mode: "call"` for `get_api_apps_builder_blocks` (catalog) and `get_api_apps_by_id_builder_blocks` (this app's view; pass the app id).
-- **Fallback (direct API):**
+- **Direct Partners API** (no MCP tool):
 
   ```http
   GET https://api.salla.dev/partners/v1/api/apps/builder/blocks            # catalog
@@ -99,8 +94,7 @@ POST https://api.salla.dev/partners/v1/api/apps/{appId}/builder/blocks/{blockId}
 
 ### Step 5 — Fetch the block's field schema (with current values)
 
-- **MCP (if generic tools enabled):** `salla_request` `mode: "call"` for `get_api_apps_by_id_builder_blocks_by_block_id` (pass app id + block id).
-- **Fallback (direct API):**
+- **Direct Partners API** (no MCP tool):
 
   ```http
   GET https://api.salla.dev/partners/v1/api/apps/{appId}/builder/blocks/{blockId}

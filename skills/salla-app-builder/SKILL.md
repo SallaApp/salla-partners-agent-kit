@@ -1,13 +1,13 @@
 ---
 name: salla-app-builder
 description: >
-  Step-by-step flow to create, configure, and publish a Salla app with the Salla
+  Flow to create, configure, and publish a Salla app with the Salla
   Partners MCP: create the app (category, sub_category_id, logo upload), connect OAuth
   scopes + webhook URL, subscribe events, then branch by capability — snippets
   (salla-snippets), embedded pages (salla-embedded-app), App Functions
   (salla-app-functions), settings (salla-app-settings) — and publish. Use for "create a
   new Salla app" or any create-to-publish step. Type deltas: salla-shipping-app,
-  salla-communication-app. Deep mechanics live in the routed skills.
+  salla-communication-app. Mechanics live in the routed skills.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Hazem Khaled
@@ -187,8 +187,8 @@ later.
      - `slug` — **lowercase letters and digits only** (no hyphens or underscores)
      - `icon`, `title`, `iframe_url` (the page the merchant completes this step on)
   2. Repeat for each step, then call `action=sort` to set their order.
-  > `action=update` is a **full revalidation** — resend `slug`, `icon`, and `title`
-  > together; a partial payload 422s.
+     > `action=update` is a **full revalidation** — resend `slug`, `icon`, and `title`
+     > together; a partial payload 422s.
 - **No** → skip to Step 6.
 
 ---
@@ -200,11 +200,14 @@ Ask: "Does your app need serverless handlers triggered by Salla events?"
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
   context shape, `Resp` API, timeouts, and lifecycle-event handling.
 
-**Deployment is done by Salla when you publish the app** (`salla_apps action=publish`) —
-there is no separate deploy tool. To inspect, edit, or remove deployed functions, use the
-Partners Portal → **App Functions** tab (no MCP tool exists for this).
+**Deploy the functions with `salla_functions action=deploy` (`app_id`), then publish the
+app with `salla_apps action=publish`.** Remove a function with `salla_functions
+action=delete` (`app_id`, `trigger`). There is **no `list`/`get`** tool — author the
+source and inspect deployed functions in the Partners Portal → **App Functions** tab.
+(`salla_functions` is operator-gated: it errors clearly if the App Builder service is not
+enabled on the MCP deployment.) Details → **`salla-app-functions`**.
 
-**Gate:** "Function source ready and the App Functions tab in the Portal shows it after a
+**Gate:** "Function deployed and the App Functions tab in the Portal shows it after a
 test publish?"
 
 ---
@@ -272,7 +275,7 @@ Integrates a carrier or fulfillment provider:
      copy — expected, not a duplicate-bug.
    - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
      `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
-   - `trial_description` is a plain string, **≥ 30 chars**.
+   - `trial_description` is a plain string, **30–1000 chars**.
    - `support_email` is required when `contact_method = "email"`.
 4. **Consistency gate (before submit / review).** Re-read and confirm everything is in
    sync — a config change that isn't re-saved into the publication ships a stale snapshot:
@@ -299,11 +302,11 @@ Publishing guide: https://salla.dev/blog/standards-salla-apps-publications/
 
 ## Resources
 
-| Topic                          | Link                              |
-| ------------------------------ | --------------------------------- |
-| Partners Portal                | https://portal.salla.partners/    |
-| Apps Marketplace               | https://apps.salla.sa/en          |
-| Webhooks guide + event list    | https://docs.salla.dev/421119m0   |
-| App Events (lifecycle)         | https://docs.salla.dev/doc-421413 |
-| Salla Admin API reference      | https://docs.salla.dev/doc-421117 |
-| Developer community (Telegram) | https://t.me/salladev             |
+| Topic                          | Link                               |
+| ------------------------------ | ---------------------------------- |
+| Partners Portal                | https://portal.salla.partners/     |
+| Apps Marketplace               | https://apps.salla.sa/en           |
+| Webhooks guide + event list    | https://docs.salla.dev/421119m0.md |
+| App Events (lifecycle)         | https://docs.salla.dev/421413m0.md |
+| Salla Admin API reference      | https://docs.salla.dev/421117m0.md |
+| Developer community (Telegram) | https://t.me/salladev              |

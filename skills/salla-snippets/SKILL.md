@@ -113,8 +113,8 @@ a standalone SaaS badge. Before shipping visible UI:
   right.
 
 Full guidance → [salla-ui-compliance](../salla-ui-compliance/SKILL.md). Docs: theme
-https://docs.salla.dev/421877m0 · CSS variables https://docs.salla.dev/421945m0 · Salla
-Icons https://docs.salla.dev/422550m0 · single product page https://docs.salla.dev/422561m0.
+https://docs.salla.dev/421877m0.md · CSS variables https://docs.salla.dev/421945m0.md · Salla
+Icons https://docs.salla.dev/422550m0.md · single product page https://docs.salla.dev/422561m0.md.
 
 ### Cloud Mode
 
@@ -133,5 +133,5 @@ correctly."
 | ---------------------- | ----------------------------------- |
 | Device Mode Usage      | https://docs.salla.dev/1724504m0.md |
 | Cloud Mode Usage       | https://docs.salla.dev/1724667m0.md |
-| App Functions Overview | https://docs.salla.dev/1726817m0.md |
+| App Functions Overview | https://docs.salla.dev/1726814m0.md |
 | App Functions Events   | https://docs.salla.dev/1726818m0.md |

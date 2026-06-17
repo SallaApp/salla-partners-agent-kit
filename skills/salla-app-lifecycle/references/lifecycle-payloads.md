@@ -1,7 +1,7 @@
 # App Lifecycle — Payload Reference
 
-Source: https://docs.salla.dev/421413m0 — confirm exact fields via the MCP
-(`apidog-mcp-server`, site-id 451700) before depending on them.
+Source: https://docs.salla.dev/421413m0.md — confirm exact fields there before depending
+on them.
 
 Every event uses the standard webhook envelope:
 
@@ -49,7 +49,7 @@ Fired on first install **and** on every app update (after `app.updated`). Always
 | `scope`         | string | Space-separated granted scopes                    |
 | `token_type`    | string | OAuth 2.0 token type, always `"bearer"`           |
 
-Handling rules (single-use refresh token, mutex on refresh) → **salla-app-authorization**.
+Handling rules (single-use refresh token, mutex on refresh) → **salla-app-auth**.
 
 ---
 
@@ -131,4 +131,5 @@ addon identifier for addons.
 
 Trial events (`app.trial.started` / `.expired` / `.canceled`) use the same envelope; the
 trial typically appears as a zero-price `plan_type` like `once` with `plan_name: "trail"`.
-Per-event field detail → confirm via the MCP and see **salla-app-subscription-management**.
+Per-event field detail → confirm in https://docs.salla.dev/421413m0.md and see
+**salla-app-billing**.

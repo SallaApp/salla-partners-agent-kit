@@ -1,8 +1,7 @@
 # Subscription & Trial — Payload Reference
 
-Source: https://docs.salla.dev/421413m0 — confirm exact fields via the MCP
-(`apidog-mcp-server`, site-id 451700). The same payload family covers plans and addons;
-`item_type` distinguishes them.
+Source: https://docs.salla.dev/421413m0.md — confirm exact fields there. The same payload
+family covers plans and addons; `item_type` distinguishes them.
 
 ---
 

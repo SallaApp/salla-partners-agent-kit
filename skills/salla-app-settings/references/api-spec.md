@@ -109,4 +109,4 @@ Returns the same body shape as the request (echoed back).
 | Topic                             | Link                                                   |
 | --------------------------------- | ------------------------------------------------------ |
 | How to build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| Salla Admin API reference         | https://docs.salla.dev/doc-421117                      |
+| Salla Admin API reference         | https://docs.salla.dev/421117m0.md                     |

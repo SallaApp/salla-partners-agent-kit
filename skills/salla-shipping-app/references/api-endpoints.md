@@ -3,7 +3,7 @@
 Base URL: `https://api.salla.dev/admin/v2`
 Auth: `Authorization: Bearer {access_token}`
 
-Full API reference: https://docs.salla.dev/api-5578809
+Full API reference: https://docs.salla.dev/841806f0.md
 
 ---
 
@@ -207,5 +207,5 @@ Test all endpoints interactively:
 
 | Topic                       | Link                               |
 | --------------------------- | ---------------------------------- |
-| Full Shipping API reference | https://docs.salla.dev/api-5578809 |
-| Salla Admin API reference   | https://docs.salla.dev/doc-421117  |
+| Full Shipping API reference | https://docs.salla.dev/841806f0.md |
+| Salla Admin API reference   | https://docs.salla.dev/421117m0.md |

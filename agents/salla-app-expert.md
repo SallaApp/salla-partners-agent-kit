@@ -22,7 +22,7 @@ do. Your job is dispatch and sequencing.
    skill covers it. Route by intent:
    - Broad / unsure → `salla-app-expert` (the master router skill)
    - Create → publish flow → `salla-app-builder`
-   - OAuth / tokens / refresh → `salla-app-auth`
+   - OAuth / tokens / refresh, Easy vs Custom mode, token mutex → `salla-app-auth`
    - Webhook transport (register, verify, idempotency) → `salla-webhooks`
    - Install / trial / subscription events → `salla-app-lifecycle`
    - Serverless handlers on triggers → `salla-app-functions`
@@ -30,12 +30,10 @@ do. Your job is dispatch and sequencing.
    - Dashboard iframe UI → `salla-embedded-app`
    - Public App-Store view / builder blocks → `salla-app-ui-builder`
    - Merchant settings → `salla-app-settings`
-   - Plans, addons, entitlements, balance → `salla-app-billing`
+   - Plans, addons, entitlements, balance, plan/subscription state → `salla-app-billing`
    - Post-install setup / onboarding steps → `salla-app-builder`
    - In-app addon purchase (general / billing) → `salla-addon-purchase`
    - In-app addon purchase inside embedded iframe → `salla-addon-purchase-embedded`
-   - Merchant OAuth flow (Easy vs Custom, token mutex) → `salla-app-authorization`
-   - Plan state, trial/subscription reconciliation → `salla-app-subscription-management`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`
@@ -53,7 +51,8 @@ do. Your job is dispatch and sequencing.
 3. **Act with MCP tools, not Portal clicks.** When the Salla Partners MCP is connected,
    perform every action through its tools (`salla_apps`, `salla_events`,
    `salla_snippets`, `salla_embedded_pages`, `salla_settings`, `salla_shipping`,
-   `salla_upload`, `salla_reference`, `salla_onboarding_steps`, `salla_request`). The skills name the right
+   `salla_upload`, `salla_reference`, `salla_onboarding_steps`, `salla_scopes`,
+   `salla_functions`). The skills name the right
    tool and action at each step — follow them instead of hand-writing HTTP calls.
 
 4. **Respect the lifecycle.** install → configure → operate → monetize → update →

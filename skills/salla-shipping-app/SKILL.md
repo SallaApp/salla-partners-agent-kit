@@ -4,8 +4,8 @@ description: >
   Build a Salla Shipping App or Order Fulfillment App: create it (shipping sub-category
   required), configure zones/settings via salla_shipping, handle the four default
   shipment webhooks (rates on creating, label on create, void on cancel, reverse on
-  return) — shipment.creating is also an App Function trigger (preferred, salla-app-
-  functions) — and set labels/tracking via the Shipping API. Use for any carrier, rate,
+  return) — shipment.creating is also an App Function trigger (salla-app-functions,
+  preferred) — and set labels/tracking via the Shipping API. Use for any carrier, rate,
   label, tracking, COD, cancellation, or return task. Shipping Company ID is assigned
   only by Salla. Publish → salla-app-builder.
 ---

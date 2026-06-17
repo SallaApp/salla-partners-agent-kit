@@ -10,7 +10,7 @@ description: >
   API usage → salla-api-core.
 ---
 
-# Salla App Authorization Flow
+# Salla App Auth Flow
 
 Get and keep valid merchant tokens for your app — choose the OAuth mode, configure the
 app, receive/exchange tokens, and refresh them safely. Work through the steps in order;

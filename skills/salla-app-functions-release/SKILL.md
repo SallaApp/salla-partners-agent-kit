@@ -18,7 +18,9 @@ Every function is **keyed by its trigger**, so `get` / `save` / `delete` take `a
 
 - **Save:** `salla_functions action=save`, `app_id`, `trigger`, `content` (the whole function
   as a string), `name`. Keep the template's first line exactly — save **rejects** a change.
-  Operator-gated: if the App Builder service is off, it returns a clear "disabled" error.
+  Returns a deploy `job`; the function deploys to demo stores (poll
+  `salla_functions action=deploy_status`, `job_id` until `COMPLETED`). Operator-gated: if the
+  App Builder service is off, it returns a clear "disabled" error.
 - **Read:** `salla_functions action=get`, `app_id`, `trigger` → `template` + `types` (.d.ts
   URLs) + the app's saved `content` (or `null`).
 - **Remove:** `salla_functions action=delete`, `app_id`, `trigger`.
@@ -30,11 +32,12 @@ only after the publish request is approved**:
 - **Publish:** `salla_apps action=publish`, `app_id` (optional `update_note`) → review; admin
   approval releases it to live stores.
 
-## Test in the preview panel
+## Test before publishing
 
-Portal → select a demo store, enter a test record ID matching the trigger, **Save and
-Preview**. Watch Execution Status, Response Data, Execution Time (vs your timeout), Console
-Logs, Errors. **Never log secrets** — preview logs are visible.
+Run it on a demo store with `salla_functions action=preview` — see
+**salla-app-functions-test**. (Manual alternative: the Portal preview panel → pick a demo
+store, enter a real record id, **Save and Preview**.) **Never log secrets** — preview logs
+are visible.
 
 ## Checklist
 

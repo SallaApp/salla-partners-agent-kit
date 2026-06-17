@@ -21,7 +21,9 @@ each in its own skill, and clear every gate before moving on.
 | 1    | Pick the trigger, confirm its `payload.data`, choose sync vs async    | **salla-app-functions-design**   |
 | 2    | Write the handler (template, context, `Resp`, sandbox, timeouts)      | **salla-app-functions-handler**  |
 | 3    | Keep the template's first line + type-check locally (before any save) | **salla-app-functions-validate** |
-| 4    | Save, test on a demo store, publish for production                    | **salla-app-functions-release**  |
+| 4    | Save (deploys to demo stores)                                         | **salla-app-functions-release**  |
+| 5    | Test on a demo store with `preview`                                   | **salla-app-functions-test**     |
+| 6    | Publish for production                                                | **salla-app-functions-release**  |
 
 ## Prefer an App Function over a webhook (when a trigger exists)
 

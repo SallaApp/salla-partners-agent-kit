@@ -6,13 +6,13 @@ Header: `Accept-Language: ar` or `en` — controls the language of `label`, `pla
 
 > This is the **Partners** API, not the merchant Admin API. The token is the partner's portal token, not a merchant OAuth token.
 
-> **Prefer the MCP.** When the Salla Partners MCP is connected you do **not** handle the token — call the tools and the MCP attaches it. The MCP covers image upload (`salla_upload`) and, when the server enables generic tools, the three read endpoints via `salla_request` (op ids below). The auth/token instructions in this file apply only to the **direct-API fallback** for endpoints with no MCP tool (the six block mutations, and the reads when generic tools are off).
+> **Prefer the MCP where a tool exists.** When the Salla Partners MCP is connected you do **not** handle the token for `salla_upload` — call it and the MCP attaches it. The App Builder **block** endpoints have **no MCP tool**, so the auth/token instructions in this file apply to all of them (reads and mutations) via the direct Partners API.
 
 ---
 
 ## Authentication & app id
 
-- **MCP (preferred)** — no token handling. `salla_upload` and `salla_request` run with the MCP-managed partner token; reconnect (re-run the login) if a tool reports "Salla session expired".
+- **MCP (for `salla_upload`)** — no token handling; `salla_upload` runs with the MCP-managed partner token; reconnect (re-run the login) if it reports "Salla session expired".
 - **Fallback token — direct API only** — for the direct calls below you need a partners access token yourself. In the Partners Portal it lives in `localStorage["partners-token"]` as `{ "access_token": "…", … }`; the axios interceptor at `ui-partners-portal-apps/src/services/http/portal-apps-instance.ts` reads it and attaches `Authorization: Bearer {access_token}`. Tokens are short-lived (hours) — always use a fresh one. To grab the current token from a logged-in portal tab:
 
   ```js
@@ -39,20 +39,20 @@ Every response wraps data in a standard envelope:
 
 ## Endpoints
 
-`salla_request` op = the operationId to pass to `salla_request` with `mode: "call"` (GET-only, and only when the server enabled generic tools). Mutations have **no MCP tool yet** — they use the direct call and are planned as the `salla_app_builder` tool.
+All App Builder block endpoints have **no MCP tool** — call them directly. They are planned as a dedicated `salla_app_builder` tool.
 
-| Purpose                             | Method + path                                       | MCP coverage                                                       |
-| ----------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
-| List block catalog                  | `GET /api/apps/builder/blocks`                      | `salla_request` op `get_api_apps_builder_blocks`                   |
-| List app's added blocks             | `GET /api/apps/{appId}/builder/blocks`              | `salla_request` op `get_api_apps_by_id_builder_blocks`             |
-| Get a block's field schema + values | `GET /api/apps/{appId}/builder/blocks/{blockId}`    | `salla_request` op `get_api_apps_by_id_builder_blocks_by_block_id` |
-| Add a block to the app              | `POST /api/apps/{appId}/builder/blocks/{blockId}`   | none — direct (planned `salla_app_builder add_block`)              |
-| Edit a block's content              | `PUT /api/apps/{appId}/builder/blocks/{blockId}`    | none — direct (planned `salla_app_builder edit_block`)             |
-| Reorder blocks                      | `PUT /api/apps/{appId}/builder/blocks/sort`         | none — direct (planned `salla_app_builder sort_blocks`)            |
-| Delete a block                      | `DELETE /api/apps/{appId}/builder/blocks/{blockId}` | none — direct (planned `salla_app_builder delete_block`)           |
-| Initialize required blocks          | `POST /api/apps/{appId}/builder/blocks/init`        | none — direct (planned `salla_app_builder init_blocks`)            |
-| Reset (remove all blocks)           | `DELETE /api/apps/{appId}/builder/blocks`           | none — direct (planned `salla_app_builder reset_blocks`)           |
-| Upload a block image                | `POST /api/upload/image`                            | **`salla_upload`** (preferred — returns `id`/`url`)                |
+| Purpose                             | Method + path                                       | MCP coverage                                             |
+| ----------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| List block catalog                  | `GET /api/apps/builder/blocks`                      | none — direct (planned `salla_app_builder list_blocks`)  |
+| List app's added blocks             | `GET /api/apps/{appId}/builder/blocks`              | none — direct (planned `salla_app_builder list_blocks`)  |
+| Get a block's field schema + values | `GET /api/apps/{appId}/builder/blocks/{blockId}`    | none — direct (planned `salla_app_builder get_block`)    |
+| Add a block to the app              | `POST /api/apps/{appId}/builder/blocks/{blockId}`   | none — direct (planned `salla_app_builder add_block`)    |
+| Edit a block's content              | `PUT /api/apps/{appId}/builder/blocks/{blockId}`    | none — direct (planned `salla_app_builder edit_block`)   |
+| Reorder blocks                      | `PUT /api/apps/{appId}/builder/blocks/sort`         | none — direct (planned `salla_app_builder sort_blocks`)  |
+| Delete a block                      | `DELETE /api/apps/{appId}/builder/blocks/{blockId}` | none — direct (planned `salla_app_builder delete_block`) |
+| Initialize required blocks          | `POST /api/apps/{appId}/builder/blocks/init`        | none — direct (planned `salla_app_builder init_blocks`)  |
+| Reset (remove all blocks)           | `DELETE /api/apps/{appId}/builder/blocks`           | none — direct (planned `salla_app_builder reset_blocks`) |
+| Upload a block image                | `POST /api/upload/image`                            | **`salla_upload`** (preferred — returns `id`/`url`)      |
 
 ---
 

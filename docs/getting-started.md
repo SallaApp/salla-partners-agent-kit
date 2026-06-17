@@ -82,7 +82,7 @@ Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibi
 | `salla_shipping`         | `get_zones` `set_zones` `set_settings`                            | Shipping zones + carrier settings          |
 | `salla_upload`           | —                                                                 | Upload images/docs → returns a file `id`   |
 | `salla_reference`        | `categories` `countries` `cities`                                 | Read-only lookups                          |
-| `salla_request`          | `search` `call`                                                   | Generic GET fallback (may be disabled)     |
+| `salla_scopes`           | `get` `set`                                                       | Read/update an app's OAuth scopes          |
 
 > **What stays code:** webhooks (receive/verify), OAuth token storage + refresh, embedded
 > SDK calls, and App Function source are runtime concerns the MCP can't perform. The skills
@@ -100,7 +100,7 @@ Agent:  → salla-app-builder skill
         1. salla_reference categories  → resolve sub_category_id
         2. salla_upload logo.png        → file id
         3. salla_apps create            → app_id
-        4. salla_apps get               → available scope slugs
+        4. salla_scopes get             → available scope slugs
         5. salla_apps connect           → OAuth + webhook + secret
         6. salla_events subscribe       → order.created, app.store.authorize, …
         Each step ends at a Gate — you confirm before continuing.
@@ -128,7 +128,7 @@ Use a skill by name when you want a specific flow: _"use the salla-shipping-app 
 | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Tools don't appear    | Check connection (Claude Code: `/mcp`; Cursor: Settings → MCP). Confirm URL is `https://mcp.salla.dev/partners`. |
 | Session expired       | Token lapsed (~14 days). Re-authorize via your client's MCP login.                                               |
-| Tool unknown/disabled | Some tools are server-gated (e.g. `salla_request`). Contact your Salla admin.                                    |
+| Tool unknown/disabled | Some tools are server-gated (e.g. `salla_functions` needs the App Builder service). Contact your Salla admin.    |
 | Skill not triggering  | Name it explicitly or re-run `npx plugins add SallaApp/salla-partners-ai-plugin`.                                |
 | Skills only (no MCP)  | Skills work offline as a reference — you just can't execute Portal actions without MCP.                          |
 

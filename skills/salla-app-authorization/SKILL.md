@@ -28,11 +28,11 @@ MCP; the token handling is runtime code.
 
 ## Tools & MCPs
 
-| Tool           | Action               | What it does                                                    |
-| -------------- | -------------------- | --------------------------------------------------------------- |
-| `salla_apps`   | `get`                | Read the app's OAuth scope slugs + per-app disabled flags       |
-| `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call |
-| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)         |
+| Tool           | Action               | What it does                                                            |
+| -------------- | -------------------- | ----------------------------------------------------------------------- |
+| `salla_scopes` | `get` / `set`        | Read or update the app's OAuth scopes (slugs, disabled flags, selected) |
+| `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call         |
+| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)                 |
 
 > Easy Mode is required for all published App Store apps. Custom Mode is for local dev and
 > Postman testing only. Docs: https://docs.salla.dev/421118m0 · App Events:
@@ -69,8 +69,9 @@ MCP; the token handling is runtime code.
 
 Set up the OAuth + webhook config that makes tokens flow. Do this with the Partners MCP:
 
-1. **Scopes** — read the available slugs (and per-app disabled flags) from
-   `salla_apps action=get`, `app_id` (there is no scope-catalog lookup). Always
+1. **Scopes** — read the available slugs (and per-app disabled flags) with
+   `salla_scopes action=get`, `app_id`; update them with `salla_scopes action=set` (a flat
+   `slug → "read" | "read_write" | ""` map) or as part of Connect below. Always
    include `offline_access` (required for refresh tokens).
 2. **Connect** — `salla_apps action=connect`, `app_id`, with `scopes`
    (`slug → "read" | "read_write"`), and for Easy Mode `webhook_url` +
@@ -341,7 +342,7 @@ Authorization: Bearer <access_token>
 ### OAuth scopes
 
 Always include `offline_access` (space-separated in the auth URL). Confirm the app's scope
-slugs (and any per-app disabled flags) via `salla_apps action=get`:
+slugs (and any per-app disabled flags) via `salla_scopes action=get`:
 
 ```text
 offline_access          required for refresh tokens

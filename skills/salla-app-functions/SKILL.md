@@ -98,21 +98,33 @@ typed-context mapping and the supported trigger list live in
 
 Start from the trigger's default `template` and its `types` — fetch both with
 `salla_functions action=get`, `app_id`, `trigger` (or `action=list_triggers` to find the
-trigger). **The `template` and `types` are the source of truth.** The `template` is the
-full function wrapper: a single default-exported async function whose signature — the typed
-context and the `Promise<Resp>` return — is fixed by the trigger. You edit only the body
-inside it. The `types` are the ambient declarations the runtime injects (`Resp`, the typed
-context such as `Shipments`, `CommunicationEvent`).
+trigger). **The `template` and `types` are the source of truth — copy the template verbatim
+and fill in only the body.**
+
+- **`template`** is the full function wrapper — a single exported function whose signature
+  (its name, the `context` parameter and its type, the return type) is fixed by the trigger.
+- **`types`** is a list of **`.d.ts` URLs** (e.g. `https://…/shipments.d.ts`) — download them
+  to type-check against (see "Type-check" below).
+
+> **STRICT RULE — never change the first line of the template.** The first line is the
+> wrapper signature, fixed by the trigger: do not rename the `context` parameter, change its
+> type, or alter the return type. **Put ALL code INSIDE the function body** — never declare a
+> `const` / `let` / `function` / `import` / `class` above or below the wrapper. Hoisting a
+> constant or helper outside the function is the #1 way App Functions break. And
+> `salla_functions action=save` enforces it: it fetches the template and **rejects** content
+> whose first line differs, returning the exact first line you must use.
 
 ```typescript
 export default async (context: Shipments): Promise<Resp> => {
+  // ↑ keep the template's first line byte-for-byte    ↓ ALL your code goes inside the body
   console.log("Shipment cancelled event triggered");
   return Resp.success().setData({});
 };
 ```
 
-In the Portal editor the wrapper's first and last lines are locked, so you paste only the
-body; via `salla_functions action=save` you send the whole wrapper as `content`.
+`salla_functions action=save` takes the **whole function** as `content` (the full wrapper,
+not just the body). In the Portal editor the first and last lines are locked, so there you
+paste only the body — the same code, minus the wrapper lines.
 
 ### Context object
 
@@ -193,11 +205,18 @@ the sandbox — _after_ you've saved it. **Always run a local `tsc` pass and get
 strict compile before `salla_functions action=save`.**
 
 Use the trigger's own `types` (from `action=get`) as the source of truth — don't hand-write
-approximate mocks. Put them in a `.d.ts` next to your handler and type-check the pair:
+approximate mocks. `types` is a list of `.d.ts` **URLs**; download each one next to your
+handler, then type-check the pair:
 
-`salla-globals.d.ts` — the `types` returned by `action=get`, verbatim (the ambient `Resp`
-plus the typed context, e.g. `Shipments`). **Never paste this into the Portal** — it exists
-only to satisfy your local compiler:
+```bash
+# action=get → types: ["https://…/shipments.d.ts", …] — download each URL
+curl -sSL "https://…/shipments.d.ts" -o salla-globals.d.ts
+```
+
+The downloaded `salla-globals.d.ts` declares the runtime globals (`Resp`, the typed context
+such as `Shipments`). **Never paste it into the Portal** — it exists only to satisfy your
+local compiler. If a `types` URL is unreachable, fall back to a minimal hand-written
+declaration like this:
 
 ```typescript
 declare class Resp {
@@ -252,14 +271,15 @@ the handler with the Partners MCP (you can also author it in the Portal → **Ap
 → Add New Function**):
 
 - **Save (create or update):** `salla_functions action=save`, `app_id`, `trigger`,
-  `content` (the handler code as a string), `name`. **Type-check `content` locally first**
-  (Step 3) — never save a handler that doesn't compile against the trigger's `types`. It's
-  an **upsert** — creates the
-  function or updates the existing one. The tool is **operator-gated**: if the MCP server
+  `content` (the **whole function** — the full template wrapper with your body filled in, as
+  a string), `name`. **Type-check `content` locally first** (Step 3), and keep the template's
+  first line exactly — save **rejects** a changed first line and tells you the expected one.
+  It's an **upsert** — creates the function or updates the existing one. The tool is
+  **operator-gated**: if the MCP server
   hasn't enabled the App Builder service it returns a clear "App Functions are disabled on
   this deployment" error (ask the operator to enable the functions toolset).
 - **Read:** `salla_functions action=get`, `app_id`, `trigger` → the trigger's default
-  `template` + import `types`, plus the app's saved `content` (or `null` if none yet).
+  `template` + `types` (`.d.ts` URLs), plus the app's saved `content` (or `null` if none yet).
 - **Remove:** `salla_functions action=delete`, `app_id`, `trigger` (e.g. `"order.created"`).
 
 **There is no deploy step and no versions.** Saving is **live on the app's demo stores
@@ -268,6 +288,10 @@ after the app's publish request is approved**:
 
 - **Publish for production:** `salla_apps action=publish`, `app_id` (optional `update_note`)
   → submit for review. Admin approval releases the saved function to live stores.
+
+You do **not** re-save the app's publication draft after saving a function — `save` writes
+the function directly (live on demo stores immediately). Only the separate publish request
+plus admin approval promotes it to production.
 
 **Gate:** "Type-checked locally with a clean strict `tsc`, saved (live on demo stores now),
 tested on a demo store, and the app submitted for publish so it reaches production?"

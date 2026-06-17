@@ -222,8 +222,11 @@ core modules, every `fetch` bounded, no secrets logged?"
 
 ## Step 4 — Save & Publish
 
-An app has **one** App Function, keyed by its trigger. Save the handler with the Partners
-MCP (you can also author it in the Portal → **App Functions → Add New Function**):
+Every App Function is **keyed by its trigger**, so `get` / `save` / `delete` all take
+`app_id` **and** `trigger` (find the trigger with `list_triggers`). A given app runs a
+single function — `save` creates it or replaces the existing one for that trigger. Save
+the handler with the Partners MCP (you can also author it in the Portal → **App Functions
+→ Add New Function**):
 
 - **Save (create or update):** `salla_functions action=save`, `app_id`, `trigger`,
   `content` (the handler code as a string), `name`. It's an **upsert** — creates the

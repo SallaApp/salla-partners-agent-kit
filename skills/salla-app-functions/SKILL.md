@@ -3,10 +3,10 @@ name: salla-app-functions
 description: >
   Salla App Functions — serverless TS/JS handlers Salla runs in a sandboxed V8 on
   store events (e.g. `order.created`, `shipment.creating`). Use when writing or
-  deploying an App Function, choosing a synchronous action vs asynchronous event,
+  saving an App Function, choosing a synchronous action vs asynchronous event,
   using the `Resp` builder / typed contexts (`context.payload` / `merchant` /
   `settings`), fighting sandbox limits (no npm / `fs` / `http`, Web Crypto only) or
-  the 500 ms / 30 s timeouts. Prefer App Functions over webhooks; deploy with
+  the 500 ms / 30 s timeouts. Prefer App Functions over webhooks; manage with
   `salla_functions`. Builds on salla-api-core and salla-webhooks.
 ---
 
@@ -40,10 +40,10 @@ Confirm each event's live `payload.data` shape in the App Functions events refer
 
 The **Salla Partners MCP** _performs actions_:
 
-| Tool              | Action              | What it does                                           |
-| ----------------- | ------------------- | ------------------------------------------------------ |
-| `salla_apps`      | `publish`           | Publish the app                                        |
-| `salla_functions` | `deploy` / `delete` | Deploy or remove the app's functions (no `list`/`get`) |
+| Tool              | Action                                      | What it does                                                                                                                      |
+| ----------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `salla_functions` | `list_triggers` / `get` / `save` / `delete` | List triggers; read a trigger's default `template` + import `types` and the app's saved `content`; create/update (upsert); delete |
+| `salla_apps`      | `publish`                                   | Submit the app for review (releases the function to real stores)                                                                  |
 
 > Sync actions must finish in **< 500 ms**; async events get **30 s**. `Resp`,
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** —
@@ -96,8 +96,10 @@ typed-context mapping and the supported trigger list live in
 
 ## Step 3 — Write the Handler
 
-The Portal wraps your code in a fixed template. **Lines 1 and 4 are locked** — edit only
-the body; nothing goes before line 1 or after line 4:
+Start from the trigger's default `template` and importable `types` — fetch them with
+`salla_functions action=get`, `app_id`, `trigger` (or `action=list_triggers` to find the
+trigger). Your handler is one default-exported async function (in the Portal editor lines 1
+and 4 are locked; via `salla_functions action=save` you send the whole thing as `content`):
 
 ```text
 1  export default async (context: ContextType): Promise<Resp> => {
@@ -218,28 +220,29 @@ core modules, every `fetch` bounded, no secrets logged?"
 
 ---
 
-## Step 4 — Deploy & Publish
+## Step 4 — Save & Publish
 
-The function **source** is authored in the Portal (no source-upload tool): open your app
-→ **App Functions → Add New Function** → name it → pick the trigger in **Select Action**
-→ paste the handler body into the locked template → Save (it lives in the **sandbox**
-until published).
+An app has **one** App Function, keyed by its trigger. Save the handler with the Partners
+MCP (you can also author it in the Portal → **App Functions → Add New Function**):
 
-Shipping it is an **action** — use the Partners MCP instead of clicking Publish:
-
-- **Deploy the functions:** `salla_functions action=deploy`, `app_id` — deploys the app's
-  App Functions to the Salla App Builder. The tool is listed but **operator-gated**: if the
-  MCP server hasn't enabled the App Builder service it returns a clear "App Functions are
-  disabled on this deployment" error (ask the operator to enable the functions toolset).
+- **Save (create or update):** `salla_functions action=save`, `app_id`, `trigger`,
+  `content` (the handler code as a string), `name`. It's an **upsert** — creates the
+  function or updates the existing one. The tool is **operator-gated**: if the MCP server
+  hasn't enabled the App Builder service it returns a clear "App Functions are disabled on
+  this deployment" error (ask the operator to enable the functions toolset).
+- **Read:** `salla_functions action=get`, `app_id`, `trigger` → the trigger's default
+  `template` + import `types`, plus the app's saved `content` (or `null` if none yet).
 - **Remove:** `salla_functions action=delete`, `app_id`, `trigger` (e.g. `"order.created"`).
-- **Publish the app:** `salla_apps action=publish`, `app_id` (optional `update_note`);
-  installed merchants get the update automatically.
 
-There is **no `list`/`get` action** — inspect a deployed function in the Portal (preview
-panel / execution logs). The function **source** is authored in the Portal (or via the
-platform App-Builder API), not through `salla_functions`.
+**There is no deploy step and no versions.** Saving is **live on the app's demo stores
+immediately** — that's your test loop (Step 5). It reaches **real merchant stores only
+after the app's publish request is approved**:
 
-**Gate:** "The Portal shows the function deployed after publish."
+- **Publish for production:** `salla_apps action=publish`, `app_id` (optional `update_note`)
+  → submit for review. Admin approval releases the saved function to live stores.
+
+**Gate:** "Saved (live on demo stores now), tested on a demo store, and the app submitted
+for publish so it reaches production?"
 
 ---
 
@@ -259,7 +262,8 @@ Checklist:
 - [ ] No npm imports / unsupported core modules; `globalThis.crypto`.
 - [ ] No secrets in `console.log`.
 - [ ] Tested in the preview panel against a demo store with a real record ID.
-- [ ] App published (`salla_apps action=publish`) after the sandbox test passes.
+- [ ] Saved via `salla_functions action=save` (live on demo stores), tested, then the app
+      submitted for publish (`salla_apps action=publish`) for production rollout.
 
 **Gate:** "Execution Status = success in the preview panel, within the timeout budget?"
 

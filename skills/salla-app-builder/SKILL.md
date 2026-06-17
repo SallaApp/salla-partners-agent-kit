@@ -200,15 +200,15 @@ Ask: "Does your app need serverless handlers triggered by Salla events?"
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
   context shape, `Resp` API, timeouts, and lifecycle-event handling.
 
-**Deploy the functions with `salla_functions action=deploy` (`app_id`), then publish the
-app with `salla_apps action=publish`.** Remove a function with `salla_functions
-action=delete` (`app_id`, `trigger`). There is **no `list`/`get`** tool — author the
-source and inspect deployed functions in the Partners Portal → **App Functions** tab.
+**Save the function with `salla_functions action=save` (`app_id`, `trigger`, `content`,
+`name`) — an upsert (create or update).** Saving is live on the app's demo stores
+immediately; submit the app with `salla_apps action=publish` to release it to real stores
+after review. Read with `salla_functions action=get`, remove with `action=delete`.
 (`salla_functions` is operator-gated: it errors clearly if the App Builder service is not
 enabled on the MCP deployment.) Details → **`salla-app-functions`**.
 
-**Gate:** "Function deployed and the App Functions tab in the Portal shows it after a
-test publish?"
+**Gate:** "Function saved (live on a demo store) and the app submitted for publish for
+production?"
 
 ---
 

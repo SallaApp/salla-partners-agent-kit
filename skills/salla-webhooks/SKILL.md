@@ -35,9 +35,9 @@ MCP; the server and verification are runtime code.
 
 ## Tools & MCPs
 
-Confirm live event payload schemas from the public Salla docs (https://docs.salla.dev —
-see **salla-docs**) before coding; never assume a shape. The **Salla Partners MCP**
-_performs actions_:
+Confirm live event payload schemas in the webhooks reference
+(https://docs.salla.dev/421119m0.md) before coding; never assume a shape. The **Salla
+Partners MCP** _performs actions_:
 
 | Tool           | Action               | What it does                                                           |
 | -------------- | -------------------- | ---------------------------------------------------------------------- |
@@ -46,7 +46,7 @@ _performs actions_:
 
 > All new webhooks default to **version 2** and **Signature** security strategy.
 > Register endpoint (store-level, merchant token): `POST /admin/v2/webhooks/subscribe`.
-> Docs: https://docs.salla.dev/421119m0 · Conditional: https://docs.salla.dev/421120m0 ·
+> Docs: https://docs.salla.dev/421119m0.md · Conditional: https://docs.salla.dev/421120m0.md ·
 > Node/Express repo: https://github.com/SallaApp/webhook-actions-js
 
 ---
@@ -54,7 +54,7 @@ _performs actions_:
 ## Step 0 — Discover
 
 1. **Which events** do you need? (lifecycle, orders, products, shipments…) — confirm exact
-   names/payloads from the public Salla docs (see **salla-docs**).
+   names/payloads in the webhooks reference (https://docs.salla.dev/421119m0.md).
 2. **App-level or store-level?** App/lifecycle events → subscribe via the Partners MCP
    (`salla_events`); store-level merchant webhooks → the Admin API `webhooks/subscribe`.
 3. **Stack?** Node/Express (`@salla.sa/webhooks-actions`) or Laravel/PHP (Salla CLI)?
@@ -303,7 +303,7 @@ Examples: `"total > 100"` · `"payment_method = mada OR price < 50"` ·
 | Cart          | `coupon_code`, `total`                                      |
 | Miscellaneous | `id`, `rating`                                              |
 
-Full attribute reference: https://docs.salla.dev/421120m0
+Full attribute reference: https://docs.salla.dev/421120m0.md
 
 ---
 
@@ -402,7 +402,8 @@ Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-a
 
 ## Step 7 — Event Reference
 
-Pull exact payload schemas from the public Salla docs (see salla-docs) before writing handlers.
+Pull exact payload schemas from the webhooks reference
+(https://docs.salla.dev/421119m0.md) before writing handlers.
 
 **Order:** `order.created` · `order.updated` · `order.status.updated` · `order.cancelled` ·
 `order.refunded` · `order.deleted` · `order.products.updated` · `order.payment.updated` ·
@@ -457,8 +458,8 @@ attempt, HTTP code, and full payload — check here before debugging your server
 
 | Resource             | URL                                                                              |
 | -------------------- | -------------------------------------------------------------------------------- |
-| Webhooks docs        | https://docs.salla.dev/421119m0                                                  |
-| Conditional webhooks | https://docs.salla.dev/421120m0                                                  |
+| Webhooks docs        | https://docs.salla.dev/421119m0.md                                               |
+| Conditional webhooks | https://docs.salla.dev/421120m0.md                                               |
 | Node.js/Express repo | https://github.com/SallaApp/webhook-actions-js                                   |
 | Laravel/CLI guide    | https://salla.dev/blog/salla-cli-webhook-server-laravel/                         |
 | Custom headers guide | https://salla.dev/blog/custom-webhook-header-is-now-available/                   |

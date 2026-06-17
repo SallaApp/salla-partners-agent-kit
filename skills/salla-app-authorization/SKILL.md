@@ -35,8 +35,8 @@ MCP; the token handling is runtime code.
 | `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)                 |
 
 > Easy Mode is required for all published App Store apps. Custom Mode is for local dev and
-> Postman testing only. Docs: https://docs.salla.dev/421118m0 · App Events:
-> https://docs.salla.dev/421413m0 · API header: `Authorization: Bearer <access_token>`.
+> Postman testing only. Docs: https://docs.salla.dev/421118m0.md · App Events:
+> https://docs.salla.dev/421413m0.md · API header: `Authorization: Bearer <access_token>`.
 
 ---
 

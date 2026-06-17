@@ -1,7 +1,7 @@
 # App Lifecycle — Payload Reference
 
-Source: https://docs.salla.dev/421413m0 — confirm exact fields from the public Salla docs
-(see the salla-docs skill) before depending on them.
+Source: https://docs.salla.dev/421413m0.md — confirm exact fields there before depending
+on them.
 
 Every event uses the standard webhook envelope:
 
@@ -131,5 +131,5 @@ addon identifier for addons.
 
 Trial events (`app.trial.started` / `.expired` / `.canceled`) use the same envelope; the
 trial typically appears as a zero-price `plan_type` like `once` with `plan_name: "trail"`.
-Per-event field detail → confirm via the public Salla docs (see salla-docs) and
+Per-event field detail → confirm in https://docs.salla.dev/421413m0.md and see
 **salla-app-billing**.

@@ -1,8 +1,9 @@
 # app.store.authorize — Full Payload Reference
 
-Source: https://docs.salla.dev/421413m0#app-store-authorize
+Source: https://docs.salla.dev/421413m0.md#app-store-authorize
 
 Fired in two situations:
+
 1. Merchant installs the app for the first time
 2. Merchant updates the app — Salla fires `app.updated` then immediately fires this
 
@@ -25,14 +26,14 @@ Your handler covers both cases. Always upsert, never insert-only.
 
 ## Field Notes
 
-| Field | Type | Notes |
-|---|---|---|
-| `merchant` | number | Use this as your DB key to store tokens per merchant |
-| `data.access_token` | string | Bearer token for all Merchant API calls |
-| `data.expires` | number | Unix timestamp — multiply by 1000 for JS milliseconds |
-| `data.refresh_token` | string | Single-use — store immediately, never discard |
-| `data.scope` | string | Space-separated granted scopes |
-| `data.token_type` | string | Always `"bearer"` |
+| Field                | Type   | Notes                                                 |
+| -------------------- | ------ | ----------------------------------------------------- |
+| `merchant`           | number | Use this as your DB key to store tokens per merchant  |
+| `data.access_token`  | string | Bearer token for all Merchant API calls               |
+| `data.expires`       | number | Unix timestamp — multiply by 1000 for JS milliseconds |
+| `data.refresh_token` | string | Single-use — store immediately, never discard         |
+| `data.scope`         | string | Space-separated granted scopes                        |
+| `data.token_type`    | string | Always `"bearer"`                                     |
 
 ## What to Do On Receipt
 
@@ -41,9 +42,20 @@ if (payload.event === "app.store.authorize") {
   const { access_token, refresh_token, expires, scope } = payload.data;
 
   await db.merchants.upsert({
-    where:  { id: payload.merchant },
-    create: { id: payload.merchant, accessToken: access_token, refreshToken: refresh_token, tokenExpiresAt: new Date(expires * 1000), scope },
-    update: { accessToken: access_token, refreshToken: refresh_token, tokenExpiresAt: new Date(expires * 1000), scope },
+    where: { id: payload.merchant },
+    create: {
+      id: payload.merchant,
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      tokenExpiresAt: new Date(expires * 1000),
+      scope,
+    },
+    update: {
+      accessToken: access_token,
+      refreshToken: refresh_token,
+      tokenExpiresAt: new Date(expires * 1000),
+      scope,
+    },
   });
 }
 ```

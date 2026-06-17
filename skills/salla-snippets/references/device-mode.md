@@ -61,7 +61,7 @@ The `data` object is event-specific (see catalogue below).
 
 ## Event Catalogue
 
-> ⚠️ **Verify event names against https://docs.salla.dev/1724504m0 before shipping** —
+> ⚠️ **Verify event names against https://docs.salla.dev/1724504m0.md before shipping** —
 > the names below are indicative and not confirmed against a verified source.
 
 ### Cart Events
@@ -151,5 +151,4 @@ salla.onReady(() => {
 | Topic                   | Link                                           |
 | ----------------------- | ---------------------------------------------- |
 | Device Mode Usage Guide | https://docs.salla.dev/1724504m0.md            |
-| Twilight SDK reference  | https://docs.salla.dev                         |
 | App Snippets guide      | https://salla.dev/blog/a-guide-to-app-snippet/ |

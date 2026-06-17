@@ -209,9 +209,9 @@ app.post("/webhook", verifySignature, async (req, res) => {
 
 ## Resources
 
-| Topic                          | Link                              |
-| ------------------------------ | --------------------------------- |
-| Order Fulfillment App overview | https://docs.salla.dev/doc-423001 |
-| Fulfillment App Cycle          | https://docs.salla.dev/doc-423000 |
-| Setup Fulfillment App          | https://docs.salla.dev/doc-423002 |
-| Test Fulfillment App           | https://docs.salla.dev/doc-423003 |
+| Topic                          | Link                               |
+| ------------------------------ | ---------------------------------- |
+| Order Fulfillment App overview | https://docs.salla.dev/423001m0.md |
+| Fulfillment App Cycle          | https://docs.salla.dev/423000m0.md |
+| Setup Fulfillment App          | https://docs.salla.dev/423002m0.md |
+| Test Fulfillment App           | https://docs.salla.dev/423003m0.md |

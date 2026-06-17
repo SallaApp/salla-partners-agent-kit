@@ -63,7 +63,7 @@ The result returns the `app_id`.
 > You cannot set it yourself, and publication is blocked until Salla sets it.
 
 **Manual fallback:** Portal → **My Apps → Create App** (Public, category Shipping App).
-Full walkthrough: https://docs.salla.dev/doc-422995
+Full walkthrough: https://docs.salla.dev/422995m0.md
 
 **Gate:** "App created — confirm the `app_id` (`salla_apps action=get`)."
 
@@ -105,7 +105,7 @@ Use `salla_shipping` instead of the Portal form:
 You still set a **Shipping Settings URL** in the Portal — the page Salla loads in the
 merchant dashboard to collect carrier credentials (API key, account number).
 
-Setup guide: https://docs.salla.dev/doc-422996
+Setup guide: https://docs.salla.dev/422996m0.md
 
 **Gate:** "`salla_shipping action=get_zones` reflects your zones, and a demo-store
 merchant can enter carrier credentials on your Shipping Settings page."
@@ -164,7 +164,7 @@ If your app type from Step 0 is **Order Fulfillment App**:
 3. Manage branch inventory, parcel dispatch, and status updates.
 
 Fulfillment lifecycle → [`references/fulfillment-cycle.md`](references/fulfillment-cycle.md)
-Setup guide: https://docs.salla.dev/doc-423002
+Setup guide: https://docs.salla.dev/423002m0.md
 
 ---
 
@@ -183,8 +183,8 @@ the publishing sections in the Portal. Two shipping-specific blockers:
 
 Once approved, your app is listed at https://apps.salla.sa/en under Shipping.
 
-Test guide: https://docs.salla.dev/doc-422998 ·
-Publishing guide: https://docs.salla.dev/doc-422990
+Test guide: https://docs.salla.dev/422998m0.md ·
+Publishing guide: https://docs.salla.dev/422990m0.md
 
 **Gate:** "Published — `salla_apps action=get` shows the expected status."
 
@@ -195,13 +195,13 @@ Publishing guide: https://docs.salla.dev/doc-422990
 | Topic                        | Link                                                                                                                           |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Shipping API Reference       | https://docs.salla.dev/api-5578809                                                                                             |
-| Shipping App Cycle           | https://docs.salla.dev/doc-422994                                                                                              |
-| Create Shipping App          | https://docs.salla.dev/doc-422995                                                                                              |
-| Setup Shipping App           | https://docs.salla.dev/doc-422996                                                                                              |
-| Shipping API Migration Guide | https://docs.salla.dev/doc-422989                                                                                              |
-| Shipping API Change Log      | https://docs.salla.dev/doc-422992                                                                                              |
-| New Order Fulfillment App    | https://docs.salla.dev/doc-423001                                                                                              |
-| Order Fulfillment Cycle      | https://docs.salla.dev/doc-423000                                                                                              |
-| Test Order Fulfillment App   | https://docs.salla.dev/doc-423003                                                                                              |
+| Shipping App Cycle           | https://docs.salla.dev/422994m0.md                                                                                             |
+| Create Shipping App          | https://docs.salla.dev/422995m0.md                                                                                             |
+| Setup Shipping App           | https://docs.salla.dev/422996m0.md                                                                                             |
+| Shipping API Migration Guide | https://docs.salla.dev/422989m0.md                                                                                             |
+| Shipping API Change Log      | https://docs.salla.dev/422992m0.md                                                                                             |
+| New Order Fulfillment App    | https://docs.salla.dev/423001m0.md                                                                                             |
+| Order Fulfillment Cycle      | https://docs.salla.dev/423000m0.md                                                                                             |
+| Test Order Fulfillment App   | https://docs.salla.dev/423003m0.md                                                                                             |
 | Postman Collection           | https://www.postman.com/salla-app/workspace/salla-e-commerce-platform/collection/17687195-d700cd60-adf3-4b20-82ee-94851e88bd44 |
 | Developer Community          | https://t.me/salladev                                                                                                          |

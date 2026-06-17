@@ -1,6 +1,6 @@
 # app.store.authorize — Full Payload Reference
 
-Source: https://docs.salla.dev/421413m0#app-store-authorize
+Source: https://docs.salla.dev/421413m0.md#app-store-authorize
 
 Fired in two situations:
 

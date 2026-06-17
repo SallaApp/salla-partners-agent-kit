@@ -17,9 +17,9 @@ app. Follow the steps in order — complete each gate before moving to the next.
 
 ## Tools
 
-| Tool                     | Action                                           | What it does                                       |
-| ------------------------ | ------------------------------------------------ | -------------------------------------------------- |
-| `salla_embedded_pages`   | `list` / `create` / `update` / `delete`          | Manage the app's embedded (iframe) dashboard pages |
+| Tool                   | Action                                  | What it does                                       |
+| ---------------------- | --------------------------------------- | -------------------------------------------------- |
+| `salla_embedded_pages` | `list` / `create` / `update` / `delete` | Manage the app's embedded (iframe) dashboard pages |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected, and you need the
 > app's `app_id`. If a tool returns "Salla session expired", re-run the login flow.
@@ -233,12 +233,12 @@ in the publish step of **`salla-app-builder`**.
 
 | Topic                  | Link                                                                 |
 | ---------------------- | -------------------------------------------------------------------- |
-| Overview (hub)         | https://docs.salla.dev/embedded-sdk/overview                         |
-| Installation           | https://docs.salla.dev/embedded-sdk/installation                     |
-| Create an embedded app | https://docs.salla.dev/embedded-sdk/create-app                       |
-| Authentication         | https://docs.salla.dev/embedded-sdk/authentication                   |
-| App Design Guidelines  | https://docs.salla.dev/embedded-sdk/design-guidelines                |
-| Playground / testing   | https://docs.salla.dev/embedded-sdk/playground                       |
+| Overview (hub)         | https://docs.salla.dev/embedded-sdk/overview.md                      |
+| Installation           | https://docs.salla.dev/embedded-sdk/installation.md                  |
+| Create an embedded app | https://docs.salla.dev/embedded-sdk/create-app.md                    |
+| Authentication         | https://docs.salla.dev/embedded-sdk/authentication.md                |
+| App Design Guidelines  | https://docs.salla.dev/embedded-sdk/design-guidelines.md             |
+| Playground / testing   | https://docs.salla.dev/embedded-sdk/playground.md                    |
 | SDK module methods     | [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md) |
 
 > Per-module pages (auth/page/nav/ui/checkout) don't have public URLs yet — use the bundled

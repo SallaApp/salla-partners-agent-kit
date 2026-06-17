@@ -64,8 +64,8 @@ features are set, send handlers respond to a test event from the demo store.
 
 ## Resources
 
-| Topic                     | Link                             |
-| ------------------------- | -------------------------------- |
-| Communication App payload | https://docs.salla.dev/1380572m0 |
-| Payload examples          | https://docs.salla.dev/1740884m0 |
-| App Functions overview    | https://docs.salla.dev/1726814m0 |
+| Topic                     | Link                                |
+| ------------------------- | ----------------------------------- |
+| Communication App payload | https://docs.salla.dev/1380572m0.md |
+| Payload examples          | https://docs.salla.dev/1740884m0.md |
+| App Functions overview    | https://docs.salla.dev/1726814m0.md |

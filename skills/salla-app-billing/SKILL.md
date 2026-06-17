@@ -20,8 +20,8 @@ moving on. Steps 1, 2 and 5 **perform actions** with the Salla Partners MCP; Ste
 
 ## Tools & MCPs
 
-Confirm payloads and the subscriptions schema from the public Salla docs
-(https://docs.salla.dev — see **salla-docs**) before coding. The **Salla Partners MCP**
+Confirm payloads and the subscriptions schema in the App Events reference
+(https://docs.salla.dev/421413m0.md) before coding. The **Salla Partners MCP**
 _performs actions_:
 
 | Tool           | Action               | What it does                                                       |
@@ -35,8 +35,8 @@ _performs actions_:
 > **Partners API** — a **company-scoped** `GET /subscriptions/apps` that returns ALL your
 > company's app subscriptions (filter by `app_id` and merchant client-side). Treat events
 > as the source of truth, the endpoint as reconciliation. Docs:
-> https://docs.salla.dev/doc-421412 (Apps API) ·
-> https://docs.salla.dev/421413m0 (App Events). Related: salla-app-lifecycle (event
+> https://docs.salla.dev/421412m0.md (Apps API) ·
+> https://docs.salla.dev/421413m0.md (App Events). Related: salla-app-lifecycle (event
 > wiring) · salla-addon-purchase (in-app purchase UI).
 
 ### Plans vs Addons (reference)
@@ -240,8 +240,8 @@ addon features merged into one set). Full payloads:
 
 | Resource                 | URL                                 |
 | ------------------------ | ----------------------------------- |
-| Apps API                 | https://docs.salla.dev/doc-421412   |
-| App Events               | https://docs.salla.dev/421413m0     |
+| Apps API                 | https://docs.salla.dev/421412m0.md  |
+| App Events               | https://docs.salla.dev/421413m0.md  |
 | App Subscription details | https://docs.salla.dev/api-5401098  |
 | Lifecycle wiring         | salla-app-lifecycle skill           |
 | Feature gating           | this skill — see Entitlement Gating |

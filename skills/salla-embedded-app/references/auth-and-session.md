@@ -175,8 +175,8 @@ async function fetchOrders(merchantId: number) {
 
 ## Resources
 
-| Topic                         | Link                                                       |
-| ----------------------------- | ---------------------------------------------------------- |
-| Authentication guide          | https://docs.salla.dev/embedded-sdk/authentication         |
-| Exchange-authority introspect | https://api.salla.dev/exchange-authority/v1/introspect     |
-| Auth Module reference         | https://docs.salla.dev/embedded-sdk/modules/auth/get-token |
+| Topic                         | Link                                                          |
+| ----------------------------- | ------------------------------------------------------------- |
+| Authentication guide          | https://docs.salla.dev/embedded-sdk/authentication.md         |
+| Exchange-authority introspect | https://api.salla.dev/exchange-authority/v1/introspect        |
+| Auth Module reference         | https://docs.salla.dev/embedded-sdk/modules/auth/get-token.md |

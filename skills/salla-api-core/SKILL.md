@@ -23,7 +23,7 @@ in order; complete each gate before moving on. This is runtime code against a **
 `access_token`** (obtained via salla-app-authorization) — not a Partners MCP action.
 
 **Base URL:** `https://api.salla.dev/admin/v2` (all paths below are relative to it).
-Docs: https://docs.salla.dev/ · Get Started: https://docs.salla.dev/421117m0
+Docs: https://docs.salla.dev/ · Get Started: https://docs.salla.dev/421117m0.md
 
 ## Step 0 — Discover
 
@@ -54,13 +54,13 @@ Authorization: Bearer <access_token>
 
 Token error cases (all return **401**):
 
-| Scenario | Key signal in response |
-|---|---|
-| Deleted user | `"The User is not exists."` |
-| Inactive account | Arabic message about account being inactive |
-| Refresh token reused | `"error": "invalid_grant"` — both tokens revoked |
-| Missing scope | `"The access token should have access to one of those scopes: <scope>"` |
-| Expired / invalid token | `"The access token is invalid"` |
+| Scenario                | Key signal in response                                                  |
+| ----------------------- | ----------------------------------------------------------------------- |
+| Deleted user            | `"The User is not exists."`                                             |
+| Inactive account        | Arabic message about account being inactive                             |
+| Refresh token reused    | `"error": "invalid_grant"` — both tokens revoked                        |
+| Missing scope           | `"The access token should have access to one of those scopes: <scope>"` |
+| Expired / invalid token | `"The access token is invalid"`                                         |
 
 On `invalid_grant`, both access and refresh tokens are invalidated — the merchant must
 re-authorize (see salla-app-authorization).
@@ -73,24 +73,24 @@ re-authorize (see salla-app-authorization).
 
 Common resource endpoints:
 
-| Resource | Method | Endpoint | Docs |
-|---|---|---|---|
-| Orders | GET | `/orders` | https://docs.salla.dev/doc-421124 |
-| Products | GET | `/products` | https://docs.salla.dev/doc-421121 |
-| Customers | GET | `/customers` | https://docs.salla.dev/doc-421126 |
+| Resource  | Method | Endpoint     | Docs                               |
+| --------- | ------ | ------------ | ---------------------------------- |
+| Orders    | GET    | `/orders`    | https://docs.salla.dev/421124m0.md |
+| Products  | GET    | `/products`  | https://docs.salla.dev/421121m0.md |
+| Customers | GET    | `/customers` | https://docs.salla.dev/421126m0.md |
 
 A 2xx response always wraps `data`:
 
 ```json
-{ "status": 200, "success": true, "data": { } }
+{ "status": 200, "success": true, "data": {} }
 ```
 
-| Code | Meaning |
-|---|---|
-| 200 | OK — request succeeded |
-| 201 | Created — resource inserted/updated |
-| 202 | Accepted — resource deleted |
-| 204 | No Content — success, no body |
+| Code | Meaning                             |
+| ---- | ----------------------------------- |
+| 200  | OK — request succeeded              |
+| 201  | Created — resource inserted/updated |
+| 202  | Accepted — resource deleted         |
+| 204  | No Content — success, no body       |
 
 Minimal request helper (TypeScript):
 
@@ -100,7 +100,7 @@ const BASE = "https://api.salla.dev/admin/v2";
 async function sallaRequest<T>(
   path: string,
   accessToken: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...options,
@@ -133,10 +133,10 @@ async function sallaRequest<T>(
 
 Collection endpoints accept:
 
-| Parameter | Default | Max | Notes |
-|---|---|---|---|
-| `page` | 1 | — | 1-indexed |
-| `per_page` | 15 | 60 | `count` alias also accepted on some endpoints |
+| Parameter  | Default | Max | Notes                                         |
+| ---------- | ------- | --- | --------------------------------------------- |
+| `page`     | 1       | —   | 1-indexed                                     |
+| `per_page` | 15      | 60  | `count` alias also accepted on some endpoints |
 
 ```http
 GET /orders?page=2&per_page=40
@@ -148,10 +148,16 @@ Response shape:
 {
   "status": 200,
   "success": true,
-  "data": [ /* records */ ],
+  "data": [
+    /* records */
+  ],
   "pagination": {
-    "count": 40, "total": 120, "perPage": 40,
-    "currentPage": 2, "totalPages": 3, "links": {}
+    "count": 40,
+    "total": 120,
+    "perPage": 40,
+    "currentPage": 2,
+    "totalPages": 3,
+    "links": {}
   }
 }
 ```
@@ -178,27 +184,27 @@ Error envelope (single + multi-field share the same shape — `fields` is field 
 }
 ```
 
-| Status | Slug | Meaning |
-|---|---|---|
-| 400 | `bad_request` | Invalid parameters, fields, or filters |
-| 401 | `unauthorized` | Invalid or expired token, missing scopes |
-| 403 | `forbidden` | Access refused or temporarily blocked |
-| 404 | `not_found` | Resource or path not found |
-| 405 | `method_not_allowed` | HTTP method not supported |
-| 406 | `not_acceptable` | Format not acceptable |
-| 410 | `gone` | Resource no longer available |
-| 422 | `validation_failed` | Mandatory fields missing or invalid |
-| 429 | `too_many_requests` | Rate limit exceeded |
-| 500 | `server_error` | Internal server error — retry later |
-| 503 | `service_unavailable` | Temporary overload or maintenance |
+| Status | Slug                  | Meaning                                  |
+| ------ | --------------------- | ---------------------------------------- |
+| 400    | `bad_request`         | Invalid parameters, fields, or filters   |
+| 401    | `unauthorized`        | Invalid or expired token, missing scopes |
+| 403    | `forbidden`           | Access refused or temporarily blocked    |
+| 404    | `not_found`           | Resource or path not found               |
+| 405    | `method_not_allowed`  | HTTP method not supported                |
+| 406    | `not_acceptable`      | Format not acceptable                    |
+| 410    | `gone`                | Resource no longer available             |
+| 422    | `validation_failed`   | Mandatory fields missing or invalid      |
+| 429    | `too_many_requests`   | Rate limit exceeded                      |
+| 500    | `server_error`        | Internal server error — retry later      |
+| 503    | `service_unavailable` | Temporary overload or maintenance        |
 
 Rate limiting uses a **leaky bucket**, per store plan per minute:
 
-| Plan | Max Requests/min | Leak Rate |
-|---|---|---|
-| Plus | 120 | 1 req/sec |
-| Pro | 360 | 1 req/sec |
-| Special | 720 | 1 req/sec |
+| Plan    | Max Requests/min | Leak Rate |
+| ------- | ---------------- | --------- |
+| Plus    | 120              | 1 req/sec |
+| Pro     | 360              | 1 req/sec |
+| Special | 720              | 1 req/sec |
 
 **Customer endpoints** have a separate cap: **500 requests per 10 minutes**, regardless of
 plan. Exceeding limits or unusual patterns may cause temporary restrictions (403).
@@ -207,7 +213,7 @@ Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Ret
 
 ```typescript
 if (response.status === 429) {
-  const retryAfter = parseInt(response.headers['retry-after'] ?? '60', 10);
+  const retryAfter = parseInt(response.headers["retry-after"] ?? "60", 10);
   await sleep(retryAfter * 1000);
   // retry the request
 }
@@ -247,12 +253,12 @@ no API call needed there.
 
 ## Quick-Reference Docs Links
 
-| Topic | URL |
-|---|---|
-| Get Started | https://docs.salla.dev/421117m0 |
-| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0 |
-| Responses & Errors | https://docs.salla.dev/421123m0 |
-| Pagination | https://docs.salla.dev/421124m0 |
-| Rate Limiting | https://docs.salla.dev/421125m0 |
-| Versioning | https://docs.salla.dev/421126m0 |
-| App Settings guide | https://salla.dev/blog/how-to-build-app-settings-form/ |
+| Topic                     | URL                                                    |
+| ------------------------- | ------------------------------------------------------ |
+| Get Started               | https://docs.salla.dev/421117m0.md                     |
+| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0.md                     |
+| Responses & Errors        | https://docs.salla.dev/421123m0.md                     |
+| Pagination                | https://docs.salla.dev/421124m0.md                     |
+| Rate Limiting             | https://docs.salla.dev/421125m0.md                     |
+| Versioning                | https://docs.salla.dev/421126m0.md                     |
+| App Settings guide        | https://salla.dev/blog/how-to-build-app-settings-form/ |

@@ -33,8 +33,8 @@ applies whenever your app draws visible UI; it does not inject anything itself (
 - **RTL + locale** — most stores are Arabic/RTL. Honor `dir`/`lang`, mirror layout, and
   write copy Arabic-first.
 
-Docs: theme https://docs.salla.dev/421877m0 · CSS variables https://docs.salla.dev/421945m0 ·
-Salla Icons https://docs.salla.dev/422550m0 · single product page https://docs.salla.dev/422561m0
+Docs: theme https://docs.salla.dev/421877m0.md · CSS variables https://docs.salla.dev/421945m0.md ·
+Salla Icons https://docs.salla.dev/422550m0.md · single product page https://docs.salla.dev/422561m0.md
 
 ## Embedded dashboard (Salla design guidelines)
 
@@ -44,8 +44,8 @@ Salla Icons https://docs.salla.dev/422550m0 · single product page https://docs.
   confirm, loading, breadcrumbs) — instead of custom in-iframe chrome (No-Chrome rule).
 - Match Salla dashboard spacing, typography, and components; support light/dark + RTL.
 
-Docs: design guidelines https://docs.salla.dev/embedded-sdk/design-guidelines ·
-playground https://docs.salla.dev/embedded-sdk/playground
+Docs: design guidelines https://docs.salla.dev/embedded-sdk/design-guidelines.md ·
+playground https://docs.salla.dev/embedded-sdk/playground.md
 
 ---
 

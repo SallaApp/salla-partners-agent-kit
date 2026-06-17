@@ -33,8 +33,9 @@ before moving on. Step 1 **performs** the subscription with the Salla Partners M
 
 ## Tools & MCPs
 
-Confirm every payload shape from the public Salla docs (https://docs.salla.dev — see
-**salla-docs**) before coding. The **Salla Partners MCP** _performs actions_:
+Confirm every payload shape in the App Events reference
+(https://docs.salla.dev/421413m0.md) before coding. The **Salla Partners MCP**
+_performs actions_:
 
 | Tool           | Action               | What it does                                 |
 | -------------- | -------------------- | -------------------------------------------- |
@@ -68,7 +69,7 @@ Confirm every payload shape from the public Salla docs (https://docs.salla.dev �
 > `data.item_type` (`"plan"` | `"addon"`) tells them apart. Full subscription payload +
 > plan-state handling → **salla-app-billing**. Full per-event JSON →
 > **[references/lifecycle-payloads.md](references/lifecycle-payloads.md)** (confirm field
-> names against the MCP before relying on them).
+> names against https://docs.salla.dev/421413m0.md before relying on them).
 
 ---
 
@@ -265,11 +266,11 @@ Gate features on `status` (and on addon entitlements — see salla-app-billing).
 
 ## Key Resources
 
-| Resource            | URL                             |
-| ------------------- | ------------------------------- |
-| App Events docs     | https://docs.salla.dev/421413m0 |
-| Webhooks (security) | salla-webhooks skill            |
-| Token handling      | salla-app-authorization skill   |
-| Plan/trial state    | salla-app-billing skill         |
-| Partners Portal     | https://salla.partners          |
-| Telegram community  | https://t.me/salladev           |
+| Resource            | URL                                |
+| ------------------- | ---------------------------------- |
+| App Events docs     | https://docs.salla.dev/421413m0.md |
+| Webhooks (security) | salla-webhooks skill               |
+| Token handling      | salla-app-authorization skill      |
+| Plan/trial state    | salla-app-billing skill            |
+| Partners Portal     | https://salla.partners             |
+| Telegram community  | https://t.me/salladev              |

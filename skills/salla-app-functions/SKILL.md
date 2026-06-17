@@ -49,9 +49,8 @@ Fall back to a webhook (**salla-webhooks**) only when no App Function trigger ex
 
 ## Tools & MCPs
 
-Confirm each event's live `payload.data` shape from the public Salla docs
-(https://docs.salla.dev) before writing a handler — use the **salla-docs** skill to find
-the right page. Never assume a payload.
+Confirm each event's live `payload.data` shape in the App Functions events reference
+(https://docs.salla.dev/1726818m0.md) before writing a handler. Never assume a payload.
 
 The **Salla Partners MCP** _performs actions_:
 
@@ -64,8 +63,8 @@ The **Salla Partners MCP** _performs actions_:
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** —
 > never re-declare or import them in code you paste into the Portal.
 >
-> Docs: https://docs.salla.dev/1726814m0 (overview) · https://docs.salla.dev/1726818m0
-> (events) · https://docs.salla.dev/1726816m0 (testing)
+> Docs: https://docs.salla.dev/1726814m0.md (overview) · https://docs.salla.dev/1726818m0.md
+> (events) · https://docs.salla.dev/1726816m0.md (testing)
 
 ---
 
@@ -82,9 +81,9 @@ Ask before starting:
 
 ## Step 1 — Confirm the Event Contract
 
-Confirm the event's exact `payload.data` shape from the public Salla docs
-(https://docs.salla.dev — use the **salla-docs** skill) **before** writing any handler.
-The event → typed-context mapping and the supported trigger list live in
+Confirm the event's exact `payload.data` shape in the App Functions events reference
+(https://docs.salla.dev/1726818m0.md) **before** writing any handler. The event →
+typed-context mapping and the supported trigger list live in
 **[references/event-contexts.md](references/event-contexts.md)**.
 
 **Gate:** "Do you have the confirmed `payload.data` field names for this event?"
@@ -268,7 +267,7 @@ Response Data, Execution Time (watch it vs your timeout), Console Logs, and Erro
 
 Checklist:
 
-- [ ] `payload.data` shape confirmed from the public Salla docs (Step 1).
+- [ ] `payload.data` shape confirmed against https://docs.salla.dev/1726818m0.md (Step 1).
 - [ ] Sync body completes well under 500 ms (`fetch` bounded with `AbortController`).
 - [ ] `Resp.success().setData(...)` always called — `{}` if empty.
 - [ ] No npm imports / unsupported core modules; `globalThis.crypto`.
@@ -284,10 +283,10 @@ Checklist:
 
 | Resource               | URL                                                                  |
 | ---------------------- | -------------------------------------------------------------------- |
-| App Functions overview | https://docs.salla.dev/1726814m0                                     |
-| Get started            | https://docs.salla.dev/1726815m0                                     |
-| Supported events       | https://docs.salla.dev/1726818m0                                     |
-| Testing guide          | https://docs.salla.dev/1726816m0                                     |
+| App Functions overview | https://docs.salla.dev/1726814m0.md                                  |
+| Get started            | https://docs.salla.dev/1726815m0.md                                  |
+| Supported events       | https://docs.salla.dev/1726818m0.md                                  |
+| Testing guide          | https://docs.salla.dev/1726816m0.md                                  |
 | Demo store testing     | https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/ |
 | Partners Portal        | https://portal.salla.partners                                        |
 | Telegram community     | https://t.me/salladev                                                |

@@ -29,9 +29,10 @@ starts checkout; `app.subscription.started` (addon) finishes it.
 
 ## Tools & MCPs
 
-Confirm the purchase/redirect mechanism and the `app.subscription.started` (addon) payload
-from the public Salla docs (https://docs.salla.dev — see **salla-docs**) before coding. The
-**Salla Partners MCP** _performs actions_: use `salla_events action=subscribe`
+Confirm the `app.subscription.started` (addon) payload in the App Events reference
+(https://docs.salla.dev/421413m0.md) and the purchase/redirect mechanism in the Embedded
+SDK checkout module (https://docs.salla.dev/embedded-sdk/modules/checkout/create.md) before
+coding. The **Salla Partners MCP** _performs actions_: use `salla_events action=subscribe`
 to subscribe the app to `app.subscription.started` (the activation source of truth, Step
 3). The in-iframe purchase itself is an **embedded-SDK call, not an MCP tool**.
 
@@ -114,7 +115,8 @@ embedded.ui.loading.hide();
 ## Step 5 — Start the Purchase / Billing Redirect
 
 > ⚠️ **Unverified mechanism.** The exact embedded purchase entry point is **not fully
-> documented**. Before implementing, confirm via the public Salla docs and the
+> documented**. Before implementing, confirm in the Embedded SDK checkout module docs
+> (https://docs.salla.dev/embedded-sdk/modules/checkout/create.md) and the
 > `@salla.sa/embedded-sdk` source/README which of these Salla actually exposes:
 >
 > - an SDK method (e.g. an `embedded.*` billing/checkout call) that opens Salla billing
@@ -222,7 +224,7 @@ activateAddon() → entitlements updated → toast + UI reveal
 | Embedded SDK setup               | salla-embedded-app skill                |
 | Addon pricing, tracking & gating | salla-app-billing skill                 |
 | Webhook security/idempotency     | salla-webhooks skill                    |
-| App Events                       | https://docs.salla.dev/421413m0         |
+| App Events                       | https://docs.salla.dev/421413m0.md      |
 | `@salla.sa/embedded-sdk`         | npm package (purchase method authority) |
 | Partners Portal                  | https://salla.partners                  |
 | Telegram community               | https://t.me/salladev                   |

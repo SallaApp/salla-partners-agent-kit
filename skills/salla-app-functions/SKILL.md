@@ -96,17 +96,23 @@ typed-context mapping and the supported trigger list live in
 
 ## Step 3 — Write the Handler
 
-Start from the trigger's default `template` and importable `types` — fetch them with
+Start from the trigger's default `template` and its `types` — fetch both with
 `salla_functions action=get`, `app_id`, `trigger` (or `action=list_triggers` to find the
-trigger). Your handler is one default-exported async function (in the Portal editor lines 1
-and 4 are locked; via `salla_functions action=save` you send the whole thing as `content`):
+trigger). **The `template` and `types` are the source of truth.** The `template` is the
+full function wrapper: a single default-exported async function whose signature — the typed
+context and the `Promise<Resp>` return — is fixed by the trigger. You edit only the body
+inside it. The `types` are the ambient declarations the runtime injects (`Resp`, the typed
+context such as `Shipments`, `CommunicationEvent`).
 
-```text
-1  export default async (context: ContextType): Promise<Resp> => {
-2    // editable body
-3    ...
-4  };
+```typescript
+export default async (context: Shipments): Promise<Resp> => {
+  console.log("Shipment cancelled event triggered");
+  return Resp.success().setData({});
+};
 ```
+
+In the Portal editor the wrapper's first and last lines are locked, so you paste only the
+body; via `salla_functions action=save` you send the whole wrapper as `content`.
 
 ### Context object
 
@@ -179,44 +185,61 @@ try {
 }
 ```
 
-### Local IDE mock pattern
+### Type-check the handler locally — REQUIRED before every save
 
-`Resp` and contexts are runtime globals, so local TypeScript won't know them. Put mocks
-**after** the handler and paste **only** the handler into the Portal (stop before the
-comment):
+`Resp` and the typed contexts are runtime globals, so local TypeScript won't know them
+unless you supply their declarations. A handler that fails to compile fails at runtime in
+the sandbox — _after_ you've saved it. **Always run a local `tsc` pass and get a clean,
+strict compile before `salla_functions action=save`.**
+
+Use the trigger's own `types` (from `action=get`) as the source of truth — don't hand-write
+approximate mocks. Put them in a `.d.ts` next to your handler and type-check the pair:
+
+`salla-globals.d.ts` — the `types` returned by `action=get`, verbatim (the ambient `Resp`
+plus the typed context, e.g. `Shipments`). **Never paste this into the Portal** — it exists
+only to satisfy your local compiler:
 
 ```typescript
-export default async (context: MyContextType): Promise<Resp> => {
-  // ... handler body ...
+declare class Resp {
+  static success(): Resp;
+  static error(): Resp;
+  setStatus(status: number): Resp;
+  setMessage(message: string): Resp;
+  setData(data: Record<string, unknown>): Resp;
+}
+declare type Shipments = {
+  merchant?: { id?: string | number };
+  payload?: {
+    event?: string;
+    created_at?: string;
+    data?: Record<string, unknown>;
+  };
+  settings?: Record<string, unknown>;
 };
-
-// Don't paste the following into Salla's App Function — local IDE typing only
-interface MyContextType {
-  merchant: { id: string };
-  payload: { event: string; created_at: string; data: Record<string, unknown> };
-  settings: Record<string, string | undefined>;
-}
-class Resp {
-  static success() {
-    return new Resp();
-  }
-  static error() {
-    return new Resp();
-  }
-  setStatus(_: number) {
-    return this;
-  }
-  setMessage(_: string) {
-    return this;
-  }
-  setData(_: Record<string, unknown>) {
-    return this;
-  }
-}
 ```
 
+`handler.ts` — the full wrapper from `template` with the body you wrote (this is exactly
+what you send as `content`):
+
+```typescript
+export default async (context: Shipments): Promise<Resp> => {
+  console.log("Shipment cancelled event triggered");
+  return Resp.success().setData({});
+};
+```
+
+Type-check both (strict, no emit) and fix **every** error before saving:
+
+```bash
+npx -y -p typescript tsc --noEmit --strict --skipLibCheck salla-globals.d.ts handler.ts
+```
+
+A clean compile is the gate. Only then paste the wrapper body into the Portal (or send the
+whole `handler.ts` wrapper as `content` to `salla_functions action=save`).
+
 **Gate:** "Handler returns `Resp.success().setData(...)` on every path, no npm/unsupported
-core modules, every `fetch` bounded, no secrets logged?"
+core modules, every `fetch` bounded, no secrets logged, and a local strict `tsc --noEmit`
+against the trigger's `types` compiles clean?"
 
 ---
 
@@ -229,7 +252,9 @@ the handler with the Partners MCP (you can also author it in the Portal → **Ap
 → Add New Function**):
 
 - **Save (create or update):** `salla_functions action=save`, `app_id`, `trigger`,
-  `content` (the handler code as a string), `name`. It's an **upsert** — creates the
+  `content` (the handler code as a string), `name`. **Type-check `content` locally first**
+  (Step 3) — never save a handler that doesn't compile against the trigger's `types`. It's
+  an **upsert** — creates the
   function or updates the existing one. The tool is **operator-gated**: if the MCP server
   hasn't enabled the App Builder service it returns a clear "App Functions are disabled on
   this deployment" error (ask the operator to enable the functions toolset).
@@ -244,8 +269,8 @@ after the app's publish request is approved**:
 - **Publish for production:** `salla_apps action=publish`, `app_id` (optional `update_note`)
   → submit for review. Admin approval releases the saved function to live stores.
 
-**Gate:** "Saved (live on demo stores now), tested on a demo store, and the app submitted
-for publish so it reaches production?"
+**Gate:** "Type-checked locally with a clean strict `tsc`, saved (live on demo stores now),
+tested on a demo store, and the app submitted for publish so it reaches production?"
 
 ---
 
@@ -260,6 +285,8 @@ Response Data, Execution Time (watch it vs your timeout), Console Logs, and Erro
 Checklist:
 
 - [ ] `payload.data` shape confirmed against https://docs.salla.dev/1726818m0.md (Step 1).
+- [ ] TypeScript type-checked locally (`tsc --noEmit --strict`) against the trigger's
+      `types` — clean compile before `save`.
 - [ ] Sync body completes well under 500 ms (`fetch` bounded with `AbortController`).
 - [ ] `Resp.success().setData(...)` always called — `{}` if empty.
 - [ ] No npm imports / unsupported core modules; `globalThis.crypto`.

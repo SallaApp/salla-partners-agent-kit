@@ -40,7 +40,7 @@ before reaching for a webhook.
 | Intent                                                                                             | Skill                                                                      |
 | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | Create / configure / publish an app end to end                                                     | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
-| OAuth, tokens, refresh, Easy vs Custom Mode                                                        | [salla-app-auth](../salla-app-auth/SKILL.md)                               |
+| OAuth, tokens, refresh, Easy vs Custom Mode, token storage & mutex                                 | [salla-app-auth](../salla-app-auth/SKILL.md)                               |
 | Register, verify, handle webhooks (transport)                                                      | [salla-webhooks](../salla-webhooks/SKILL.md)                               |
 | Install / uninstall / trial / subscription **events**                                              | [salla-app-lifecycle](../salla-app-lifecycle/SKILL.md)                     |
 | Serverless handlers on Salla triggers                                                              | [salla-app-functions](../salla-app-functions/SKILL.md)                     |
@@ -52,7 +52,6 @@ before reaching for a webhook.
 | Post-install setup / onboarding steps                                                              | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
 | Selling an addon (general / billing)                                                               | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
 | Selling an addon inside an embedded iframe                                                         | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
-| Merchant OAuth flow (Easy vs Custom mode, token storage, mutex)                                    | [salla-app-authorization](../salla-app-authorization/SKILL.md)             |
 | SMS / WhatsApp / email channel apps                                                                | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                 | [salla-api-core](../salla-api-core/SKILL.md)                               |

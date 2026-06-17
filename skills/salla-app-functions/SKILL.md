@@ -1,27 +1,13 @@
 ---
 name: salla-app-functions
 description: >
-  Use this skill for any task involving Salla App Functions — serverless
-  TypeScript/JavaScript handlers that Salla runs automatically on store events.
-  Trigger when a developer is: writing an App Function handler, choosing between a
-  synchronous action and an asynchronous event, using the pre-declared `Resp`
-  builder or returning the equivalent plain JSON, reading `context.payload` /
-  `context.merchant` / `context.settings`, fighting the locked Portal template,
-  hitting the V8 sandbox limits (no npm, no `fs`/`http`, Web Crypto only),
-  deploying/publishing a function from the Partners Portal, reading the execution
-  logs / preview panel, managing the 500 ms (sync) or 30 s (async) timeout with
-  `AbortController`, or setting up local IDE type mocks for `Resp` and the typed
-  contexts.
-
-  Trigger also when you see: "App Function", "Resp.success", "Resp.error",
-  "setData", "OrderCreatedContext", "ShipmentCreatingContext", "CommunicationEvent",
-  "context.settings", "Select Action", "Save and Preview", "synchronous action",
-  "asynchronous event", "shipment.creating", "App Functions sandbox", "edge function
-  timeout", or any question about running custom code on a Salla trigger without
-  hosting a server.
-
-  Always use this skill before writing or reviewing any App Function code. Builds on
-  the salla-api-core and salla-webhooks skills.
+  Salla App Functions — serverless TS/JS handlers Salla runs in a sandboxed V8 on
+  store events (e.g. `order.created`, `shipment.creating`). Use when writing or
+  deploying an App Function, choosing a synchronous action vs asynchronous event,
+  using the `Resp` builder / typed contexts (`context.payload` / `merchant` /
+  `settings`), fighting sandbox limits (no npm / `fs` / `http`, Web Crypto only) or
+  the 500 ms / 30 s timeouts. Prefer App Functions over webhooks; deploy with
+  `salla_functions`. Builds on salla-api-core and salla-webhooks.
 ---
 
 # Salla App Functions Flow

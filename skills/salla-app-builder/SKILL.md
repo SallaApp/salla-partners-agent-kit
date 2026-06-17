@@ -1,13 +1,13 @@
 ---
 name: salla-app-builder
 description: >
-  Step-by-step flow to create, configure, and publish a Salla app with the Salla
+  Flow to create, configure, and publish a Salla app with the Salla
   Partners MCP: create the app (category, sub_category_id, logo upload), connect OAuth
   scopes + webhook URL, subscribe events, then branch by capability — snippets
   (salla-snippets), embedded pages (salla-embedded-app), App Functions
   (salla-app-functions), settings (salla-app-settings) — and publish. Use for "create a
   new Salla app" or any create-to-publish step. Type deltas: salla-shipping-app,
-  salla-communication-app. Deep mechanics live in the routed skills.
+  salla-communication-app. Mechanics live in the routed skills.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Hazem Khaled

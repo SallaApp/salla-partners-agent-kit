@@ -1,13 +1,11 @@
 ---
 name: salla-app-ui-builder
 description: >
-  Use when customizing a Salla app's public App-Store view (the App Builder) — the block
-  list a merchant sees before installing. Initialize, then add/remove/reorder blocks (App
-  Information, Features, Plans, Reviews, Brands, FAQ, Stats) and edit their content. Drives
-  the Salla Partners MCP where tools exist (salla_upload for images); block reads and
-  mutations have no MCP tool yet, so they use the Partners API directly. For
-  create/configure/publish use salla-app-builder; for merchant settings forms,
-  salla-app-settings; to find schemas, salla-docs.
+  Customize a Salla app's public App-Store view (the App Builder) — the block list a
+  merchant sees before installing. Initialize, then add/remove/reorder blocks and edit
+  their content. Images upload via salla_upload; block reads and mutations have no MCP
+  tool yet, so they use the Partners API directly. Create/configure/publish →
+  salla-app-builder; merchant settings → salla-app-settings; schemas → salla-docs.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Abdelrahman Abdelhamid

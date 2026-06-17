@@ -22,7 +22,7 @@ do. Your job is dispatch and sequencing.
    skill covers it. Route by intent:
    - Broad / unsure → `salla-app-expert` (the master router skill)
    - Create → publish flow → `salla-app-builder`
-   - OAuth / tokens / refresh → `salla-app-auth`
+   - OAuth / tokens / refresh, Easy vs Custom mode, token mutex → `salla-app-auth`
    - Webhook transport (register, verify, idempotency) → `salla-webhooks`
    - Install / trial / subscription events → `salla-app-lifecycle`
    - Serverless handlers on triggers → `salla-app-functions`
@@ -34,7 +34,6 @@ do. Your job is dispatch and sequencing.
    - Post-install setup / onboarding steps → `salla-app-builder`
    - In-app addon purchase (general / billing) → `salla-addon-purchase`
    - In-app addon purchase inside embedded iframe → `salla-addon-purchase-embedded`
-   - Merchant OAuth flow (Easy vs Custom, token mutex) → `salla-app-authorization`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`

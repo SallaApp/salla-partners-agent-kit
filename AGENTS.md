@@ -19,7 +19,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 | ------------------------------------------------------------- | ------------------------------- |
 | Broad / unsure                                                | `salla-app-expert`              |
 | Create / configure / publish an app end to end                | `salla-app-builder`             |
-| OAuth, tokens, refresh                                        | `salla-app-auth`                |
+| OAuth, tokens, refresh, Easy vs Custom mode, token mutex      | `salla-app-auth`                |
 | Webhook transport (register, verify, idempotency)             | `salla-webhooks`                |
 | Install / trial / subscription events                         | `salla-app-lifecycle`           |
 | Serverless handlers on Salla triggers                         | `salla-app-functions`           |
@@ -31,7 +31,6 @@ agent). One routing brain, three surfaces — keep them in sync.
 | Post-install setup / onboarding steps                         | `salla-app-builder`             |
 | In-app addon purchase (general / billing)                     | `salla-addon-purchase`          |
 | In-app addon purchase inside an embedded iframe               | `salla-addon-purchase-embedded` |
-| Merchant OAuth flow (Easy vs Custom, token mutex)             | `salla-app-authorization`       |
 | SMS / WhatsApp / email apps                                   | `salla-communication-app`       |
 | Carriers, shipments, labels                                   | `salla-shipping-app`            |
 | Direct Admin API calls                                        | `salla-api-core`                |

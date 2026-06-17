@@ -1,23 +1,14 @@
 ---
 name: salla-addon-purchase-embedded
 description: >
-  Use this skill for any task where a merchant buys an addon from INSIDE your
-  embedded (iframe) Salla app — the in-app purchase UI, the billing/checkout
-  redirect, and activating the addon after purchase. Trigger when a developer is:
-  showing purchasable addons inside an embedded page, kicking off an addon purchase /
-  billing redirect from the embedded SDK, handling the merchant's return from
-  checkout, confirming a purchase via the `app.subscription.started` webhook with
-  `item_type: "addon"`, or unlocking an addon's features after payment.
-
-  Trigger also when you see: "buy addon", "purchase addon in app", "in-app purchase",
-  "addon checkout", "billing redirect", "embedded addon", "addon item_slug",
-  "activate addon", "upsell inside dashboard", or any question about selling an addon
-  without sending the merchant out to the App Store listing.
-
-  This skill sits on top of two others: the embedded SDK setup and No-Chrome rules
-  (salla-embedded-app), and how addons are priced/defined, tracked, and gated after
-  purchase (salla-app-billing). The @salla.sa/embedded-sdk package is the
-  authority for the purchase method — confirm it there before writing the redirect.
+  Buying an addon from INSIDE an embedded (iframe) Salla app — the in-app purchase
+  UI, the billing/checkout redirect, and activating the addon after purchase. Use
+  when showing purchasable addons in an embedded page, starting an addon checkout
+  from the embedded SDK, handling the return from checkout, or activating on the
+  `app.subscription.started` webhook with `item_type: "addon"` (matched by
+  `item_slug`). Builds on salla-embedded-app (SDK setup / No-Chrome) and
+  salla-app-billing (addon pricing, tracking, gating). Confirm the purchase method in
+  the @salla.sa/embedded-sdk package.
 ---
 
 # Salla Addon Purchase (Embedded) Flow

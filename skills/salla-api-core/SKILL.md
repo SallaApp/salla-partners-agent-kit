@@ -1,18 +1,13 @@
 ---
 name: salla-api-core
 description: >
-  Foundation reference for the Salla Admin (Merchant) API. Covers the base URL,
-  Bearer-token auth, request headers, merchant identity lookup, common resource
-  endpoints, pagination shape, rate-limit tiers and headers, all HTTP status
-  codes with their slugs, structured error shapes (single and multi-field), and
-  the App Settings read-modify-write pattern. Every other Salla skill builds on
-  top of this one.
-
-  Use this skill whenever you are writing, reviewing, or debugging any code or
-  instructions that call the Salla Admin API — including auth setup, paginating
-  through results, handling errors, reading or writing app settings, or checking
-  rate limits. If the task mentions "Salla", "salla.dev", merchant tokens,
-  access tokens for a store, or any Salla API endpoint, consult this skill first.
+  Foundation reference for the Salla Admin (Merchant) API — base URL, Bearer-token
+  auth, request headers, merchant identity, common resource endpoints, pagination,
+  rate-limit tiers/headers, HTTP status codes with slugs, structured error shapes,
+  and the App Settings read-modify-write pattern. Use whenever writing, reviewing,
+  or debugging any Salla Admin API call — auth setup, pagination, error handling,
+  app-settings read/write, or rate limits. Every other Salla skill builds on this;
+  merchant token handling → salla-app-auth.
 ---
 
 # Salla Admin API — Core Flow
@@ -20,7 +15,7 @@ description: >
 The foundation every other Salla skill builds on: authenticate, call resources, paginate,
 handle errors and rate limits, and read/write app settings safely. Work through the steps
 in order; complete each gate before moving on. This is runtime code against a **merchant
-`access_token`** (obtained via salla-app-authorization) — not a Partners MCP action.
+`access_token`** (obtained via salla-app-auth) — not a Partners MCP action.
 
 **Base URL:** `https://api.salla.dev/admin/v2` (all paths below are relative to it).
 Docs (Get Started): https://docs.salla.dev/421117m0.md
@@ -28,7 +23,7 @@ Docs (Get Started): https://docs.salla.dev/421117m0.md
 ## Step 0 — Discover
 
 1. **Which resource/endpoint** are you calling? (orders, products, customers, settings…)
-2. **Do you have a valid merchant `access_token`?** (if not → salla-app-authorization)
+2. **Do you have a valid merchant `access_token`?** (if not → salla-app-auth)
 3. **One record or a collection?** (collection → you'll paginate, Step 3)
 
 ---
@@ -63,7 +58,7 @@ Token error cases (all return **401**):
 | Expired / invalid token | `"The access token is invalid"`                                         |
 
 On `invalid_grant`, both access and refresh tokens are invalidated — the merchant must
-re-authorize (see salla-app-authorization).
+re-authorize (see salla-app-auth).
 
 **Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `data.merchant.id`?"
 

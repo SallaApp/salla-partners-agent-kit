@@ -1,22 +1,13 @@
 ---
 name: salla-webhooks
 description: >
-  Use this skill for any task involving Salla webhooks. Trigger when a developer is:
-  registering or updating a webhook, choosing a security strategy (Signature vs Token),
-  adding custom headers to a webhook, subscribing to store events, writing conditional
-  webhook rules, verifying webhook signatures, handling the standard payload envelope,
-  setting up a webhook server with Node.js/Express or Laravel/PHP, using the
-  @salla.sa/webhooks-actions npm package, using the Salla CLI to scaffold webhook
-  handlers, debugging webhook delivery failures, implementing idempotency, handling
-  app lifecycle events (app.store.authorize, app.installed, app.uninstalled, etc.),
-  or managing webhook versions (v1 vs v2).
-
-  Trigger also when you see: "webhook", "SallaWebhook", "webhook-actions-js",
-  "event subscription", "signature verification", "X-Salla-Signature",
-  "app.store.authorize", "order.created", "shipment.creating", "conditional webhook",
-  "webhook rule", "salla app create-webhook", or any Salla store event name.
-
-  Always use this skill before writing any webhook code.
+  Salla webhooks end to end — registering/subscribing, choosing a security strategy
+  (Signature vs Token), verifying signatures (`X-Salla-Signature`), the standard
+  payload envelope, idempotency, fast 200, conditional rules, and webhook versions
+  (v1/v2). Use when building a webhook server (Node/Express `@salla.sa/webhooks-actions`
+  or Laravel/PHP / Salla CLI), subscribing store or app events, or debugging delivery.
+  Prefer an App Function (salla-app-functions) when a trigger exists. Lifecycle event
+  handling → salla-app-lifecycle; token storage → salla-app-auth.
 ---
 
 # Salla Webhooks Flow
@@ -396,7 +387,7 @@ Subscribe to all of these — they keep your app in sync with merchant state:
 }
 ```
 
-Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-app-authorization**.
+Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-app-auth**.
 
 ---
 

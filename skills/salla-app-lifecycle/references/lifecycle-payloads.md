@@ -49,7 +49,7 @@ Fired on first install **and** on every app update (after `app.updated`). Always
 | `scope`         | string | Space-separated granted scopes                    |
 | `token_type`    | string | OAuth 2.0 token type, always `"bearer"`           |
 
-Handling rules (single-use refresh token, mutex on refresh) → **salla-app-authorization**.
+Handling rules (single-use refresh token, mutex on refresh) → **salla-app-auth**.
 
 ---
 

@@ -1,27 +1,13 @@
 ---
 name: salla-app-lifecycle
 description: >
-  Use this skill for any task involving Salla app lifecycle webhook events — the
-  events Salla fires as a merchant installs, updates, uninstalls, trials, and
-  subscribes to your app. Trigger when a developer is: handling `app.installed`,
-  `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,
-  `app.trial.expired`, `app.trial.canceled`, `app.subscription.started`,
-  `app.subscription.renewed`, `app.subscription.expired`, `app.subscription.canceled`,
-  `app.feedback.created`, or `app.settings.updated`; provisioning resources on
-  install; cleaning up merchant data on uninstall; deciding what to do when an app
-  is updated; building a merchant state machine (installed → trial → active →
-  expired → uninstalled); or wiring the order in which install + authorize events
-  arrive.
-
-  Trigger also when you see: "app.installed", "app.uninstalled", "app.store.authorize",
-  "app.updated", "app.trial.started", "app.subscription.started", "lifecycle event",
-  "install webhook", "uninstall cleanup", "store_type", "development store",
-  "demo store", or any question about reacting to install/trial/subscription state.
-
-  Always use this skill before writing any lifecycle event handler. Builds on the
-  salla-webhooks skill (signature verification, idempotency, fast 200) and the
-  salla-app-authorization skill (token storage). For plan/trial state logic see
-  salla-app-billing.
+  Salla app lifecycle webhook events — what Salla fires as a merchant installs,
+  updates, uninstalls, trials, and subscribes. Use when handling `app.installed`,
+  `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.*`, or
+  `app.subscription.*`; provisioning on install; cleaning up on uninstall; or building
+  the merchant state machine (installed → trial → active → expired → uninstalled).
+  Builds on salla-webhooks (signature, idempotency, fast 200) and salla-app-auth
+  (token storage). Plan/trial state and entitlements → salla-app-billing.
 ---
 
 # Salla App Lifecycle Flow
@@ -46,7 +32,7 @@ _performs actions_:
 > (`event`, `merchant`, `created_at`, `data`). **Verify the signature, respond `200`
 > within 3 s, then process asynchronously. Always upsert keyed by `merchant`.**
 > Prerequisites: signature + idempotency + fast 200 → **salla-webhooks**; token
-> persistence from `app.store.authorize` → **salla-app-authorization**.
+> persistence from `app.store.authorize` → **salla-app-auth**.
 
 ### Event Catalog (reference)
 
@@ -126,7 +112,7 @@ if (payload.event === "app.installed") {
 }
 
 if (payload.event === "app.store.authorize") {
-  // Persist tokens — see salla-app-authorization for the full upsert + refresh rules.
+  // Persist tokens — see salla-app-auth for the full upsert + refresh rules.
   const { access_token, refresh_token, expires, scope } = payload.data;
   await db.merchants.upsert({
     where: { id: payload.merchant },
@@ -270,7 +256,7 @@ Gate features on `status` (and on addon entitlements — see salla-app-billing).
 | ------------------- | ---------------------------------- |
 | App Events docs     | https://docs.salla.dev/421413m0.md |
 | Webhooks (security) | salla-webhooks skill               |
-| Token handling      | salla-app-authorization skill      |
+| Token handling      | salla-app-auth skill               |
 | Plan/trial state    | salla-app-billing skill            |
 | Partners Portal     | https://salla.partners             |
 | Telegram community  | https://t.me/salladev              |

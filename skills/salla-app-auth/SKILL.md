@@ -19,11 +19,11 @@ MCP; the token handling is runtime code.
 
 ## Tools & MCPs
 
-| Tool           | Action               | What it does                                                    |
-| -------------- | -------------------- | --------------------------------------------------------------- |
-| `salla_apps`   | `get`                | Read the app's valid OAuth scope slugs + current selection      |
-| `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call |
-| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)         |
+| Tool           | Action               | What it does                                                            |
+| -------------- | -------------------- | ----------------------------------------------------------------------- |
+| `salla_scopes` | `get` / `set`        | Read or update the app's OAuth scopes (slugs, disabled flags, selected) |
+| `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call         |
+| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)                 |
 
 > Easy Mode is required for all published App Store apps. Custom Mode is for local dev and
 > Postman testing only. Docs: https://docs.salla.dev/421118m0.md · App Events:
@@ -60,8 +60,9 @@ MCP; the token handling is runtime code.
 
 Set up the OAuth + webhook config that makes tokens flow. Do this with the Partners MCP:
 
-1. **Scopes** — read the valid slugs + current selection from `salla_apps action=get`,
-   `app_id` (there is no scope-catalog reference endpoint).
+1. **Scopes** — read the slugs (+ per-app disabled flags) with `salla_scopes action=get`,
+   `app_id`; update them with `salla_scopes action=set` (a flat
+   `slug → "read" | "read_write" | ""` map) or as part of Connect below.
 2. **Connect** — `salla_apps action=connect`, `app_id`, with `scopes`
    (`{ "<slug>": "read" | "read_write" }` — slug and access level are separate keys,
    e.g. `{"orders": "read_write"}`). For Easy Mode also pass `webhook_url` +
@@ -324,7 +325,7 @@ scope=offline_access orders.read_write products.read customers.read_write
 ```
 
 `offline_access` must NOT be put in the `connect` scopes map. Confirm the app's valid
-resource slugs via `salla_apps action=get`:
+resource slugs (and per-app disabled flags) via `salla_scopes action=get`:
 
 ```text
 orders          products        customers       branches

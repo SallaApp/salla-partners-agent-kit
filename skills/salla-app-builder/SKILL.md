@@ -302,11 +302,11 @@ Publishing guide: https://salla.dev/blog/standards-salla-apps-publications/
 
 ## Resources
 
-| Topic                          | Link                              |
-| ------------------------------ | --------------------------------- |
-| Partners Portal                | https://portal.salla.partners/    |
-| Apps Marketplace               | https://apps.salla.sa/en          |
-| Webhooks guide + event list    | https://docs.salla.dev/421119m0   |
-| App Events (lifecycle)         | https://docs.salla.dev/doc-421413 |
-| Salla Admin API reference      | https://docs.salla.dev/doc-421117 |
-| Developer community (Telegram) | https://t.me/salladev             |
+| Topic                          | Link                            |
+| ------------------------------ | ------------------------------- |
+| Partners Portal                | https://portal.salla.partners/  |
+| Apps Marketplace               | https://apps.salla.sa/en        |
+| Webhooks guide + event list    | https://docs.salla.dev/421119m0 |
+| App Events (lifecycle)         | https://docs.salla.dev/421413m0 |
+| Salla Admin API reference      | https://docs.salla.dev/421117m0 |
+| Developer community (Telegram) | https://t.me/salladev           |

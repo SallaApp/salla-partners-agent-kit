@@ -29,9 +29,9 @@ starts checkout; `app.subscription.started` (addon) finishes it.
 
 ## Tools & MCPs
 
-**Two MCPs:** `apidog-mcp-server` (site-id `451700`) is _read-only_ — confirm the
-purchase/redirect mechanism and the `app.subscription.started` (addon) payload before
-coding. The **Salla Partners MCP** _performs actions_: use `salla_events action=subscribe`
+Confirm the purchase/redirect mechanism and the `app.subscription.started` (addon) payload
+from the public Salla docs (https://docs.salla.dev — see **salla-docs**) before coding. The
+**Salla Partners MCP** _performs actions_: use `salla_events action=subscribe`
 to subscribe the app to `app.subscription.started` (the activation source of truth, Step
 3). The in-iframe purchase itself is an **embedded-SDK call, not an MCP tool**.
 

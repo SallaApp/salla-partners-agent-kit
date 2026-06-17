@@ -20,8 +20,9 @@ moving on. Steps 1, 2 and 5 **perform actions** with the Salla Partners MCP; Ste
 
 ## Tools & MCPs
 
-**Two MCPs:** `apidog-mcp-server` (site-id `451700`) is _read-only_ — confirm payloads and
-the subscriptions schema before coding. The **Salla Partners MCP** _performs actions_:
+Confirm payloads and the subscriptions schema from the public Salla docs
+(https://docs.salla.dev — see **salla-docs**) before coding. The **Salla Partners MCP**
+_performs actions_:
 
 | Tool           | Action               | What it does                                                       |
 | -------------- | -------------------- | ------------------------------------------------------------------ |

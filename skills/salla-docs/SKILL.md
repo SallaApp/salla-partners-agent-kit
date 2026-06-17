@@ -3,10 +3,9 @@ name: salla-docs
 description: >
   Find the right Salla documentation or API schema fast. Use when you need a doc link,
   an endpoint's exact request/response shape, an event payload schema, or you're unsure
-  where something is documented. Routes each topic to its scoped docs entry point and
-  uses the apidog-mcp-server docs MCP (site-id 451700) for live API specs. Never start
-  from the full docs index (llms.txt) — it spans the Merchant API, storefront themes,
-  and more; app development is only a small slice of it.
+  where something is documented. Routes each topic to its scoped public docs entry point
+  on docs.salla.dev. Never start from the full docs index (llms.txt) — it spans the
+  Merchant API, storefront themes, and more; app development is only a small slice of it.
 ---
 
 # Salla Docs — Find the Right Reference
@@ -21,14 +20,14 @@ Each Salla skill embeds its own deep links and verified deltas. If a skill cover
 topic, follow it instead of the docs ([salla-app-expert](../salla-app-expert/SKILL.md)
 routes by intent). Come here when the skills don't answer it.
 
-## 2. API shapes → the docs MCP
+## 2. API shapes → the scoped docs page
 
-For an endpoint's exact request/response or an event's payload schema, query
-**`apidog-mcp-server`** (site-id `451700`, read-only):
+For an endpoint's exact request/response or an event's payload schema, open the scoped
+page on **docs.salla.dev** (table below) instead of guessing:
 
-- Search for the endpoint or event name first, then fetch its schema.
-- Trust the MCP over prose docs for field names and types — it serves the live spec.
-- It covers the Partner API, app events, and webhook payloads.
+- Find the endpoint or event on its topic page, then read the request/response schema.
+- Trust the published spec for field names and types.
+- The Partner API, app events, and webhook payloads each have a scoped page below.
 
 ## 3. Topic → scoped docs entry point
 
@@ -36,15 +35,15 @@ Open the scoped page, not an index:
 
 | Topic                            | Entry point                                            |
 | -------------------------------- | ------------------------------------------------------ |
-| OAuth 2.0 (Easy & Custom Mode)   | https://docs.salla.dev/doc-421118                      |
+| OAuth 2.0 (Easy & Custom Mode)   | https://docs.salla.dev/421118m0                        |
 | Webhooks guide + event list      | https://docs.salla.dev/421119m0                        |
-| App events (lifecycle)           | https://docs.salla.dev/doc-421413                      |
-| App Functions — overview         | https://docs.salla.dev/1726817m0                       |
+| App events (lifecycle)           | https://docs.salla.dev/421413m0                        |
+| App Functions — overview         | https://docs.salla.dev/1726814m0                       |
 | App Functions — supported events | https://docs.salla.dev/1726818m0                       |
 | Storefront events (snippets)     | https://docs.salla.dev/1724504m0                       |
-| Communication App payloads       | https://docs.salla.dev/2006119m0                       |
+| Communication App payloads       | https://docs.salla.dev/1380572m0                       |
 | Embedded SDK modules             | https://docs.salla.dev/embedded-sdk/                   |
-| Merchant/Admin API reference     | https://docs.salla.dev/doc-421117                      |
+| Merchant/Admin API reference     | https://docs.salla.dev/421117m0                        |
 | App Settings form (guide)        | https://salla.dev/blog/how-to-build-app-settings-form/ |
 
 ## 4. Know what to avoid

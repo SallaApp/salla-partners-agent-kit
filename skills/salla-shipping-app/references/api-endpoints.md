@@ -208,4 +208,4 @@ Test all endpoints interactively:
 | Topic                       | Link                               |
 | --------------------------- | ---------------------------------- |
 | Full Shipping API reference | https://docs.salla.dev/api-5578809 |
-| Salla Admin API reference   | https://docs.salla.dev/doc-421117  |
+| Salla Admin API reference   | https://docs.salla.dev/421117m0    |

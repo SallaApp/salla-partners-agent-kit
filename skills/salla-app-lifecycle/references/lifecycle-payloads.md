@@ -1,7 +1,7 @@
 # App Lifecycle — Payload Reference
 
-Source: https://docs.salla.dev/421413m0 — confirm exact fields via the MCP
-(`apidog-mcp-server`, site-id 451700) before depending on them.
+Source: https://docs.salla.dev/421413m0 — confirm exact fields from the public Salla docs
+(see the salla-docs skill) before depending on them.
 
 Every event uses the standard webhook envelope:
 

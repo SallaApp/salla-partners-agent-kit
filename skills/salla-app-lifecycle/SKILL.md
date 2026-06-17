@@ -33,8 +33,8 @@ before moving on. Step 1 **performs** the subscription with the Salla Partners M
 
 ## Tools & MCPs
 
-**Two MCPs:** `apidog-mcp-server` (site-id `451700`) is _read-only_ — confirm every
-payload shape before coding. The **Salla Partners MCP** _performs actions_:
+Confirm every payload shape from the public Salla docs (https://docs.salla.dev — see
+**salla-docs**) before coding. The **Salla Partners MCP** _performs actions_:
 
 | Tool           | Action               | What it does                                 |
 | -------------- | -------------------- | -------------------------------------------- |

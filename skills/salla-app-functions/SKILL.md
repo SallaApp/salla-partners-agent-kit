@@ -31,14 +31,29 @@ the logic, Salla runs it in a sandboxed V8 runtime. Follow the steps in order; c
 each gate before moving on. Steps 1–3 are mostly code you author; Steps 4–5 **perform
 actions** with the Salla Partners MCP.
 
+**Prefer an App Function over a webhook whenever a trigger exists.** Salla runs the code,
+so it is:
+
+- **Secure without signature verification** — it runs inside Salla's sandbox, so there's
+  no inbound request and no `X-Salla-Signature` to validate.
+- **Settings-aware** — the merchant's saved settings arrive in `context.settings`; no
+  extra fetch.
+- **Pre-authenticated** — call the Salla Admin API straight from the handler with
+  **built-in authentication** (the function is already authorized for the app — no token
+  storage or refresh to manage).
+- **Synchronous and actionable** — on an action event such as `shipment.creating` it runs
+  **before** the operation and your return value shapes or blocks it; a webhook can only
+  react after the fact.
+
+Fall back to a webhook (**salla-webhooks**) only when no App Function trigger exists.
+
 ## Tools & MCPs
 
-**Two MCPs — different jobs:**
+Confirm each event's live `payload.data` shape from the public Salla docs
+(https://docs.salla.dev) before writing a handler — use the **salla-docs** skill to find
+the right page. Never assume a payload.
 
-- **`apidog-mcp-server`** (site-id: `451700`) — _read-only_. Query for the live event
-  list and each event's `payload.data` shape before writing a handler. Never assume a
-  payload.
-- **Salla Partners MCP** — _performs actions_:
+The **Salla Partners MCP** _performs actions_:
 
 | Tool              | Action              | What it does                                           |
 | ----------------- | ------------------- | ------------------------------------------------------ |
@@ -49,7 +64,7 @@ actions** with the Salla Partners MCP.
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** —
 > never re-declare or import them in code you paste into the Portal.
 >
-> Docs: https://docs.salla.dev/1726817m0 (overview) · https://docs.salla.dev/1726818m0
+> Docs: https://docs.salla.dev/1726814m0 (overview) · https://docs.salla.dev/1726818m0
 > (events) · https://docs.salla.dev/1726816m0 (testing)
 
 ---
@@ -67,9 +82,10 @@ Ask before starting:
 
 ## Step 1 — Confirm the Event Contract
 
-Query `apidog-mcp-server` (site-id `451700`) for the event's exact `payload.data` shape
-**before** writing any handler. The event → typed-context mapping and the supported
-trigger list live in **[references/event-contexts.md](references/event-contexts.md)**.
+Confirm the event's exact `payload.data` shape from the public Salla docs
+(https://docs.salla.dev — use the **salla-docs** skill) **before** writing any handler.
+The event → typed-context mapping and the supported trigger list live in
+**[references/event-contexts.md](references/event-contexts.md)**.
 
 **Gate:** "Do you have the confirmed `payload.data` field names for this event?"
 
@@ -268,7 +284,7 @@ Checklist:
 
 | Resource               | URL                                                                  |
 | ---------------------- | -------------------------------------------------------------------- |
-| App Functions overview | https://docs.salla.dev/1726817m0                                     |
+| App Functions overview | https://docs.salla.dev/1726814m0                                     |
 | Get started            | https://docs.salla.dev/1726815m0                                     |
 | Supported events       | https://docs.salla.dev/1726818m0                                     |
 | Testing guide          | https://docs.salla.dev/1726816m0                                     |

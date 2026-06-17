@@ -45,8 +45,8 @@ agent). One routing brain, three surfaces — keep them in sync.
   (`salla-app-functions`, preferred); otherwise → webhook (`salla-webhooks`).
 - **Act through the MCP** when connected (`salla_apps`, `salla_events`, …) instead of
   hand-writing Portal HTTP calls. Connection guide: `docs/getting-started.md`.
-- **Finding docs**: use the `salla-docs` skill — scoped entry points + the apidog docs
-  MCP. Don't read `docs.salla.dev/llms.txt` wholesale; most of it is not app
+- **Finding docs**: use the `salla-docs` skill — scoped public docs entry points on
+  docs.salla.dev. Don't read `docs.salla.dev/llms.txt` wholesale; most of it is not app
   development.
 
 ## Repository layout

@@ -2,8 +2,9 @@
 
 Supported triggers selectable from the Portal **Select Action** dropdown, grouped by
 category. **Always confirm the exact `payload.data` fields and the typed-context name for
-a given event via the MCP (`apidog-mcp-server`, site-id 451700) before writing a handler** —
-only a subset of context interface names is publicly documented.
+a given event from the public Salla docs (https://docs.salla.dev — use the salla-docs
+skill) before writing a handler** — only a subset of context interface names is publicly
+documented.
 
 Full event reference: https://docs.salla.dev/1726818m0
 

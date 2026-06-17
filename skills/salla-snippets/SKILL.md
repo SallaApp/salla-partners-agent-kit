@@ -133,5 +133,5 @@ correctly."
 | ---------------------- | ----------------------------------- |
 | Device Mode Usage      | https://docs.salla.dev/1724504m0.md |
 | Cloud Mode Usage       | https://docs.salla.dev/1724667m0.md |
-| App Functions Overview | https://docs.salla.dev/1726817m0.md |
+| App Functions Overview | https://docs.salla.dev/1726814m0.md |
 | App Functions Events   | https://docs.salla.dev/1726818m0.md |

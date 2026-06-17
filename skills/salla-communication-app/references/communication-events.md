@@ -4,7 +4,7 @@ Communication Apps send messages on behalf of merchants. Salla fires an App Func
 for each notification — your function delivers it via SMS, WhatsApp, email, or any
 other channel.
 
-Payload reference: https://docs.salla.dev/2006119m0 | Examples: https://docs.salla.dev/2006120m0
+Payload reference: https://docs.salla.dev/1380572m0 | Examples: https://docs.salla.dev/1740884m0
 
 ## Events
 

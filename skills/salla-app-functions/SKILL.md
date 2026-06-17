@@ -4,7 +4,7 @@ description: >
   Router for building Salla App Functions — serverless TS/JS handlers Salla runs in a
   sandboxed V8 on store events (e.g. `order.created`, `shipment.creating`). Start here for
   any App Function task, then follow the step skills: design the trigger, write the handler,
-  validate, release. Prefer App Functions over webhooks; act with `salla_functions`. Builds
+  validate, test, release. Prefer App Functions over webhooks; act with `salla_functions`. Builds
   on salla-api-core and salla-webhooks.
 ---
 
@@ -39,10 +39,10 @@ Fall back to a webhook (**salla-webhooks**) only when no App Function trigger ex
 
 ## Act with the Salla Partners MCP
 
-| Tool              | Action                                      | What it does                                                                                          |
-| ----------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `salla_functions` | `list_triggers` / `get` / `save` / `delete` | List triggers; read a trigger's `template` + `types` (.d.ts URLs) and saved `content`; upsert; delete |
-| `salla_apps`      | `publish`                                   | Submit the app for review (releases the function to real stores)                                      |
+| Tool              | Action                                                          | What it does                                                                                                                |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `salla_functions` | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store |
+| `salla_apps`      | `publish`                                                       | Submit the app for review (releases the function to real stores)                                                            |
 
 > Sync actions must finish in **< 500 ms**; async events get **30 s**. `Resp`,
 > `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** — never

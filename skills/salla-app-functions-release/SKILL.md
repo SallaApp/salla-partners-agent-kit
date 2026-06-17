@@ -1,10 +1,10 @@
 ---
 name: salla-app-functions-release
 description: >
-  Final step for a Salla App Function: save it with `salla_functions action=save` (live on
-  demo stores immediately — no deploy step, no versions), test in the Portal preview panel,
-  then `salla_apps action=publish` for admin approval to reach real stores. Use after
-  validating. Routed from salla-app-functions.
+  Save & publish a Salla App Function: `salla_functions action=save` triggers an async deploy
+  to demo stores (returns a `job` — poll `action=deploy_status` until COMPLETED), then test
+  (salla-app-functions-test) and `salla_apps action=publish` for admin approval to reach real
+  stores. Use after validating. Routed from salla-app-functions.
 ---
 
 # App Functions — Save, Test & Publish
@@ -25,9 +25,10 @@ Every function is **keyed by its trigger**, so `get` / `save` / `delete` take `a
   URLs) + the app's saved `content` (or `null`).
 - **Remove:** `salla_functions action=delete`, `app_id`, `trigger`.
 
-**No deploy step, no versions.** Saving is **live on the app's demo stores immediately** —
-that's your test loop. You do **not** re-save the publication draft. It reaches **real stores
-only after the publish request is approved**:
+Saving triggers an **async deploy** to the app's demo stores — poll `deploy_status` (the
+save `job`) until `COMPLETED`, then test it (**salla-app-functions-test**). You don't call a
+separate deploy action, manage versions, or re-save the publication draft. It reaches **real
+stores only after the publish request is approved**:
 
 - **Publish:** `salla_apps action=publish`, `app_id` (optional `update_note`) → review; admin
   approval releases it to live stores.

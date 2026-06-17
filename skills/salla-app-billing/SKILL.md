@@ -238,12 +238,11 @@ addon features merged into one set). Full payloads:
 
 ## Key Resources
 
-| Resource                 | URL                                 |
-| ------------------------ | ----------------------------------- |
-| Apps API                 | https://docs.salla.dev/421412m0.md  |
-| App Events               | https://docs.salla.dev/421413m0.md  |
-| App Subscription details | https://docs.salla.dev/api-5401098  |
-| Lifecycle wiring         | salla-app-lifecycle skill           |
-| Feature gating           | this skill — see Entitlement Gating |
-| Partners Portal          | https://salla.partners              |
-| Telegram community       | https://t.me/salladev               |
+| Resource           | URL                                 |
+| ------------------ | ----------------------------------- |
+| Apps API           | https://docs.salla.dev/421412m0.md  |
+| App Events         | https://docs.salla.dev/421413m0.md  |
+| Lifecycle wiring   | salla-app-lifecycle skill           |
+| Feature gating     | this skill — see Entitlement Gating |
+| Partners Portal    | https://salla.partners              |
+| Telegram community | https://t.me/salladev               |

@@ -194,7 +194,7 @@ Publishing guide: https://docs.salla.dev/422990m0.md
 
 | Topic                        | Link                                                                                                                           |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Shipping API Reference       | https://docs.salla.dev/api-5578809                                                                                             |
+| Shipping API Reference       | https://docs.salla.dev/841806f0.md                                                                                             |
 | Shipping App Cycle           | https://docs.salla.dev/422994m0.md                                                                                             |
 | Create Shipping App          | https://docs.salla.dev/422995m0.md                                                                                             |
 | Setup Shipping App           | https://docs.salla.dev/422996m0.md                                                                                             |

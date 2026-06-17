@@ -23,7 +23,7 @@ in order; complete each gate before moving on. This is runtime code against a **
 `access_token`** (obtained via salla-app-authorization) — not a Partners MCP action.
 
 **Base URL:** `https://api.salla.dev/admin/v2` (all paths below are relative to it).
-Docs: https://docs.salla.dev/ · Get Started: https://docs.salla.dev/421117m0.md
+Docs (Get Started): https://docs.salla.dev/421117m0.md
 
 ## Step 0 — Discover
 

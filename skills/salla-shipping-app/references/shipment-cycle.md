@@ -241,4 +241,4 @@ app.post("/webhook", verifySignature, async (req, res) => {
 | Topic                      | Link                               |
 | -------------------------- | ---------------------------------- |
 | Shipping App Cycle guide   | https://docs.salla.dev/422994m0.md |
-| Shipping API endpoint list | https://docs.salla.dev/api-5578809 |
+| Shipping API endpoint list | https://docs.salla.dev/841806f0.md |

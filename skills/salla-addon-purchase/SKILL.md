@@ -104,7 +104,7 @@ embedded.ui.loading.hide();
 
 The purchase entry point is the embedded SDK **Checkout module** — it exposes
 **Create Checkout**, **Get App Add-Ons**, and **Subscribe for Payment**:
-https://docs.salla.dev/embedded-sdk/modules/checkou.mdt.md
+https://docs.salla.dev/embedded-sdk/modules/checkout/create.md
 
 Use **Get App Add-Ons** to list the purchasable addons, **Create Checkout** to open
 Salla's checkout for the chosen addon, and **Subscribe for Payment** to hear the payment

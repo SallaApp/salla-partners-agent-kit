@@ -47,7 +47,7 @@ Add to your MCP config file:
   "mcpServers": {
     "salla-partners": {
       "type": "http",
-      "url": "https://mcp.salla.dev/partners"
+      "url": "https://partners.mcp.salla.dev"
     }
   }
 }
@@ -56,7 +56,7 @@ Add to your MCP config file:
 **Claude Code** — run instead of editing a file:
 
 ```bash
-claude mcp add --transport http salla-partners https://mcp.salla.dev/partners
+claude mcp add --transport http salla-partners https://partners.mcp.salla.dev
 ```
 
 Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibility.)
@@ -65,7 +65,7 @@ Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibi
 `.cursor/mcp.json` (per-project), reload, then Settings → MCP to authorize.
 
 **Claude Desktop** — Settings → Connectors → Add custom connector →
-`https://mcp.salla.dev/partners`, approve in browser.
+`https://partners.mcp.salla.dev`, approve in browser.
 
 ---
 
@@ -126,7 +126,7 @@ Use a skill by name when you want a specific flow: _"use the salla-shipping-app 
 
 | Symptom               | Fix                                                                                                              |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Tools don't appear    | Check connection (Claude Code: `/mcp`; Cursor: Settings → MCP). Confirm URL is `https://mcp.salla.dev/partners`. |
+| Tools don't appear    | Check connection (Claude Code: `/mcp`; Cursor: Settings → MCP). Confirm URL is `https://partners.mcp.salla.dev`. |
 | Session expired       | Token lapsed (~14 days). Re-authorize via your client's MCP login.                                               |
 | Tool unknown/disabled | Some tools are server-gated (e.g. `salla_functions` needs the App Builder service). Contact your Salla admin.    |
 | Skill not triggering  | Name it explicitly or re-run `npx plugins add SallaApp/salla-partners-ai-plugin`.                                |

@@ -115,3 +115,8 @@ Make each of these three decisions explicitly, up front, and state your choice. 
     addtoany/getbutton SSL, Poptin 401, Cloudflare rocket-loader, Snapchat pixel) appear on
     every storefront and are not your app's fault — see
     `salla-snippets/references/device-mode.md`.
+
+12. **Authenticate every merchant interface.** Every merchant dashboard page AND the APIs it
+    calls MUST be authenticated server-side via the verified embedded session — there are no
+    unauthenticated pages, and merchant identity is never taken from client input (query
+    param, referer). → `salla-embedded-app` (Security guidelines).

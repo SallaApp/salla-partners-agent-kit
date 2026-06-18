@@ -54,8 +54,8 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    - Merchant settings → `salla-app-settings`
    - Plans, addons, entitlements, balance, plan/subscription state → `salla-app-billing`
    - Post-install setup / onboarding steps → `salla-app-builder`
-   - In-app addon purchase (general / billing) → `salla-addon-purchase`
-   - In-app addon purchase inside embedded iframe → `salla-addon-purchase-embedded`
+   - Addon billing lifecycle (activation, renewal, entitlement) → `salla-addon-purchase`
+   - In-app addon purchase UX (embedded flow) → `salla-addon-purchase-embedded`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`

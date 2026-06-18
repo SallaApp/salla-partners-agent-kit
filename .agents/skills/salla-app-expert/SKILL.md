@@ -70,8 +70,8 @@ before reaching for a webhook.
 | Per-merchant settings schema & values                                                              | [salla-app-settings](../salla-app-settings/SKILL.md)                       |
 | Plans, addons, trials, entitlement gating, usage balance, plan/subscription state & reconciliation | [salla-app-billing](../salla-app-billing/SKILL.md)                         |
 | Post-install setup / onboarding steps                                                              | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
-| Selling an addon (general / billing)                                                               | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
-| Selling an addon inside an embedded iframe                                                         | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
+| Addon billing lifecycle (activation, renewal, entitlement, gating)                                 | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
+| In-app addon purchase UX (embedded flow)                                                           | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | SMS / WhatsApp / email channel apps                                                                | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                 | [salla-api-core](../salla-api-core/SKILL.md)                               |

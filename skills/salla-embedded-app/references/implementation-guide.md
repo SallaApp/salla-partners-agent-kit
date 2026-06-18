@@ -291,10 +291,10 @@ The vanilla flow ports directly; watch these per-framework gotchas:
 
 ## Resources
 
-| Topic                  | Link                                           |
-| ---------------------- | ---------------------------------------------- |
-| SDK module methods     | [`sdk-modules-guide.md`](sdk-modules-guide.md) |
-| Auth & session         | [`auth-and-session.md`](auth-and-session.md)   |
-| Design tokens / RTL    | [`design-guidelines.md`](design-guidelines.md) |
-| Create / register page | https://docs.salla.dev/embedded-sdk/create-app |
-| Playground / Test Kit  | https://docs.salla.dev/embedded-sdk/playground |
+| Topic                  | Link                                              |
+| ---------------------- | ------------------------------------------------- |
+| SDK module methods     | [`sdk-modules-guide.md`](sdk-modules-guide.md)    |
+| Auth & session         | [`auth-and-session.md`](auth-and-session.md)      |
+| Design tokens / RTL    | [`design-guidelines.md`](design-guidelines.md)    |
+| Create / register page | https://docs.salla.dev/embedded-sdk/create-app.md |
+| Playground / Test Kit  | https://docs.salla.dev/embedded-sdk/playground.md |

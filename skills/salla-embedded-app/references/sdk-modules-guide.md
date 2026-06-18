@@ -208,7 +208,7 @@ reloads the iframe).
 ## Full Module Reference
 
 Per-module pages don't have public URLs yet — the methods above are the working reference. For the
-SDK overview and the published guides, see https://docs.salla.dev/embedded-sdk/overview.md.
+SDK overview and the published guides, see https://docs.salla.dev/embedded-sdk/overview.md
 
 | Module   | Methods covered here                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------- |

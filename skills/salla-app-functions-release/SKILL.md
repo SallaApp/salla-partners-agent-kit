@@ -27,11 +27,7 @@ Every function is **keyed by its trigger**, so `get` / `save` / `delete` take `a
 
 Saving triggers an **async deploy** to the app's demo stores — poll `deploy_status` (the
 save `job`) until `COMPLETED`, then test it (**salla-app-functions-test**). You don't call a
-separate deploy action, manage versions, or re-save the publication draft. It reaches **real
-stores only after the publish request is approved**:
-
-- **Publish:** `salla_apps action=publish`, `app_id` (optional `update_note`) → review; admin
-  approval releases it to live stores.
+separate deploy action, manage versions, or re-save the publication draft.
 
 ## Test before publishing
 
@@ -39,6 +35,15 @@ Run it on a demo store with `salla_functions action=preview` — see
 **salla-app-functions-test**. (Manual alternative: the Portal preview panel → pick a demo
 store, enter a real record id, **Save and Preview**.) **Never log secrets** — preview logs
 are visible.
+
+## Publish (production)
+
+This step's only action is **publish** — do **not** re-run `save` (that just queues another
+deploy). The already-saved function reaches **real merchant stores only after the publish
+request is approved**:
+
+- **Publish:** `salla_apps action=publish`, `app_id` (optional `update_note`) → submit for
+  review; admin approval releases the saved function to live stores.
 
 ## Checklist
 

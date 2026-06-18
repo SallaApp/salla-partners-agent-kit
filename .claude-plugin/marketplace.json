@@ -6,22 +6,16 @@
   },
   "plugins": [
     {
-      "name": "salla-partners-ai-plugin",
+      "name": "salla-partners",
       "source": "./",
       "description": "Build Salla Apps with AI \u2014 skills and a master agent for the full app lifecycle, powered by the Salla Partners MCP.",
       "author": {
         "name": "Salla Dev Team",
         "url": "https://salla.partners"
       },
-      "repository": "https://github.com/SallaApp/salla-partners-ai-plugin",
+      "repository": "https://github.com/SallaApp/salla-partners-agent-kit",
       "license": "LicenseRef-Salla-Proprietary",
-      "keywords": [
-        "salla",
-        "mcp",
-        "skills",
-        "agent",
-        "ecommerce"
-      ]
+      "keywords": ["salla", "mcp", "skills", "agent", "ecommerce"]
     }
   ]
 }

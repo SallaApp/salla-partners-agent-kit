@@ -1,15 +1,15 @@
 {
-  "name": "salla-partners-ai-plugin",
+  "name": "salla-partners-agent-kit",
   "version": "1.0.0",
   "description": "Build Salla Apps with AI — 25 skills and a master agent covering the full app lifecycle: create, hook, monetize, publish.",
   "author": {
     "name": "Salla Dev Team",
     "url": "https://salla.partners"
   },
-  "homepage": "https://github.com/SallaApp/salla-partners-ai-plugin",
+  "homepage": "https://github.com/SallaApp/salla-partners-agent-kit",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SallaApp/salla-partners-ai-plugin.git"
+    "url": "https://github.com/SallaApp/salla-partners-agent-kit.git"
   },
   "license": "LicenseRef-Salla-Proprietary",
   "keywords": [

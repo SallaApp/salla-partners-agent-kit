@@ -1,4 +1,4 @@
-# AGENTS.md — Salla Partners AI Plugin
+# AGENTS.md — Salla Partners Agent Kit
 
 Guidance for any AI agent working in (or installed from) this repository.
 
@@ -50,12 +50,19 @@ agent). One routing brain, three surfaces — keep them in sync.
 
 ## Repository layout
 
-- `skills/` — the canonical skills (Agent Skills standard: `SKILL.md` + `references/`).
-- `.cursor/skills/`, `.github/skills/` — **generated symlinks** to `skills/` for Cursor
-  and GitHub Copilot. Never hand-edit; recreate with
-  `ln -sfn ../../skills/<name> .cursor/skills/<name>` (same for `.github/skills/`).
-- `agents/` — the master agent definition (Claude Code plugin format).
-- `.claude-plugin/` — plugin + marketplace manifests for Claude Code.
+- `.agents/skills/` — the **single canonical skill tree** (Agent Skills standard:
+  `SKILL.md` + `references/`). Real directories, **no symlinks**. GitHub Copilot discovers
+  it natively; every host manifest below points at it. Never commit a per-host mirror.
+- `.claude-plugin/plugin.json` — Claude Code manifest; `"skills": "./.agents/skills/"`
+  adds the canonical tree to Claude's scan. `.claude-plugin/marketplace.json` — marketplace.
+- `.codex-plugin/plugin.json` — Codex manifest; `"skills": "./.agents/skills/"` +
+  `"mcpServers": "./.mcp.json"`.
+- `.mcp.json` — the Salla Partners MCP server (`https://partners.mcp.salla.dev`), shared by
+  all hosts (Claude/Codex auto-load it from the plugin root).
+- `agents/`, `commands/` — the master agent + audit command (Claude Code plugin components).
+- **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
+  Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
+  `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.
 
 ## Editing rules
 

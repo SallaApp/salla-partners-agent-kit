@@ -1,4 +1,4 @@
-# Salla Partners AI Plugin
+# Salla Partners Agent Kit
 
 Build Salla apps with AI. This plugin gives any coding agent the **skills** to reason
 about the Salla platform natively and — with the Partners MCP server — the **tools** to
@@ -8,15 +8,15 @@ act on it: create, configure, hook, monetize, and publish apps without touching 
 
 ```bash
 # Claude Code — skills + master agent
-claude plugin marketplace add SallaApp/salla-partners-ai-plugin
+claude plugin marketplace add SallaApp/salla-partners-agent-kit
 
 # All other agents (Cursor, Copilot, Codex, etc.)
-npx plugins add SallaApp/salla-partners-ai-plugin
+npx plugins add SallaApp/salla-partners-agent-kit
 ```
 
 For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/getting-started.md)**.
 
-## Skills — 20 across 5 layers
+## Skills — 25 across 5 layers
 
 | Layer                    | Skills                                                                                                          |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
@@ -35,4 +35,5 @@ Each skill is a step-by-step workflow with checkpoints; agents load them on dema
 npm run validate
 ```
 
-Checks skill count, metadata, file references, and symlink consistency.
+Checks skill count, metadata, manifest skill paths, file references, and that the tree is
+symlink-free (`scripts/check-no-symlinks.sh` — Codex/Cursor install safety).

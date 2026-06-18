@@ -1,4 +1,4 @@
-# Getting Started — Salla Partners AI Plugin
+# Getting Started — Salla Partners Agent Kit
 
 This plugin has two halves: **skills** (knowledge — step-by-step workflows for every
 Salla surface) and the **Partners MCP** (actions — tools that create apps, configure
@@ -21,17 +21,19 @@ agent act for you.
 **Claude Code** (skills + master agent):
 
 ```bash
-claude plugin marketplace add SallaApp/salla-partners-ai-plugin
+claude plugin marketplace add SallaApp/salla-partners-agent-kit
 ```
 
 **All other agents** (Cursor, Copilot, Codex, etc.):
 
 ```bash
-npx plugins add SallaApp/salla-partners-ai-plugin
+npx plugins add SallaApp/salla-partners-agent-kit
 ```
 
-**Manual** — clone and copy skills into your agent's skills directory, then add the MCP
-config below separately.
+**Manual** — the skills are one real tree at `.agents/skills/` (no symlinks). Point your
+agent at that directory (GitHub Copilot discovers `.agents/skills/` natively; Claude Code
+and Codex resolve it via `.claude-plugin/plugin.json` / `.codex-plugin/plugin.json`), then
+add the MCP config below separately.
 
 ---
 
@@ -129,7 +131,7 @@ Use a skill by name when you want a specific flow: _"use the salla-shipping-app 
 | Tools don't appear    | Check connection (Claude Code: `/mcp`; Cursor: Settings → MCP). Confirm URL is `https://partners.mcp.salla.dev`. |
 | Session expired       | Token lapsed (~14 days). Re-authorize via your client's MCP login.                                               |
 | Tool unknown/disabled | Some tools are server-gated (e.g. `salla_functions` needs the App Builder service). Contact your Salla admin.    |
-| Skill not triggering  | Name it explicitly or re-run `npx plugins add SallaApp/salla-partners-ai-plugin`.                                |
+| Skill not triggering  | Name it explicitly or re-run `npx plugins add SallaApp/salla-partners-agent-kit`.                                |
 | Skills only (no MCP)  | Skills work offline as a reference — you just can't execute Portal actions without MCP.                          |
 
 ---

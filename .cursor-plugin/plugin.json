@@ -11,6 +11,5 @@
   "license": "LicenseRef-Salla-Proprietary",
   "keywords": ["salla", "mcp", "skills", "agent", "ecommerce"],
   "skills": "./.agents/skills/",
-  "agents": ["./agents/salla-app-expert.md"],
-  "commands": ["./commands/audit.md"]
+  "mcpServers": "./.mcp.json"
 }

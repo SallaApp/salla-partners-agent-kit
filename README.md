@@ -2,7 +2,13 @@
 
 Build Salla apps with AI. This plugin gives any coding agent the **skills** to reason
 about the Salla platform natively and — with the Partners MCP server — the **tools** to
-act on it: create, configure, hook, monetize, and publish apps without touching the Portal.
+act on it: create, configure, hook, monetize, and publish apps without touching the Partners Portal.
+
+## Prerequireisite
+
+1. A **Salla Partner account**: sign up at https://salla.partners
+2. A supported AI client: Claude Code, Cursor, Codex, or any MCP-capable client
+3. **Node.js 18+** for the `npx` skills installer and the `mcp-remote` bridge
 
 ## Install
 
@@ -37,3 +43,11 @@ npm run validate
 
 Checks skill count, metadata, manifest skill paths, file references, and that the tree is
 symlink-free (`scripts/check-no-symlinks.sh` — Codex/Cursor install safety).
+
+## Resources
+
+
+- Salla Developers Portal: https://portal.salla.partners
+- Developer Docs: https://docs.salla.dev
+- App Marketplace: https://apps.salla.sa/en
+- Telegram Community: https://t.me/salladev

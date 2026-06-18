@@ -207,7 +207,7 @@ Non-negotiable for every handler above:
 
 - **Verify the signature first** (HMAC-SHA256, timing-safe) — reject otherwise.
 - **Respond `200` within 3 s**, then process async. Salla retries failed deliveries
-  (non-2xx / timeout) up to 5 times with exponential backoff.
+  (non-2xx / timeout) **3 times** (waits 30s, 15s, 10s) — see salla-webhooks.
 - **Be idempotent** — `created_at` is second-resolution, so
   `${merchant}:${event}:${created_at}` collides if the same merchant fires two same-type
   events in one second. Add a stronger discriminator when the payload offers one

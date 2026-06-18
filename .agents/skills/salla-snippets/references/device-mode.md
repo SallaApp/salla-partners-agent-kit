@@ -51,13 +51,13 @@ Subscribe/unsubscribe: `salla.event.on(name, cb)` / `salla.event.off(name, cb)`.
 
 ---
 
-## Event Catalogue (verified on a live store)
+## Event Catalogue
 
-Twilight events are `::`-namespaced. **The single source of truth for the supported events is
-the Twilight JS SDK Events doc — https://docs.salla.dev/422611m0.md. Use ONLY events listed
-there.** `cart.add`, `product.view`, `order.success`, and `checkout.complete` are NOT in it —
-they do not exist; do not use them. The names below are verified examples (a subset of that
-doc) — confirm any event against the doc before relying on it.
+Twilight events are `::`-namespaced. **The single source of truth is the Twilight JS SDK
+Events doc — https://docs.salla.dev/422611m0.md (the complete, authoritative list). Use ONLY
+events it lists; anything not below must be checked there.** The names below are confirmed
+examples (a subset). `cart.add`, `product.view`, `order.success`, and `checkout.complete` do
+NOT exist — do not use them.
 
 ### Cart
 
@@ -82,7 +82,8 @@ doc) — confirm any event against the doc before relying on it.
 ### Platform / page
 
 `twilight::init`, `twilight::before.ready`, `twilight::initiated`, `twilight::api`,
-`twilight::notifier.changed`, `page.view`, `languages::translations.loaded`,
+`twilight::notifier.changed`, `page.view` (dotted — an exception),
+`languages::translations.loaded`,
 `auth::token.invalid`, `component::menus.fetched`, `salla-login::ready`,
 `document::request.failed`, `currency::fetched`,
 `advertisement::advertisement.fetched`.

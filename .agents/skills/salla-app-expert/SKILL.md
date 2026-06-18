@@ -32,9 +32,8 @@ everything downstream:
    (`salla_embedded_pages`, an iframe page inside the Salla dashboard), NEVER a custom
    dashboard outside it / a standalone `/dashboard?store_id=…` URL (no auth). → [salla-embedded-app](../salla-embedded-app/SKILL.md)
 
-**Skills are binding instructions, not references** — a stated requirement overrides familiar
-generic patterns; resolve ambiguity toward the skill. **Never ship guessed identifiers**
-(event names, DOM selectors, payload paths) — verify on a live demo store or the docs first.
+**Never ship guessed identifiers** (event names, DOM selectors, payload paths) — verify on a
+live demo store or the docs first.
 
 ## App types
 

@@ -10,7 +10,7 @@ description: >
   salla-addon-purchase; event wiring → salla-app-lifecycle.
 ---
 
-# Salla App Subscription Management Flow
+# Salla App Billing Flow
 
 Set up how merchants pay for your app and keep a reliable picture of each merchant's plan.
 Salla owns billing — you react to events and (optionally) read the subscriptions endpoint;

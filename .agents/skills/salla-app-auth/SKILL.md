@@ -2,12 +2,11 @@
 name: salla-app-auth
 description: >
   Salla OAuth 2.0 and merchant token management — the Salla delta on standard OAuth:
-  Easy Mode (tokens arrive via the app.store.authorize webhook, no callback URL; how
-  published apps work) vs Custom Mode (standard authorization-code, dev/testing only),
-  the offline_access scope, single-use refresh tokens that need a per-merchant refresh
-  lock, and the User Info endpoint. Use before writing any Salla token-handling code.
-  Lifecycle event handling → salla-app-lifecycle; webhook verification → salla-webhooks;
-  API usage → salla-api-core.
+  Easy Mode (tokens via the app.store.authorize webhook, no callback — published apps)
+  vs Custom Mode (authorization-code, dev/testing only), the offline_access scope,
+  single-use refresh tokens needing a per-merchant refresh lock, and the User Info
+  endpoint. Use before writing any Salla token-handling code. Lifecycle events →
+  salla-app-lifecycle; webhook verification → salla-webhooks; API usage → salla-api-core.
 ---
 
 # Salla App Auth Flow

@@ -62,6 +62,10 @@ agent). One routing brain, three surfaces — keep them in sync.
 - `.mcp.json` — the Salla Partners MCP server (`https://partners.mcp.salla.dev`), shared by
   all hosts (Claude/Codex auto-load it from the plugin root).
 - `agents/`, `commands/` — the master agent + audit command (Claude Code plugin components).
+- `hooks/` — a **SessionStart hook** (Claude Code auto-discovers `hooks/hooks.json`;
+  `hooks-codex.json` / `hooks-cursor.json` cover the other hosts via the polyglot
+  `run-hook.cmd`). It injects the routing rule in `hooks/session-start-context.md` so any
+  Salla app task starts with `salla-app-expert` before generic brainstorming/planning.
 - **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
   Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
   `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.

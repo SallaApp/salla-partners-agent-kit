@@ -148,7 +148,6 @@ salla.onReady(() => {
 
 ## Resources
 
-| Topic                   | Link                                           |
-| ----------------------- | ---------------------------------------------- |
-| Device Mode Usage Guide | https://docs.salla.dev/1724504m0.md            |
-| App Snippets guide      | https://salla.dev/blog/a-guide-to-app-snippet/ |
+| Topic                   | Link                                |
+| ----------------------- | ----------------------------------- |
+| Device Mode Usage Guide | https://docs.salla.dev/1724504m0.md |

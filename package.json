@@ -21,6 +21,7 @@
   ],
   "private": true,
   "scripts": {
-    "validate": "node scripts/validate-structure.mjs"
+    "validate": "node scripts/validate-structure.mjs",
+    "find-blog-links": "bash scripts/find-blog-links.sh"
   }
 }

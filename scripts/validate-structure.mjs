@@ -96,14 +96,16 @@ if (existsSync(skillsDir)) {
 // ── 5b. Manifests point at the canonical skill tree ──────────────────────────
 check(plugin?.skills === './.agents/skills/',
   '.claude-plugin/plugin.json: "skills" must be "./.agents/skills/"');
-const codexPlugin = readJSON('.codex-plugin/plugin.json');
-check(codexPlugin !== null, '.codex-plugin/plugin.json exists and is valid JSON');
-if (codexPlugin) {
-  check(codexPlugin.name, '.codex-plugin/plugin.json: missing "name"');
-  check(codexPlugin.skills === './.agents/skills/',
-    '.codex-plugin/plugin.json: "skills" must be "./.agents/skills/"');
-  check(codexPlugin.mcpServers === './.mcp.json',
-    '.codex-plugin/plugin.json: "mcpServers" must be "./.mcp.json"');
+// Vendor-neutral .plugin/plugin.json — the `plugins` CLI translates it to .codex-plugin/
+// (and any future CLI target) at install time. Write once.
+const openPlugin = readJSON('.plugin/plugin.json');
+check(openPlugin !== null, '.plugin/plugin.json exists and is valid JSON');
+if (openPlugin) {
+  check(openPlugin.name, '.plugin/plugin.json: missing "name"');
+  check(openPlugin.skills === './.agents/skills/',
+    '.plugin/plugin.json: "skills" must be "./.agents/skills/"');
+  check(openPlugin.mcpServers === './.mcp.json',
+    '.plugin/plugin.json: "mcpServers" must be "./.mcp.json"');
 }
 
 // ── 6. No symlinks anywhere in the distributable tree ────────────────────────

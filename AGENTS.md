@@ -53,10 +53,12 @@ agent). One routing brain, three surfaces — keep them in sync.
 - `.agents/skills/` — the **single canonical skill tree** (Agent Skills standard:
   `SKILL.md` + `references/`). Real directories, **no symlinks**. GitHub Copilot discovers
   it natively; every host manifest below points at it. Never commit a per-host mirror.
-- `.claude-plugin/plugin.json` — Claude Code manifest; `"skills": "./.agents/skills/"`
-  adds the canonical tree to Claude's scan. `.claude-plugin/marketplace.json` — marketplace.
-- `.codex-plugin/plugin.json` — Codex manifest; `"skills": "./.agents/skills/"` +
-  `"mcpServers": "./.mcp.json"`.
+- `.claude-plugin/plugin.json` — manifest for **Claude Code _and_ Cursor** (Cursor's CLI
+  install reuses `~/.claude/plugins`); `"skills": "./.agents/skills/"` adds the canonical
+  tree to the scan. `.claude-plugin/marketplace.json` — marketplace index.
+- `.plugin/plugin.json` — **vendor-neutral, write-once** (`"skills"` + `"mcpServers"`). The
+  `plugins` CLI translates it to `.codex-plugin/` for Codex (and any future CLI target) at
+  install — so there's no committed `.codex-plugin/` or `.cursor-plugin/`.
 - `.mcp.json` — the Salla Partners MCP server (`https://partners.mcp.salla.dev`), shared by
   all hosts (Claude/Codex auto-load it from the plugin root).
 - `agents/`, `commands/` — the master agent + audit command (Claude Code plugin components).

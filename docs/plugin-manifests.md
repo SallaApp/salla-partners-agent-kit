@@ -4,9 +4,12 @@ Every host loads the **one** canonical skill tree at `.agents/skills/` through i
 manifest — no symlinks, no duplicated skill files. This file records the authoritative
 documentation behind each config file and the exact fields used.
 
-## `.claude-plugin/plugin.json` — Claude Code
+## `.claude-plugin/plugin.json` — Claude Code (and Cursor)
 
 **Source:** Claude Code _Plugins reference_ — https://code.claude.com/docs/en/plugins-reference
+
+> Cursor's CLI install reuses the Claude plugin cache (`~/.claude/plugins`), so this manifest
+> serves **both Claude Code and Cursor**. There is no separate `.cursor-plugin/` file.
 
 - `name`, `version`, `description`, `author`, `homepage`, `repository`, `license`,
   `keywords` — documented top-level metadata fields.
@@ -27,25 +30,23 @@ https://code.claude.com/docs/en/plugin-marketplaces
 - Each plugin entry: `name`, `source` (`"./"` — the repo root **is** the plugin),
   `description`, plus optional `author` / `license` / `keywords` / `repository`.
 
-## `.codex-plugin/plugin.json` — Codex
+## `.plugin/plugin.json` — vendor-neutral (Codex + future CLI targets), write-once
 
 **Source:** the **open-plugin format** installed by the `plugins` CLI
 (`vercel-labs/plugins`, run as `npx plugins add …`) — https://github.com/vercel-labs/plugins
 (npm: https://www.npmjs.com/package/plugins). The CLI _"translates the vendor-neutral
 `.plugin/` format into target-specific formats, then installs via the target's native
-plugin system,"_ and recognizes `.codex-plugin/` as the Codex vendor manifest directory.
+plugin system."_
 
-- `"skills": "./.agents/skills/"` and `"mcpServers": "./.mcp.json"` — root-relative path
-  strings the CLI's Codex installer consumes (it auto-fills `./skills/` / `./.mcp.json`
-  when present; we set them explicitly to the canonical tree).
-- `name`, `version`, `description`, `author` — plugin metadata.
-
-## `.cursor-plugin/plugin.json` — Cursor
-
-**Source:** the same open-plugin format (`vercel-labs/plugins`); `.cursor-plugin/` is the
-Cursor vendor manifest directory. Cursor is a documented install target of the CLI
-(detected via the `cursor` + `claude` binaries). Same `skills` / `mcpServers` root-relative
-path fields as the Codex manifest.
+- **Write-once:** at install the CLI's `preparePluginDirForVendor` copies `.plugin/` →
+  `.codex-plugin/` (when absent), then `enrichForCodex` adds the Codex `interface` block.
+  So Codex is served from this one file — no committed `.codex-plugin/` needed.
+- `"skills": "./.agents/skills/"`, `"mcpServers": "./.mcp.json"` — root-relative path
+  strings the CLI consumes; `name`, `version`, `description`, `author` — plugin metadata.
+- **Cursor is _not_ translated from `.plugin/`** — the CLI's `preparePluginDirForVendor`
+  runs only for `.codex-plugin` and `.claude-plugin` (verified in the CLI source). Cursor's
+  installer reuses the Claude plugin cache (`~/.claude/plugins`), so Cursor is served by
+  `.claude-plugin/` above. That's why there is no `.cursor-plugin/` file.
 
 ## `.mcp.json` — shared MCP server
 

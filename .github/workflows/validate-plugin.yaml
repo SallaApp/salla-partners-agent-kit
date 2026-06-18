@@ -23,4 +23,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: No symlinks (Codex/Cursor install safety)
+        run: sh scripts/check-no-symlinks.sh
       - run: node scripts/validate-structure.mjs

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validates the salla-partners-ai-plugin structure for installability.
+ * Validates the salla-partners-agent-kit structure for installability.
  * Checks metadata completeness, file existence, and symlink consistency.
  */
 
@@ -78,40 +78,52 @@ if (plugin) {
   }
 }
 
-// ── 5. Skills ────────────────────────────────────────────────────────────────
-const skillsDir = join(ROOT, 'skills');
-check(existsSync(skillsDir), 'skills/ directory exists');
+// ── 5. Skills (one canonical real tree at .agents/skills/) ───────────────────
+const skillsDir = join(ROOT, '.agents/skills');
+check(existsSync(skillsDir), '.agents/skills/ directory exists');
 let skillNames = [];
 if (existsSync(skillsDir)) {
   skillNames = readdirSync(skillsDir, { withFileTypes: true })
     .filter(d => d.isDirectory())
     .map(d => d.name);
-  check(skillNames.length > 0, 'skills/ contains at least one skill directory');
+  check(skillNames.length > 0, '.agents/skills/ contains at least one skill directory');
   for (const name of skillNames) {
     check(existsSync(join(skillsDir, name, 'SKILL.md')),
-      `skills/${name}/SKILL.md exists`);
+      `.agents/skills/${name}/SKILL.md exists`);
   }
 }
 
-// ── 6. Symlink consistency (.cursor/skills/ and .github/skills/) ─────────────
-for (const target of ['.cursor/skills', '.github/skills']) {
-  const dir = join(ROOT, target);
-  if (!existsSync(dir)) { warn(false, `${target}/ does not exist`); continue; }
-  const links = readdirSync(dir).filter(f => !f.startsWith("."));
-  for (const name of skillNames) {
-    const linkPath = join(dir, name);
-    const exists = existsSync(linkPath);
-    check(exists, `${target}/${name} symlink exists`);
-    if (exists) {
-      const stat = lstatSync(linkPath);
-      warn(stat.isSymbolicLink(), `${target}/${name} should be a symlink (not a copy)`);
+// ── 5b. Manifests point at the canonical skill tree ──────────────────────────
+check(plugin?.skills === './.agents/skills/',
+  '.claude-plugin/plugin.json: "skills" must be "./.agents/skills/"');
+// Vendor-neutral .plugin/plugin.json — the `plugins` CLI translates it to .codex-plugin/
+// (and any future CLI target) at install time. Write once.
+const openPlugin = readJSON('.plugin/plugin.json');
+check(openPlugin !== null, '.plugin/plugin.json exists and is valid JSON');
+if (openPlugin) {
+  check(openPlugin.name, '.plugin/plugin.json: missing "name"');
+  check(openPlugin.skills === './.agents/skills/',
+    '.plugin/plugin.json: "skills" must be "./.agents/skills/"');
+  check(openPlugin.mcpServers === './.mcp.json',
+    '.plugin/plugin.json: "mcpServers" must be "./.mcp.json"');
+}
+
+// ── 6. No symlinks anywhere in the distributable tree ────────────────────────
+//      Tracked in-tree symlinks make Codex/Cursor installers (Node fs.cp) throw
+//      ERR_FS_CP_EINVAL. The plugin must be symlink-free.
+function walkForSymlinks(dir, rel = '') {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === '.git' || e.name === 'node_modules') continue;
+    const abs = join(dir, e.name);
+    const r = rel ? `${rel}/${e.name}` : e.name;
+    if (lstatSync(abs).isSymbolicLink()) {
+      check(false, `symlink found (not allowed — breaks Codex/Cursor install): ${r}`);
+      continue;
     }
-  }
-  // No extra entries
-  for (const name of links) {
-    warn(skillNames.includes(name), `${target}/${name} has no corresponding skills/${name}`);
+    if (e.isDirectory()) walkForSymlinks(abs, r);
   }
 }
+walkForSymlinks(ROOT);
 
 // ── 7. Cursor MCP config ─────────────────────────────────────────────────────
 const cursorMcp = readJSON('.cursor/mcp.json');

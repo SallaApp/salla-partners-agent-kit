@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "salla-partners",
   "version": "1.0.0",
   "description": "Build Salla Apps with AI — 25 skills and a master agent covering the full app lifecycle: create, hook, monetize, publish.",
@@ -12,6 +11,5 @@
   "license": "LicenseRef-Salla-Proprietary",
   "keywords": ["salla", "mcp", "skills", "agent", "ecommerce"],
   "skills": "./.agents/skills/",
-  "agents": ["./agents/salla-app-expert.md"],
-  "commands": ["./commands/audit.md"]
+  "mcpServers": "./.mcp.json"
 }

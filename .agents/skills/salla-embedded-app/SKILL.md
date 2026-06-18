@@ -105,10 +105,12 @@ Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guid
 Verify the merchant's identity **before** rendering any content. Never trust the token
 client-side only.
 
-> **Anti-pattern (a real shipped bug):** do NOT build a standalone `/dashboard?store_id=…`
-> page that trusts the query param — anyone who knows a `store_id` gets in. The embedded
-> token (verified below) IS the auth model; the merchant UI lives inside the iframe, not at a
-> public URL.
+> **Anti-pattern — never build a custom merchant dashboard OUTSIDE Salla's native
+> embedded-app support.** The merchant UI MUST be an embedded page rendered inside the Salla
+> dashboard iframe (`salla_embedded_pages`), authenticated by the embedded token (verified
+> below). A standalone `/dashboard?store_id=…` page trusts the query param — it has no auth,
+> so anyone who knows a `store_id` gets in. Native embedded support is the auth model; a
+> public URL is not.
 
 The token is short-lived — use it to **bootstrap your own app session** (set a signed
 cookie / JWT after introspection); don't treat the embedded token as a long-lived API

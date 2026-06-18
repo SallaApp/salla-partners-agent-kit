@@ -3,10 +3,11 @@
 Device Mode captures e-commerce events directly in the browser via the **Twilight SDK** and
 your `tracker.js` script embedded in the storefront.
 
-> **Event names below were captured from `emittedEvents` on a live store.** Twilight uses
-> `::` namespacing (`cart::item.added`), NOT dotted names like `cart.add`. Never invent an
-> event, DOM selector, or payload path — verify on a real demo store
-> (`salla_apps action=demo_stores`) by logging `salla.event` / `emittedEvents` first.
+> **The events below are `::`-namespaced** (`cart::item.added`), NOT dotted names like
+> `cart.add`. They are cross-referenced with the **Twilight JS SDK Events** doc (Resources —
+> must read). Never invent an event, DOM selector, or payload path — confirm against that doc
+> and a real demo store (`salla_apps action=demo_stores`; log `salla.event` / `emittedEvents`)
+> before relying on it.
 
 ---
 
@@ -28,7 +29,7 @@ active.
 
 ## Bootstrap & event-timing (critical)
 
-Two rules, both learned the hard way:
+Two rules you MUST follow:
 
 1. **Bootstrap with `salla.onReady(cb)`** — never gate on `typeof salla !== 'undefined'`.
 2. **Register `product::*` and `cart::*` listeners at the module top level, NOT inside the
@@ -52,9 +53,11 @@ Subscribe/unsubscribe: `salla.event.on(name, cb)` / `salla.event.off(name, cb)`.
 
 ## Event Catalogue (verified on a live store)
 
-Twilight events are `::`-namespaced. **There is no `cart.add`, `product.view`,
-`order.success`, or `checkout.complete` JS event** — those were guesses; remove them from
-any code.
+Twilight events are `::`-namespaced. **The single source of truth for the supported events is
+the Twilight JS SDK Events doc — https://docs.salla.dev/422611m0.md. Use ONLY events listed
+there.** `cart.add`, `product.view`, `order.success`, and `checkout.complete` are NOT in it —
+they do not exist; do not use them. The names below are verified examples (a subset of that
+doc) — confirm any event against the doc before relying on it.
 
 ### Cart
 
@@ -170,27 +173,34 @@ Always inspect the actual payload before reading a price path.
 
 ---
 
-## Recipe: current product's price on a product page
+## Current product's data on a product page
 
-> **Status: current best approach, NOT yet verified end to end.** `product::fetch.succeeded`
-> was the wrong event (slider). Verify this on a live store before relying on it.
+`product::fetch.succeeded` carries the recommendations slider, **not** the viewed product
+(see the catalogue). The current product's data, price, and option/variant behaviour come
+from the Twilight SDK's documented product events and the product web components.
+
+> **Must read before implementing — these are the authoritative sources; do not infer event
+> names, payload paths, or component props:**
+>
+> - Twilight JS SDK Events — https://docs.salla.dev/422611m0.md
+> - Themes Single Product Page — https://docs.salla.dev/422561m0.md
+> - Twilight JS Web Components — https://docs.salla.dev/422688m0.md
+> - Fetch Product Options (option/variant price) — https://docs.salla.dev/569578m0.md
 
 ```js
-// 1. Are we on a product page? URL pattern: /{slug}/{name}/p{productId}
+// Product-page detection — URL pattern /{slug}/{name}/p{productId}
 const onProductPage = /\/p\d+/.test(location.pathname);
 
-// 2. Read the price off the Stencil web component (props, not DOM attributes).
-//    Salla storefront UI is web components: <salla-add-product-button>, <salla-user-menu>,
-//    etc. Stencil exposes @Prop() values as JS PROPERTIES on the element.
-const el = document.querySelector("salla-add-product-button");
-const product = el?.product; // el.product / el.price are props, not attributes
-// Inspect available props: Object.getOwnPropertyNames(Object.getPrototypeOf(el))
-
-// 3. Variant/option price changes come through this event:
+// Option/variant price changes emit product::price.updated — read the price from e.data
+// per the SDK Events doc above.
 salla.event.on("product::price.updated", (e) => {
-  /* update your UI from e.data */
+  /* update UI from e.data — confirm the exact path in the SDK Events reference */
 });
 ```
+
+Salla storefront UI is **Stencil web components**: `@Prop()` values are exposed as JS
+**properties** on the element (read `el.product`, not a DOM attribute). Use the component API
+documented in the Twilight Web Components reference above — confirm the exact prop there.
 
 ---
 
@@ -255,6 +265,10 @@ When debugging on a live store, these appear in every console — don't chase th
 
 ## Resources
 
-| Topic                   | Link                                |
-| ----------------------- | ----------------------------------- |
-| Device Mode Usage Guide | https://docs.salla.dev/1724504m0.md |
+| Topic                              | Link                                |
+| ---------------------------------- | ----------------------------------- |
+| Device Mode Usage Guide            | https://docs.salla.dev/1724504m0.md |
+| Twilight JS SDK Events (must read) | https://docs.salla.dev/422611m0.md  |
+| Themes Single Product Page         | https://docs.salla.dev/422561m0.md  |
+| Twilight JS Web Components         | https://docs.salla.dev/422688m0.md  |
+| Fetch Product Options              | https://docs.salla.dev/569578m0.md  |

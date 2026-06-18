@@ -19,8 +19,8 @@ MCP; the token handling is runtime code.
 
 > **Publishing the app? → Easy Mode. Stop — do NOT build an OAuth callback or `state`
 > handling.** Tokens arrive in the `app.store.authorize` webhook. Custom Mode (a `/callback`
-> code exchange) is local-dev / Postman only. Defaulting to a familiar OAuth2 callback is the
-> single most common mistake here.
+> code exchange) is local-dev / Postman only. This is a hard requirement — do not substitute
+> a familiar OAuth2 callback pattern.
 
 ## Tools & MCPs
 
@@ -128,7 +128,7 @@ Portal registration, and `scope` must always include `offline_access`.
 
 **Step 3b — Handle the callback** (`GET /callback?code=…&state=…`): verify `state`, extract `code`.
 
-> **Custom Mode callback pitfalls (each bit a real build):**
+> **Custom Mode callback rules — all are required:**
 >
 > - **Salla-initiated install ≠ app-initiated OAuth.** When the merchant installs from the App
 >   Store, Salla redirects **straight to your callback** with **its own `state`** — your app

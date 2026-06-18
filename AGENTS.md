@@ -63,6 +63,8 @@ agent). One routing brain, three surfaces — keep them in sync.
 - **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
   Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
   `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.
+- Each manifest's fields are documented against its host's source (Claude Code docs; the
+  open-plugin/`plugins` CLI for Codex & Cursor) in **`docs/plugin-manifests.md`**.
 
 ## Editing rules
 

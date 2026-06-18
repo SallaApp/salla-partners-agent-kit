@@ -23,11 +23,8 @@ params manually — see SKILL.md Step 4):
 
 ```ts
 const { layout } = await embedded.init();
-document.documentElement.setAttribute(
-  "dir",
-  layout.lang === "ar" ? "rtl" : "ltr",
-);
-document.documentElement.setAttribute("lang", layout.lang);
+document.documentElement.setAttribute("dir", layout.dir); // "rtl" for ar, "ltr" for en
+document.documentElement.setAttribute("lang", layout.locale);
 ```
 
 CSS logical properties — use these instead of `left`/`right`:

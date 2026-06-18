@@ -5,8 +5,8 @@ description: >
   salla_embedded_pages, init @salla.sa/embedded-sdk, verify the short-lived session
   token server-side (never the OAuth introspect endpoint), sync theme/locale/RTL from
   init's layout, and use native Page/Nav/UI modules (No-Chrome rule). Use for embedded
-  pages, dashboard UI, SDK modules, or token/401 issues. Selling addons in-app →
-  salla-addon-purchase; publish flow → salla-app-builder.
+  pages, dashboard UI, SDK modules, iframe embeddability (CSP frame-ancestors), or
+  token/401 issues. Selling addons in-app → salla-addon-purchase; publish flow → salla-app-builder.
 ---
 
 # Salla Embedded App Flow
@@ -33,7 +33,7 @@ Ask before starting:
 1. **What does this page do?** (settings UI, analytics dashboard, addon purchase, etc.)
 2. **Which SDK modules will you need?**
    - `auth` — token + refresh
-   - `page` — title, navigation, redirect, resize
+   - `page` — title, navigation, redirect
    - `nav` — action buttons, navbar tabs
    - `ui` — toasts, confirm dialogs, loading, breadcrumbs
    - `checkout` — addon purchase
@@ -82,6 +82,19 @@ const { layout } = await embedded.init({ debug: false });
 > Verify the **current** method surface against the package types / docs before calling a
 > module — the SDK evolves and guessed method names fail at runtime. Use the CDN only as a
 > last resort for non-bundled pages, and confirm its exported global name first.
+
+**Two things block a first embedded app even when the SDK calls are correct:**
+
+1. **Embeddability** — your host must let Salla frame the page. Set
+   `Content-Security-Policy: frame-ancestors https://s.salla.sa` and remove any
+   `X-Frame-Options` on the iframe responses, or the dashboard shows a blank/"refused" pane
+   (Next.js/Vercel/Helmet deny framing by default).
+2. **Dev loop** — you can't open the page in a plain tab (it needs the dashboard handshake for a
+   token). Tunnel localhost → point `iframe_url` at the tunnel via `salla_embedded_pages update`
+   → install on a demo store → **Run App**.
+
+Headers, dev loop, framework gotchas (React/Next, Vue), a full worked example, and a copy-paste
+starter → [`references/implementation-guide.md`](references/implementation-guide.md)
 
 Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)
 
@@ -184,7 +197,8 @@ for genuine, unrecoverable auth failure.
 
 ```ts
 embedded.page.setTitle("My App");
-embedded.page.navigate("/orders"); // route the dashboard (SPA); also redirect() and resize()
+embedded.page.navigate("/orders"); // route the dashboard (SPA); also redirect() for external URLs
+// Don't call page.resize() — height is auto-managed by the host; resize/autoResize are deprecated no-ops.
 ```
 
 **Nav — action button:**
@@ -205,9 +219,10 @@ embedded.ui.toast.success("Saved!");
 embedded.ui.toast.error("Something went wrong");
 embedded.ui.loading.show();
 embedded.ui.loading.hide();
-const ok = await embedded.ui.confirm({
+const { confirmed } = await embedded.ui.confirm({
   title: "Delete?",
   message: "This cannot be undone.",
+  variant: "danger", // confirm() resolves to { confirmed }, not a bare boolean
 });
 embedded.ui.breadcrumbs.hide(); // or .show()
 ```
@@ -231,15 +246,16 @@ in the publish step of **`salla-app-builder`**.
 
 ## Resources
 
-| Topic                  | Link                                                                 |
-| ---------------------- | -------------------------------------------------------------------- |
-| Overview (hub)         | https://docs.salla.dev/embedded-sdk/overview.md                      |
-| Installation           | https://docs.salla.dev/embedded-sdk/installation.md                  |
-| Create an embedded app | https://docs.salla.dev/embedded-sdk/create-app.md                    |
-| Authentication         | https://docs.salla.dev/embedded-sdk/authentication.md                |
-| App Design Guidelines  | https://docs.salla.dev/embedded-sdk/design-guidelines.md             |
-| Playground / testing   | https://docs.salla.dev/embedded-sdk/playground.md                    |
-| SDK module methods     | [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md) |
+| Topic                  | Link                                                                       |
+| ---------------------- | -------------------------------------------------------------------------- |
+| Overview (hub)         | https://docs.salla.dev/embedded-sdk/overview.md                            |
+| Installation           | https://docs.salla.dev/embedded-sdk/installation.md                        |
+| Create an embedded app | https://docs.salla.dev/embedded-sdk/create-app.md                          |
+| Authentication         | https://docs.salla.dev/embedded-sdk/authentication.md                      |
+| App Design Guidelines  | https://docs.salla.dev/embedded-sdk/design-guidelines.md                   |
+| Playground / testing   | https://docs.salla.dev/embedded-sdk/playground.md                          |
+| Implementation guide   | [`references/implementation-guide.md`](references/implementation-guide.md) |
+| SDK module methods     | [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)       |
 
 > Per-module pages (auth/page/nav/ui/checkout) don't have public URLs yet — use the bundled
 > [`sdk-modules-guide.md`](references/sdk-modules-guide.md) for method signatures.

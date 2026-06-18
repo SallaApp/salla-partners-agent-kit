@@ -90,12 +90,13 @@ embedded.page.navigate("/orders");
 
 // Full redirect to an external URL:
 embedded.page.redirect("https://docs.my-app.com/help");
-
-// Resize the iframe to fit content (auto by default; call to force a recompute):
-embedded.page.resize();
 ```
 
 Call `setTitle` on every route change so the dashboard breadcrumb stays in sync.
+
+> **No resize call needed.** The host auto-manages iframe height (viewport minus header/navbar) and
+> updates it responsively. `page.resize()`, `autoResize()`, and `stopAutoResize()` are **deprecated
+> no-ops** kept only for backwards compatibility — don't call them.
 
 ---
 
@@ -104,14 +105,26 @@ Call `setTitle` on every route change so the dashboard breadcrumb stays in sync.
 Places an action button in the dashboard's top navigation bar, and can inject navbar tabs.
 
 ```ts
-// Set a primary action button (e.g. Save). `icon` is optional.
+// Set a primary action button (e.g. Save). `icon` and `disabled` are optional.
 embedded.nav.setAction({
   title: layout?.locale === "ar" ? "حفظ" : "Save",
   value: "save",
   icon: "sicon-check",
+  disabled: false, // grey out while a form is invalid / saving
 });
 
-// Listen for action clicks — the callback receives the action's `value`; returns an unsubscribe fn.
+// A button with a dropdown of extended actions (each fires onActionClick with its own value):
+embedded.nav.setAction({
+  title: "Actions",
+  value: "main",
+  extendedActions: [
+    { title: "Export CSV", value: "export_csv" }, // optional: subTitle, icon, disabled
+    { title: "Print", value: "print" },
+  ],
+});
+
+// Listen for action clicks — the callback receives the clicked `value` (primary OR extended);
+// returns an unsubscribe fn.
 const unsubscribe = embedded.nav.onActionClick((value) => {
   if (value === "save") saveForm();
 });
@@ -161,12 +174,17 @@ try {
 
 ### Confirm dialog
 
+Resolves to a `{ confirmed: boolean }` object — **not** a bare boolean. Options: `title`,
+`message`, `confirmText`, `cancelText`, `variant` (`"info"` | `"warning"` | `"danger"`).
+
 ```ts
-const ok = await embedded.ui.confirm({
+const { confirmed } = await embedded.ui.confirm({
   title: "Delete category?",
   message: "This cannot be undone.",
+  confirmText: "Delete",
+  variant: "danger",
 });
-if (ok) await deleteCategory();
+if (confirmed) await deleteCategory();
 ```
 
 ### Breadcrumbs
@@ -190,12 +208,12 @@ reloads the iframe).
 ## Full Module Reference
 
 Per-module pages don't have public URLs yet — the methods above are the working reference. For the
-SDK overview and the published guides, see https://docs.salla.dev/embedded-sdk/overview.md.
+SDK overview and the published guides, see https://docs.salla.dev/embedded-sdk/overview.md
 
 | Module   | Methods covered here                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | Auth     | `getToken` · `refresh` · `introspect` · `onInit`                                                                    |
-| Page     | `setTitle` · `navigate` · `redirect` · `resize`                                                                     |
+| Page     | `setTitle` · `navigate` · `redirect` (height is auto-managed — `resize` is a deprecated no-op)                      |
 | Nav      | `setAction` · `onActionClick` · `clearAction` · `addNavItem` · `updateNavItem` · `removeNavItem` · `onNavItemClick` |
 | UI       | `toast` · `loading` · `confirm` · `breadcrumbs`                                                                     |
 | Checkout | in-app addon purchase flow → [salla-addon-purchase](../../salla-addon-purchase/SKILL.md)                            |

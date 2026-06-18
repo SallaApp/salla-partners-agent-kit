@@ -15,6 +15,21 @@ A Salla app is **reactions to events attached at hookables**, across one lifecyc
 install → configure → operate → monetize → update → uninstall. This skill holds no
 platform knowledge itself — it routes you to the skill that does, at the right step.
 
+## Architecture-first (decide before writing any code)
+
+Three decisions cause the most expensive rebuilds — make each explicitly, up front:
+
+1. **Auth mode** — publishing? Use **Easy Mode**; tokens arrive via the `app.store.authorize`
+   webhook. Don't build an OAuth callback or state handling. → [salla-app-auth](../salla-app-auth/SKILL.md)
+2. **Settings** — need merchant config? Use **native App Settings** (`salla_settings` →
+   `context.settings`), not a custom form + DB + `/api/settings`. → [salla-app-settings](../salla-app-settings/SKILL.md)
+3. **Merchant UI** — embedded app (`is_embedded: true`)? Build an **embedded page**
+   (`salla_embedded_pages`), not a standalone `/dashboard?store_id=…` URL (no auth). → [salla-embedded-app](../salla-embedded-app/SKILL.md)
+
+**Skills are binding instructions, not references** — a stated requirement overrides familiar
+generic patterns; resolve ambiguity toward the skill. **Never ship guessed identifiers**
+(event names, DOM selectors, payload paths) — verify on a live demo store or the docs first.
+
 ## App types
 
 | Type          | Delta                                                                                                                            |

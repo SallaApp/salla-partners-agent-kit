@@ -105,6 +105,11 @@ Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guid
 Verify the merchant's identity **before** rendering any content. Never trust the token
 client-side only.
 
+> **Anti-pattern (a real shipped bug):** do NOT build a standalone `/dashboard?store_id=…`
+> page that trusts the query param — anyone who knows a `store_id` gets in. The embedded
+> token (verified below) IS the auth model; the merchant UI lives inside the iframe, not at a
+> public URL.
+
 The token is short-lived — use it to **bootstrap your own app session** (set a signed
 cookie / JWT after introspection); don't treat the embedded token as a long-lived API
 credential. Call `embedded.ready()` ONLY after the session is verified **and** the page's

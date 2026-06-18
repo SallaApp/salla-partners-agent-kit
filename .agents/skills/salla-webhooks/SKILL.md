@@ -156,6 +156,11 @@ if (!verifySignature($payload, $signature, getenv('SALLA_WEBHOOK_SECRET'))) {
 1. Set the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
    `webhook_security_strategy: "signature"`, `generate_secret: true` (optional
    `webhook_headers`).
+
+   > **Secret-sync gate:** `generate_secret` mints a NEW secret. Copy the returned value into
+   > your runtime env (`SALLA_WEBHOOK_SECRET`) and confirm **deployed env == Portal secret**
+   > before testing — a mismatch fails verification and returns **401 on every delivery**.
+
 2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events
 action=subscribe`, `app_id`, `events: [...]`.
 
@@ -313,6 +318,10 @@ Every webhook wraps its data in the standard envelope:
 }
 ```
 
+> **`merchant` is TOP-LEVEL in the envelope, not inside `data`.** Read ✅ `payload.merchant`
+> — never ❌ `payload.data.merchant.id` (that's `undefined`, so you save the wrong/empty
+> store). Same trap on `app.store.authorize`.
+
 `merchant` is your key to look up the right access/refresh tokens.
 
 Response & retry rules — **non-negotiable:**
@@ -428,6 +437,9 @@ Pull exact payload schemas from the webhooks reference
 
 When webhooks aren't arriving:
 
+- [ ] **Every delivery returns 401 → check secret parity FIRST.** Deployed
+      `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a `generate_secret`/reconnect mints
+      a new one. This single mismatch rejects every webhook.
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")
 - [ ] Subscribed to the correct event name (case-sensitive)

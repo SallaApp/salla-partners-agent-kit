@@ -106,7 +106,7 @@ Returns the same body shape as the request (echoed back).
 
 ## Resources
 
-| Topic                             | Link                                                   |
-| --------------------------------- | ------------------------------------------------------ |
-| How to build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| Salla Admin API reference         | https://docs.salla.dev/421117m0.md                     |
+| Topic                             | Link                               |
+| --------------------------------- | ---------------------------------- |
+| How to build an App Settings form | form-builder.md                    |
+| Salla Admin API reference         | https://docs.salla.dev/421117m0.md |

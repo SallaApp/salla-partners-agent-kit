@@ -317,12 +317,12 @@ Every webhook wraps its data in the standard envelope:
 
 Response & retry rules — **non-negotiable:**
 
-| Rule                         | Detail                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| **Respond 200 immediately**  | Return `200 OK` within **3 seconds** — Salla won't wait longer         |
-| **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after |
-| **Retry behavior**           | Salla retries **3 times** at ~5 minute intervals on non-2xx or timeout |
-| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate          |
+| Rule                         | Detail                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Respond 200 immediately**  | Return `200 OK` within **3 seconds** — Salla won't wait longer                                         |
+| **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after                                 |
+| **Retry behavior**           | Salla retries **3 times** (waits 30s, 15s, 10s) on non-2xx or timeout — see `references/operations.md` |
+| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                          |
 
 ```typescript
 // Fast response + async processing (Express)
@@ -447,13 +447,11 @@ attempt, HTTP code, and full payload — check here before debugging your server
 
 ## Key Resources
 
-| Resource             | URL                                                                              |
-| -------------------- | -------------------------------------------------------------------------------- |
-| Webhooks docs        | https://docs.salla.dev/421119m0.md                                               |
-| Conditional webhooks | https://docs.salla.dev/421120m0.md                                               |
-| Node.js/Express repo | https://github.com/SallaApp/webhook-actions-js                                   |
-| Laravel/CLI guide    | https://salla.dev/blog/salla-cli-webhook-server-laravel/                         |
-| Custom headers guide | https://salla.dev/blog/custom-webhook-header-is-now-available/                   |
-| Best practices       | https://salla.dev/blog/best-practices-to-handle-webhooks-for-salla-applications/ |
-| Partner Portal       | https://salla.partners                                                           |
-| Telegram community   | https://t.me/salladev                                                            |
+| Resource                                            | URL                                            |
+| --------------------------------------------------- | ---------------------------------------------- |
+| Webhooks docs                                       | https://docs.salla.dev/421119m0.md             |
+| Conditional webhooks                                | https://docs.salla.dev/421120m0.md             |
+| Node.js/Express repo                                | https://github.com/SallaApp/webhook-actions-js |
+| Operations (retries, custom headers, CLI local dev) | references/operations.md                       |
+| Partner Portal                                      | https://salla.partners                         |
+| Telegram community                                  | https://t.me/salladev                          |

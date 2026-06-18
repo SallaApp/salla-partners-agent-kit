@@ -293,8 +293,8 @@ Integrates a carrier or fulfillment provider:
 
 5. Once approved the app is live on https://apps.salla.sa/en.
 
-Testing guide: https://salla.dev/blog/how-to-test-your-app-using-salla-demo-stores/
-Publishing guide: https://salla.dev/blog/standards-salla-apps-publications/
+Testing guide: references/demo-store-testing.md
+Publishing guide: references/publication-standards.md
 
 **Gate:** "Published — `salla_apps action=get` shows the expected status."
 

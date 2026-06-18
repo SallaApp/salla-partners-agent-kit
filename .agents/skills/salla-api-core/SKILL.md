@@ -248,12 +248,12 @@ no API call needed there.
 
 ## Quick-Reference Docs Links
 
-| Topic                     | URL                                                    |
-| ------------------------- | ------------------------------------------------------ |
-| Get Started               | https://docs.salla.dev/421117m0.md                     |
-| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0.md                     |
-| Responses & Errors        | https://docs.salla.dev/421123m0.md                     |
-| Pagination                | https://docs.salla.dev/421124m0.md                     |
-| Rate Limiting             | https://docs.salla.dev/421125m0.md                     |
-| Versioning                | https://docs.salla.dev/421126m0.md                     |
-| App Settings guide        | https://salla.dev/blog/how-to-build-app-settings-form/ |
+| Topic                     | URL                                                     |
+| ------------------------- | ------------------------------------------------------- |
+| Get Started               | https://docs.salla.dev/421117m0.md                      |
+| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0.md                      |
+| Responses & Errors        | https://docs.salla.dev/421123m0.md                      |
+| Pagination                | https://docs.salla.dev/421124m0.md                      |
+| Rate Limiting             | https://docs.salla.dev/421125m0.md                      |
+| Versioning                | https://docs.salla.dev/421126m0.md                      |
+| App Settings guide        | `salla-app-settings` skill (references/form-builder.md) |

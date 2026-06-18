@@ -224,7 +224,7 @@ App Functions context shape → [`salla-app-builder`](../salla-app-builder/SKILL
 
 ## Resources
 
-| Topic                      | Link                                                   |
-| -------------------------- | ------------------------------------------------------ |
-| Build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| Salla Admin API reference  | https://docs.salla.dev/421117m0.md                     |
+| Topic                      | Link                               |
+| -------------------------- | ---------------------------------- |
+| Build an App Settings form | references/form-builder.md         |
+| Salla Admin API reference  | https://docs.salla.dev/421117m0.md |

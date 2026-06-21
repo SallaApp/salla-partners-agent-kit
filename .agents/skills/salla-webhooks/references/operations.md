@@ -18,6 +18,11 @@ past that the delivery is treated as failed (source: https://docs.salla.dev/4211
 When it doesn't get a success response, Salla resends the event **3 times**, with an interval
 of **~5 minutes** between attempts. A prompt success response stops further retries.
 
+> An earlier observation recorded the retry intervals as **30s / 15s / 10s**. The doc value
+> (~5 minutes apart) is primary; treat 30s/15s/10s as possibly-stale and confirm on a live
+> store if exact timing matters. Don't build logic that depends on the precise interval —
+> ack fast and dedupe.
+
 ## The 200/201 rule
 
 Salla expects **`200` or `201`** to confirm the event was received and accepted. **Any

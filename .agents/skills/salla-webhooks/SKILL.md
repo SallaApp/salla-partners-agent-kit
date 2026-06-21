@@ -371,6 +371,11 @@ Response & retry rules — **non-negotiable** (421119):
 | **Retry behavior**           | On a non-success response/timeout Salla resends the event **3 times**, **~5 minutes** apart; a success stops further tries ([docs](https://docs.salla.dev/421119m0.md)) |
 | **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                                                                                           |
 
+> **On the retry interval:** the official doc (421119) is the value above — **3 retries
+> ~5 minutes apart**, ~30s timeout. An earlier observation recorded the intervals as
+> **30s / 15s / 10s**; treat that as possibly-stale and follow the doc unless you verify
+> otherwise on a live store. Either way: ack fast, dedupe, don't depend on exact timing.
+
 ```typescript
 // Fast response + async processing (Express).
 // Mount a RAW body parser on this route — NOT a global express.json(), which would

@@ -1,13 +1,13 @@
 ---
 name: salla-app-builder
 description: >
-  End-to-end flow to create, configure, and publish a Salla app via the Salla Partners
-  MCP — create, connect OAuth scopes + webhook, subscribe events, then branch to the
-  owning skill and publish. Use for "create a new Salla app" or any create-to-publish
-  step. Hand off mechanics: snippets → salla-snippets, embedded pages → salla-embedded-app,
-  App Functions → salla-app-functions, settings → salla-app-settings, tokens/OAuth →
-  salla-app-auth, webhook verification → salla-webhooks, billing → salla-app-billing.
-  Type deltas: salla-shipping-app, salla-communication-app.
+  Use when creating a new Salla app or driving any create-to-publish step via the Salla
+  Partners MCP — "create a new Salla app", configure scopes/webhooks, or publish. The
+  spine; it hands off mechanics to the owning skill: snippets → salla-snippets, embedded
+  pages → salla-embedded-app, App Functions → salla-app-functions, settings →
+  salla-app-settings, OAuth/tokens → salla-app-auth, webhooks → salla-webhooks, billing →
+  salla-app-billing, publish checks → salla-publication-consistency. Type deltas:
+  salla-shipping-app, salla-communication-app.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Hazem Khaled
@@ -57,7 +57,9 @@ These are **two independent choices** ([docs.salla.dev/421410m0.md](https://docs
 **Public** apps appear in the [Salla App Store](https://apps.salla.sa/en) for any merchant
 to browse, download, or purchase; **Private** apps are built for specific merchants and
 never surface in the store's listings or search. **Category** (General vs Shipping) is the
-separate axis — a Shipping app may be Public _or_ Private (Communication apps are Public).
+separate axis — a Shipping app may be Public _or_ Private, while Communication apps are
+typically Public. Visibility is Portal-enforced per type, so let `create`/publish validate
+the combination rather than assuming it.
 
 Use the answers to tailor Steps 1, 4–7.
 
@@ -84,16 +86,16 @@ Use the answers to tailor Steps 1, 4–7.
    ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)); via the MCP these
    map to the fields below. Call `salla_apps` with `action: "create"` and:
 
-| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name` + `name_ar`           | The app name **must be Arabic** and **must be globally unique** (a name that does not already exist across **all** Salla apps). Plain Arabic letters with NO diacritics/tashkeel (e.g. هريفاي, not هرّفاي). **Do not pre-validate uniqueness client-side** — submit `create` and handle the Portal's validation error (rename and resubmit if the name is taken). |
-| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                      |
-| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                         |
-| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                               |
-| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                     |
-| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                     |
-| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                        |
-| `is_paid`                    | optional, boolean                                                                                                                                                                                                                                                                                                                                                 |
+| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name` + `name_ar`           | Salla expects the app name in Arabic, in plain letters with no diacritics/tashkeel (e.g. هريفاي, not هرّفاي), and unique across Salla apps. Treat these as Portal-enforced — let `create` validate: submit, then act on the error (rename and resubmit if the name is taken or invalid) rather than pre-checking client-side. Confirm the exact constraints from the `create` response when in doubt. |
+| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                                                          |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                                                             |
+| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
+| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
+| `is_paid`                    | optional, boolean                                                                                                                                                                                                                                                                                                                                                                                     |
 
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
@@ -263,6 +265,9 @@ changed later.
   - `Resp.success()` lets onboarding **continue**; `Resp.error()` **stops** progression
     and shows validation feedback. `.setFields(message, { field_id: [msg, …] })` renders
     the error directly under that field; validation runs in real time, so keep it fast.
+  - **Handling credentials.** When a step collects secrets (email + password, API keys),
+    validate them provider-side in the handler, then store only an encrypted/hashed form —
+    never plaintext — and keep the sensitive field values out of logs and error messages.
   - **Completion payload (`context`)** — `payload` carries `event`, `merchant`,
     `created_at`, and `data`, where `data` is
     `{ id, app_name, app_description, app_type, step: { slug, sort }, fields: { … } }`
@@ -319,7 +324,8 @@ Sends messages on behalf of merchants (WhatsApp, SMS, email):
 
 Integrates a carrier or fulfillment provider:
 
-- Must be **Public** — Shipping Apps cannot be Private.
+- Typically **Public**; if you target Private, let `create`/publish validate the
+  visibility rather than assuming it is allowed.
 - Follow the **`salla-shipping-app`** skill (it uses `salla_shipping` for zones/settings
   and `salla_apps` for the full lifecycle).
 
@@ -341,24 +347,26 @@ Integrates a carrier or fulfillment provider:
    `https://portal.salla.partners/apps/{app_id}`.
 
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
-3. **Publish — the guided, stepwise `app_publish` flow** (preferred). Don't hand-build one
-   giant payload; drive the server's readiness checklist instead:
+3. **Publish.** Two paths — use the guided one by default:
 
-   **`open` → (set `<section>` → `readiness`)\* → `submit`** — `open` creates the draft (and
-   unlocks `app_page_builder` for the listing page), then for each of the 5 sections
-   (`basic_information`, `features`, `pricing`, `contact_information`, `service_trial`) call
-   `set` and re-check `readiness`, fixing one section at a time off the returned `missing`
-   list, until every section reads `complete`; then `submit` (the server-side gate returns
-   **422** with still-missing sections if it isn't ready). Use `withdraw` to pull a pending
-   submission back. **Section fields, the readiness gate, and ordering are owned by
-   [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** — follow it
-   for the mechanics; listing content (name/description/logo/screenshots/benefits) is written
-   via `app_page_builder` → [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md), and
-   plan/addon pricing → [salla-app-billing](../salla-app-billing/SKILL.md).
+   - **Primary — guided, stepwise `app_publish`:** `open` → (set `<section>` →
+     `readiness`)\* → `submit`. `open` creates the draft (and unlocks `app_page_builder`
+     for the listing page); then for each of the 5 sections (`basic_information`,
+     `features`, `pricing`, `contact_information`, `service_trial`) call `set`, re-check
+     `readiness`, and fix one section at a time off the returned `missing` list until every
+     section reads `complete`; then `submit`. `withdraw` pulls a pending submission back.
+     **Section fields, the readiness gate, and ordering →
+     [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** (follow it
+     for the mechanics).
+   - **Alternative — one-shot `salla_apps action=publish`:** a single call (`app_id`,
+     `publication` payload, `publish_action: "save" | "submit"`, optional
+     `private`/`update_note`) for when you already have the full listing payload assembled.
 
-   **One-shot alternative.** The bulk `salla_apps action=publish` (`app_id`, `publication`
-   payload, `publish_action: "save" | "submit"`, optional `private`/`update_note`) still
-   works as a single call when you already have the full listing payload assembled.
+   Either way `submit` hits the same server-side gate, which returns **422** with the
+   still-missing sections if it isn't ready. Listing content
+   (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
+   [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
+   [salla-app-billing](../salla-app-billing/SKILL.md).
 
 4. Once approved the app is live on https://apps.salla.sa/en.
 

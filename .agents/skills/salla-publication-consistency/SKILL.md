@@ -1,62 +1,117 @@
 ---
 name: salla-publication-consistency
 description: >
-  Final pre-submit gate for a Salla app: confirm the live app config and the saved
-  publication draft are in sync before review. Re-save the publication after EVERY config
-  change — review reads the saved snapshot, so a stale draft ships old settings/scopes/
-  snippets. Checks settings schema, snippets, webhooks/App Functions, embedded pages,
-  scopes, pricing/trial, and listing. Build/publish flow → salla-app-builder; OAuth/scopes
-  → salla-app-auth.
+  Guided pre-submit publication for a Salla app via app_publish: open the draft, then loop
+  set one section → re-check readiness until every section is complete, then submit. The
+  server runs a readiness gate (422 lists still-missing sections) — drive off the returned
+  checklist, never guess. Settings are snapshotted on submit, so finalize them first; config
+  changes can stale the draft, so re-open/re-check before submit. Screenshots/benefits +
+  listing content → salla-app-ui-builder; pricing detail → salla-app-billing; settings →
+  salla-app-settings.
 ---
 
 # Salla Publication Consistency
 
-Salla's review uses the **saved publication snapshot**, not your live app config. Any
-config change made after the last `salla_apps action=publish` with `publish_action=save`
-is invisible to review unless you re-save. This skill is the final readback before
-`submit`.
+Publishing a Salla app is a **deterministic, readiness-driven loop**, not one opaque bulk
+call. The `app_publish` tool (base `/app/{id}/publication`) exposes a per-section readiness
+checklist; you fill sections one at a time and the **server** decides when the draft is
+ready. The loop is:
 
-> The returned field that holds the saved draft (e.g. `publication_last_save`) is
-> illustrative — confirm the exact response shape via `salla_apps action=get` rather than
-> assuming the field name.
+**open → (set `<section>` → readiness)\* → submit**
 
-## The drift rule
+> Requires the stepwise publication endpoints to be deployed (partners-mcp #10 +
+> DevelopersPortal #2788, DPD-16781). Without them, only the legacy bulk
+> `salla_apps action=publish` is available.
 
-After **any** of these, re-run `salla_apps action=publish` with `publish_action=save`
-and the full publication payload:
+## The core rule: drive off readiness, fix one section at a time
 
-- changed the settings schema (`salla_settings define_form`)
-- created/updated/deleted a snippet
-- changed scopes, redirect, or webhook (`connect`)
-- changed embedded pages, App Functions, or event subscriptions
-- changed plans / trial / logo / categories
+Never assume what review wants. After `open` (and after every `set`), the response carries a
+per-section readiness checklist: which sections are `complete` and, for incomplete ones, the
+exact `missing` fields. **Read the checklist, fix the one section it points at, re-check —
+repeat.** Don't batch guesses; don't trust a client-side "looks ready". The submit gate is
+server-side and authoritative.
 
-## Pre-submit checklist
+## The loop (`app_publish`, base `/app/{id}/publication`)
 
-Read back and confirm each matches intent:
+| action      | verb | body                    | does                                                                                            |
+| ----------- | ---- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `open`      | POST | —                       | Create the draft + return the per-section readiness checklist. Also enables `app_page_builder`. |
+| `readiness` | GET  | —                       | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.  |
+| `set`       | PUT  | `{ section, ...data }`  | Write ONE section; only the fields you pass are touched; returns updated readiness.             |
+| `submit`    | PUT  | `{ action:"submit" }`   | Submit the completed draft. Server runs pre-checks + readiness gate (see below).                |
+| `withdraw`  | PUT  | `{ action:"withdraw" }` | Pull a pending submission back (e.g. to fix something after submit).                            |
 
-1. **App config** — `salla_apps action=get`: scopes, status, redirect/webhook URLs.
-   Request only the scopes the app actually uses (minimization); confirm a webhook
-   security strategy is set (`signature` recommended) and no secrets/tokens are embedded
-   in the publication payload. OAuth/scope mechanics → `salla-app-auth`; webhook security
-   → `salla-webhooks`.
-2. **Publication draft** — the saved `app_settings` equals the current settings schema;
-   logo, `categories`/`main_category_id`, plans, `trial_description`,
-   `contact_method`/`support_email`, screenshots (min 3 on submit, per the publish
-   payload contract) all present and current. Field names above are illustrative —
-   confirm the exact payload via `salla_apps action=get`.
-3. **Snippets** — `salla_snippets action=list`: exactly one per purpose, no stale duplicates.
-4. **Embedded pages** — `salla_embedded_pages action=list`: route + iframe URL correct and reachable.
-5. **Events split** — lifecycle/auth on webhooks; store events on App Functions where a
-   trigger exists (`salla-app-functions`).
-6. **Pricing/trial** — `plan_type` + plans/addons + trial match the intended offer
-   (`salla-app-billing`).
-7. **Live-verified** — settings save, embedded auth, snippet render, and a real event were
-   tested on a demo store (`salla-live-testing`).
+`set` is a **partial write per section** — passing one field does not clear the others.
+`app_page_builder` (in salla-app-ui-builder) is unlocked by `open`.
 
-**Gate:** every checklist item above must read back as expected. If any item fails — the
-saved draft differs from live config, a duplicate snippet exists, events are mis-split, or
-a surface was not live-verified — **stop, fix it, re-save (`publish_action=save`), and
-re-run the checklist** before `submit`. Only when all items pass: "App config and the
-saved publication are in sync (re-saved after the last change), no duplicate snippets,
-events split correctly, and the build was live-verified — ready to `submit`."
+## The 5 sections and their `data` fields
+
+Pass `section` plus only the fields you're setting:
+
+1. **`basic_information`** — `short_description{ar,en}` (≥50 chars), `main_category_id`,
+   `categories[]` (sub-categories of the main category), `video_url`, `demo_url`,
+   `search_terms[]`, `supported_countries[]`.
+2. **`features`** — `banner`, `embedded_image`. **NOTE:** `screenshots` and `benefits` for
+   this section are authored via `app_page_builder` (**salla-app-ui-builder**), not here —
+   the `features` readiness will not complete until that builder content is set.
+3. **`pricing`** — `plan_type`, `plan_trial`, `one_time_price`, `plans[]`, `plan_features[]`,
+   `addons[]`, `unsubscribe_reward`, `unsubscribe_email_reward`. Plan/addon modelling detail
+   → **salla-app-billing**.
+4. **`contact_information`** — `notification_email`, `submission_email`, `contact_method`
+   (`"email"|"phone"|"website"`), `support_email`, `support_phone`, `policy_url`, `faq_url`,
+   `website_url`.
+5. **`service_trial`** — `service_link`, `trial_username`, `trial_password`,
+   `trial_description` (30–1000 chars), `update_note{ar,en}`.
+
+## The server-side readiness gate
+
+`action=submit` is the only judge. The server runs its pre-checks and a **readiness gate**;
+if any section is incomplete it returns **422 with the still-missing sections**. When that
+happens: re-run `readiness` (or read the 422 body), `set` the section it names, and submit
+again. Do not pre-empt it with a local "ready" check — the gate is server-side for a reason.
+
+## NOT set via `app_publish` — route elsewhere
+
+Several things live outside the publication sections. Finalize them in their own tool, then
+re-check readiness:
+
+| What                                                                      | Where                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------- |
+| Listing content: `name`, `description`, `logo`, `screenshots`, `benefits` | `app_page_builder` → **salla-app-ui-builder** |
+| OAuth scopes                                                              | `salla_scopes`                                |
+| Webhook url / secret / headers                                            | `salla_apps action=connect`                   |
+| Webhook event subscriptions                                               | `salla_events action=subscribe`               |
+| Merchant settings FORM                                                    | `salla_settings` → **salla-app-settings**     |
+
+- **Settings are snapshotted into the publication automatically on submit** — so finalize the
+  settings form (`salla_settings`) **before** you submit; whatever is live at submit time is
+  what ships.
+- **Communication apps** must declare their supported features
+  (`salla_settings action=set_features`) **before submit**, or the gate will block.
+
+## Consistency: config changes can stale the draft
+
+The draft is a snapshot, not a live mirror. If you change anything after opening — scopes,
+webhook, events, the settings form, or builder content — the draft can be stale. Before
+`submit`: **re-`open` if needed and re-run `readiness`**, confirm every section reads
+`complete`, then submit. Because settings snapshot on submit, do settings (and
+`set_features` for communication apps) last among the external pieces.
+
+## Pre-submit gate (do all, in order)
+
+1. **Open** the draft (`action=open`); read the initial readiness checklist.
+2. For each incomplete section, `set` that section's `data`, then re-check `readiness`. Fix
+   **one section at a time** off the returned `missing` list.
+3. Author builder content (screenshots, benefits, listing name/description/logo) via
+   `app_page_builder` → **salla-app-ui-builder**; the `features` section won't complete
+   without it.
+4. Finalize the settings form (`salla_settings`) — it is snapshotted on submit. For
+   communication apps, run `salla_settings action=set_features`.
+5. Re-run `readiness`: every one of the 5 sections must read `complete`.
+6. **Submit** (`action=submit`). If you get **422**, read the still-missing sections, `set`
+   them, and submit again. Use `action=withdraw` to pull a pending submission if you need to
+   change something post-submit.
+
+The bulk `salla_apps action=publish` still exists, but `app_publish` is the preferred,
+guided path. Only declare done when `submit` succeeds (no 422) — the server-side readiness
+gate, not a local check, is what confirms the draft is ready.

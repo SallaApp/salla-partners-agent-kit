@@ -1,65 +1,111 @@
 ---
 name: salla-app-ui-builder
 description: >
-  The Salla app's App Store presentation page — the home/landing page merchants see before
-  installing. It auto-fills from your publication data (images, screenshots, description) into
-  a default template; to customize beyond that, the partner edits it manually in the Partners
-  Portal's App Presentation Builder, after completing the publish details. There is no MCP
-  tool or public API for the block/element operations today (only salla_upload for publication
-  media). Create/configure/publish → salla-app-builder; settings → salla-app-settings; schemas
-  → salla-docs.
+  The Salla app's App Store listing page — the home/landing page merchants see before
+  installing. Build it via the `app_page_builder` MCP tool as an ordered list of blocks;
+  editing a block's elements writes shared listing content (name, description, logo,
+  screenshots, benefits) into the app's draft publication. Prerequisite: call
+  `app_publish action=open` first to create the draft — the builder is disabled until then.
+  Upload media with `salla_upload`. Draft/publish flow and `short_description` →
+  salla-publication-consistency. Schemas → salla-docs.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Abdelrahman Abdelhamid
-  version: 3.0
+  version: 4.0
 ---
 
-# Salla App Presentation Page
+# Salla App Store Listing Page (`app_page_builder`)
 
-The **presentation page** is the app's **home/landing page** shown to merchants when they install it and on the App Store. It is an **ordered list of blocks** (App Information, Features, Plans, Reviews, Brands, FAQ, Stats).
+The **listing page** is the app's **home/landing page** shown to merchants on the App Store and when they install it. It is an **ordered list of blocks** (App Information, Features, Plans, Reviews, Brands, FAQ, Stats), authored through the **`app_page_builder`** MCP tool.
 
-## How it gets built — auto-fill first, manual customization second
+Editing a block's element values **writes the shared listing content directly into the app's draft publication**. The fields this tool owns are: **`name`, `description`, `logo`, `screenshots`, `benefits`**.
 
-**The presentation page auto-renders from your publication data.** The images, screenshots, and description you provide in the **publish / publication details** automatically populate the **default template** — so a published app already has a presentation page even if the partner never opens the builder.
+> **Dependency.** `app_page_builder` ships in the Salla Partners MCP (partners-mcp #10) and must be deployed for any of this to work. This supersedes the previous "manual in the Portal, no MCP tool" guidance.
 
-**To customize beyond the default template, the partner edits the page manually in the Partners Portal's App Presentation Builder, _after_ completing the publish details.** In the builder the partner can add, remove, reorder, and edit the blocks listed above, overriding the default template with their own layout and content.
+## Prerequisite: open a draft first
 
-> **Current state (for now).** There is **no MCP tool and no public/Partners API** for the block/element operations (listing, adding, editing, reordering, deleting, initializing blocks). These are done **by hand in the Portal builder**. The only MCP tool that applies here is **`salla_upload`**, and only for uploading **media used in the publish/publication details** (which then flows into the presentation page). This document will be revisited when a `salla_app_builder` MCP tool ships.
+The builder is **disabled (returns 404) until the app is public and has a draft publication.** Before calling `app_page_builder`, call:
 
-> **No token handling, no direct Partner API calls.** Don't hand-write Partner HTTP calls or fetch a token for presentation-page work — there is no endpoint to call. The publication flow itself is covered by a dedicated publication skill; here we treat publication data conceptually.
+```
+app_publish action=open
+```
 
-## What an agent can do today
+to create/open the draft. The publish/draft lifecycle (open, fill the publication sections, submit) is owned by **salla-publication-consistency** — read that skill for the full flow. `app_page_builder` only writes the **shared listing content** into the draft once it exists.
 
-- **Prepare publication media.** Upload images/screenshots used in the publish details via **`salla_upload`** (pass a `source_url`; it returns an integer image `id`). These populate the default presentation template automatically.
-- **Advise on publication content.** Help the partner write the description and choose screenshots that read well in the default template.
-- **Guide manual customization.** Walk the partner through the Portal builder using the block catalog and field reference below — describing _what_ each block contains and _what shape_ its fields take — so they can fill the builder by hand.
+## No token, no direct Partner API
 
-What an agent **cannot** do today: programmatically list/add/edit/reorder/delete presentation blocks. There is no tool or API for it; direct the partner to the Portal builder.
+Everything here is **MCP-managed.** Don't hand-write Partner HTTP calls or fetch a token for listing-page work — drive it through `app_page_builder` and `salla_upload`. There is no REST endpoint to call directly.
 
-## The model (what the Portal builder exposes)
+## The 9 actions
 
-- An **app's presentation** = an ordered array of blocks the partner has arranged in the builder.
-- The **catalog** is the full set of available block definitions.
-- A block that has a form exposes a list of **fields** (the "element schema").
-- If the partner never customizes, the publication-provided images, screenshots, and description fill the **default template** — so partial customization can mix with publication data.
+All calls take `action=` (and the app context the MCP already holds). Discover shapes with the read actions before writing.
 
-See [Blocks and Fields](references/blocks-and-fields.md) for the block and field shapes the builder presents, and [Payloads](references/payloads.md) for how a populated block's values are shaped. Both are **reference shapes** describing what the manual builder offers — **not** API calls — and shapes drift over time, so treat them as illustrative.
+| Action    | What it does                                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------------- |
+| `catalog` | List the **available block types** you can add.                                                      |
+| `init`    | **Required first** after opening the draft — adds all required blocks and returns the page's blocks. |
+| `list`    | List the **current blocks** (each: `id`, `slug`, `order`).                                           |
+| `show`    | Show **one block + its element keys** — read this to know exactly what `set` accepts for that block. |
+| `set`     | Write a block's **element-key → value** map (this is what persists listing content into the draft).  |
+| `add`     | Add a block (a type from `catalog`).                                                                 |
+| `remove`  | Remove a block. **Required blocks cannot be removed.**                                               |
+| `sort`    | Reorder blocks — pass the **full ordered list of block ids**.                                        |
+| `reset`   | Remove **all** blocks.                                                                               |
 
-## Things to keep in mind in the builder
+**Typical flow:** `app_publish action=open` → `app_page_builder action=init` → `action=list` → `action=show` (per block, to learn its element keys) → `action=set` (write values) → `action=add`/`remove`/`sort` as needed.
 
-> - **Default template fallback.** If the page is never customized, publication-provided images, screenshots, and description fill the default template — so partial customization can mix with publication data.
-> - **App Information & App Plans are required** and always present; they can't be removed.
-> - **App Information is pinned to the top** of the page.
-> - **App Plans has no editable form** — it renders the app's pricing automatically.
-> - **`app-contact-info` was removed** — its contact channels now live on **App Information** as flat `support_*` fields (`support_email`, `support_telegram`, `support_whatsapp`, `support_title`, `support_description`); the old `links` collection is gone.
-> - **Lingual fields** carry both Arabic and English (`{ "ar": "…", "en": "…" }`).
-> - **Collection** field children are keyed with the collection id as a prefix (`features.title`, `features.image`). See [payloads.md](references/payloads.md).
+## Shared listing fields this tool owns
+
+Writing element values on the listing blocks persists these **shared listing fields** into the draft publication:
+
+- `name`
+- `description`
+- `logo`
+- `screenshots`
+- `benefits`
+
+> **`short_description` is NOT set here.** It belongs to the publication's `basic_information` section and is written via `app_publish` — route it to **salla-publication-consistency**. (The `app_page_builder` tool's own description may also mention `short_description`, but the authoritative owner is `app_publish`; do not author it through this skill.)
+
+## Media (logo, screenshots)
+
+Image elements (`logo`, `screenshots`) reference an uploaded media id. Upload first:
+
+1. `salla_upload` with a `source_url` → returns an integer image **`id`**.
+2. Use that `id` in the block's `set` value for the image element.
+
+Keep an existing image by leaving its stored `{ id, url }` in place when you `set`.
+
+## Auto-fill: the default template
+
+If the partner never customizes, the publication's **default template renders from publication data** — so a published app already has a listing page. `app_page_builder` writes into that **same draft**, so partial customization mixes with the default template.
+
+## The model
+
+- An **app's listing** = the ordered array of blocks returned by `action=list`.
+- The **catalog** (`action=catalog`) is the full set of block types you can `add`.
+- A block has `id`, `slug`, `order`, and a `required` flag; its editable inputs are **elements** (key → value), discovered via `action=show`.
+- Required blocks (App Information, App Plans) are seeded by `init` and **can't be removed**.
+
+See [Blocks and Fields](references/blocks-and-fields.md) for the block/element model and how to discover types and element keys, [API spec](references/api-spec.md) for the action contract, and [Payloads](references/payloads.md) for `set` value shapes. Example block ids and element keys are **illustrative** — confirm them with `action=catalog` / `action=show`.
+
+## Things to keep in mind
+
+> - **Open the draft first.** `app_page_builder` is 404 until `app_publish action=open` has created a draft on a public app.
+> - **Run `init` before anything else** on a fresh draft — it seeds the required blocks and returns the current page.
+> - **Discover, don't guess.** Use `action=catalog` (block types) and `action=show` (element keys) instead of hardcoding ids/keys.
+> - **App Information & App Plans are required** — always present, can't be removed.
+> - **App Information stays first**; **App Plans has no editable form** (pricing renders automatically).
+> - **`app-contact-info` was removed.** Do not re-add it. Contact fields live in the publication's **`contact_information`** section → salla-publication-consistency. (Some support/contact channels may surface on App Information as flat `support_*` elements — confirm with `action=show`.)
+> - **Lingual elements** carry both Arabic and English (`{ "ar": "…", "en": "…" }`).
+> - **Collection** element children are keyed with the collection id as a prefix (`features.title`). See [payloads.md](references/payloads.md).
 > - **`image` and `richtext` values render as public App-Store content** — use only trusted, sanitized assets/HTML.
 
-## When to read the reference files
+## Cross-links
 
-- [Blocks and Fields](references/blocks-and-fields.md) — the `BlockSchema` fields; the catalog of 7 blocks (App Information, Features, Plans, Reviews, Brands, FAQ, Stats — `app-contact-info` removed, merged into App Information); the field/element schema with every `type`/`format` combination (lingual string, color, image, richtext, email/url, dropdown-list, collection, telinput, conditions) shown as illustrative shapes the builder presents.
-- [Payloads](references/payloads.md) — how a populated block's values are shaped: lingual objects, collection key-prefixing, image objects, telinput flattening, color and dropdown values, plus a worked example. These are content shapes you fill in the builder, not request bodies.
+- **salla-publication-consistency** — the draft/publish lifecycle (`app_publish action=open`, the publication sections, `short_description`, `contact_information`).
+- **salla-app-builder** — create/configure/publish an app end to end.
+- **salla-app-settings** — merchant settings.
+- **salla-docs** — schemas and doc lookup.
 
 ## Resources
 

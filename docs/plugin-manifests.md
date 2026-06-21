@@ -91,19 +91,17 @@ https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md
   `<skill>/SKILL.md` under `../.agents/skills/` (resolves the symlink before
   walking up) and registers it. No CLI passthrough.
 
-## `hooks/` — SessionStart routing + optional usage telemetry
+## `hooks/` — SessionStart routing
 
 **Source:** Claude Code _Hooks reference_ — https://code.claude.com/docs/en/hooks;
 Codex hooks — https://developers.openai.com/codex/hooks; Cursor hooks —
 https://cursor.com/docs/hooks.
 
-- **SessionStart** (`session-start`, `session-start-codex`) injects the routing rule.
-- **PostToolUse** (`track-telemetry`) records a metadata-only `skill_invocation`
-  event — **disabled by default; enable by setting `SALLA_TELEMETRY_URL`, disable
-  by unsetting it**, sends no prompt/args/content, and never breaks the
-  tool call. Registered on Claude Code (`PostToolUse`, `matcher: "Skill"`), Codex
-  (`PostToolUse`, `matcher: "skill"`), and Cursor (`postToolUse`, v1). Full
-  contract: **`hooks/README.md`**.
+- **SessionStart** (`session-start`, `session-start-codex`) injects the routing rule
+  (`session-start-context.md`) so any Salla app task starts with `salla-app-expert`.
+  Registered on Claude Code (`SessionStart`, `hooks.json`), Codex (`SessionStart`,
+  `hooks-codex.json`), and Cursor (`sessionStart`, `hooks-cursor.json`), all through
+  the polyglot `run-hook.cmd` wrapper.
 
 ## `.mcp.json` — shared MCP server
 

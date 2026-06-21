@@ -70,12 +70,23 @@ agent). One routing brain, three surfaces — keep them in sync.
   to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
   canonical skill tree). No CLI passthrough — partners act through the MCP.
 - `agents/`, `commands/` — the master agent + audit command (Claude Code plugin components).
-- `hooks/` — a **SessionStart hook** (Claude Code auto-discovers `hooks/hooks.json`;
-  `hooks-codex.json` / `hooks-cursor.json` cover the other hosts via the polyglot
-  `run-hook.cmd`). It injects the routing rule in `hooks/session-start-context.md` so any
-  Salla app task starts with `salla-app-expert` before generic brainstorming/planning.
-  Gemini has no SessionStart hook — it primes the router via `contextFileName: AGENTS.md`
-  (this file); Hermes loads skills on demand, with this router carried in each `SKILL.md`.
+- `hooks/` — three flow hooks, all wired through the polyglot `run-hook.cmd` and
+  registered per host in `hooks.json` (Claude), `hooks-codex.json` (Codex),
+  `hooks-cursor.json` (Cursor, camelCase keys). All three swallow errors, always exit 0,
+  and emit the host's continue/no-op shape. Gemini has no command hooks — it primes the
+  router via `contextFileName: AGENTS.md` (this file); Hermes carries it in each
+  `SKILL.md`. The hooks:
+  - **SessionStart** (`session-start` / `session-start-codex`) injects the routing rule
+    in `hooks/session-start-context.md` so any Salla app task starts with
+    `salla-app-expert` before generic brainstorming/planning.
+  - **UserPromptSubmit** (`prompt-router-nudge`) — once per context window, on the first
+    Salla-intent prompt, emits the same skill directive the Vercel hooks use
+    (`You must run the Skill(salla-app-expert) tool.`; Cursor `Load the /salla-app-expert skill.`).
+    SessionStart clears the marker so it re-arms after a clear/compaction; else no-op.
+  - **PreToolUse** (`pretool-skill-inject`, matcher `mcp__salla-partners__.*`) maps each Salla
+    MCP tool to its owning skill and emits the same Vercel-style load directive
+    (`You must run the Skill(<skill>) tool.` / `Load the /<skill> skill.`), deduped once per
+    (session, tool); no-op on any non-Salla tool.
 - **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
   Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
   `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.

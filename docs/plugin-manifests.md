@@ -91,17 +91,34 @@ https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md
   `<skill>/SKILL.md` under `../.agents/skills/` (resolves the symlink before
   walking up) and registers it. No CLI passthrough.
 
-## `hooks/` — SessionStart routing
+## `hooks/` — flow hooks (routing + skill-rules)
 
 **Source:** Claude Code _Hooks reference_ — https://code.claude.com/docs/en/hooks;
 Codex hooks — https://developers.openai.com/codex/hooks; Cursor hooks —
 https://cursor.com/docs/hooks.
 
+All three hooks run through the polyglot `run-hook.cmd` wrapper, swallow errors, always
+exit 0, and emit the host's continue/no-op shape (Claude/Codex `hookSpecificOutput`
+with `additionalContext`; Cursor `additional_context`).
+
 - **SessionStart** (`session-start`, `session-start-codex`) injects the routing rule
   (`session-start-context.md`) so any Salla app task starts with `salla-app-expert`.
   Registered on Claude Code (`SessionStart`, `hooks.json`), Codex (`SessionStart`,
-  `hooks-codex.json`), and Cursor (`sessionStart`, `hooks-cursor.json`), all through
-  the polyglot `run-hook.cmd` wrapper.
+  `hooks-codex.json`), and Cursor (`sessionStart`, `hooks-cursor.json`).
+- **UserPromptSubmit** (`prompt-router-nudge`) re-arms routing mid-session: matches the
+  prompt against the Salla-intent regex (the keywords from `session-start-context.md`)
+  and, on a hit, emits one line nudging the agent to invoke `salla-app-expert` first —
+  countering SessionStart decay after compaction. No match → no-op. Registered as
+  `UserPromptSubmit` (Claude/Codex) and `userPromptSubmit` (Cursor).
+- **PreToolUse** (`pretool-skill-inject`) fires only on the Salla MCP tools (matcher
+  `mcp__salla-partners__.*`) and injects ≤2 lines of that tool's hard rules + its
+  owning skill, deduped once per `(session_id, tool_name)` via a 0600 marker under
+  `${TMPDIR:-/tmp}`. Any non-Salla tool → no-op. Registered as `PreToolUse`
+  (Claude/Codex) and `preToolUse` (Cursor). Codex's hook schema supports both
+  `UserPromptSubmit` and `PreToolUse` (GA 2026-05-14) with the same
+  `hookSpecificOutput.additionalContext` shape, so both are wired for Codex too.
+- **Gemini / Hermes** get no command hooks — Gemini primes the router via
+  `contextFileName: AGENTS.md`; Hermes carries it in each `SKILL.md`.
 
 ## `.mcp.json` — shared MCP server
 

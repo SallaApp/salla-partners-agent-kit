@@ -7,8 +7,19 @@ merchant tokens. Don't confuse it with defining the settings **form schema**, wh
 an MCP action (`salla_settings action=define_form`, Partner API).
 
 Base URL: `https://api.salla.dev/admin/v2`
-Auth: the **merchant's** Bearer token (OAuth2, `offline_access` scope) — see
-[salla-app-auth](../../salla-app-auth/SKILL.md) for acquiring and refreshing it.
+Auth: the **merchant's** Bearer token (OAuth2). `offline_access` is only needed when you
+must call this **in the background** (with a refresh token) outside an active merchant
+session — not for the call itself. Request the minimum scopes your app needs. Acquiring
+and refreshing the token → [salla-app-auth](../../salla-app-auth/SKILL.md).
+
+> Field names in the payloads below come from each app's own settings schema, not a fixed
+> list. The **form schema** itself is defined and updated through the Partners MCP only
+> (`salla_settings action=define_form`) — that is the supported way to change fields,
+> formats, and defaults.
+
+> **Secrets:** settings can hold API keys, passwords, and tokens. Never log a raw settings
+> object, store secret-typed values **encrypted**, and never return them to client-side
+> code.
 
 ---
 
@@ -50,6 +61,11 @@ Fetch the current settings values for a specific merchant's store.
 }
 ```
 
+Likely causes: the app is not installed on this merchant's store, the token lacks the
+required scope, the token is expired (refresh it — see
+[salla-app-auth](../../salla-app-auth/SKILL.md)), or the app is inactive (the merchant has
+not yet activated it via the settings form).
+
 ---
 
 ## POST /apps/{app_id}/settings
@@ -80,7 +96,10 @@ Update settings for a specific merchant's store.
 
 ### Response 200
 
-Returns the same body shape as the request (echoed back).
+The **response body doesn't matter** — don't parse or depend on what it echoes. Treat a
+2xx as accepted, then confirm the write with a follow-up `GET` (or via the
+`app.settings.updated` webhook, which is the storage source of truth —
+[docs](https://docs.salla.dev/421413m0.md)).
 
 ### Response 403
 

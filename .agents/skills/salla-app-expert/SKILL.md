@@ -52,7 +52,7 @@ Every behavior attaches at exactly one surface. Decide in this order:
 
 1. **Runs in the shopper's browser / storefront?** → snippet → [salla-snippets](../salla-snippets/SKILL.md)
 2. **An App Function trigger exists for the event?** → App Function (**preferred** — runs inside Salla, no server) → [salla-app-functions](../salla-app-functions/SKILL.md)
-3. **Otherwise** → webhook to your server → [salla-webhooks](../salla-webhooks/SKILL.md)
+3. **Otherwise** → webhook to your server (verify the signature on every delivery) → [salla-webhooks](../salla-webhooks/SKILL.md)
 
 Check available triggers via salla-app-functions' event reference
 before reaching for a webhook.
@@ -72,7 +72,7 @@ before reaching for a webhook.
 | Per-merchant settings schema & values                                                              | [salla-app-settings](../salla-app-settings/SKILL.md)                       |
 | Plans, addons, trials, entitlement gating, usage balance, plan/subscription state & reconciliation | [salla-app-billing](../salla-app-billing/SKILL.md)                         |
 | Post-install setup / onboarding steps                                                              | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
-| Addon billing lifecycle (activation, renewal, entitlement, gating)                                 | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
+| Addon billing lifecycle (activation, renewal, entitlement)                                         | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
 | In-app addon purchase UX (embedded flow)                                                           | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | SMS / WhatsApp / email channel apps                                                                | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
@@ -98,7 +98,7 @@ of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `acti
 | Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                                                                                                                                   |
 | App Functions                         | `salla_functions` · `list_triggers` / `get` / `save` (upsert) / `delete` — save is live on demo stores, publish for production; operator-gated — see [salla-app-functions](../salla-app-functions/SKILL.md) |
 | File upload (logos)                   | `salla_upload`                                                                                                                                                                                              |
-| OAuth scopes                          | `salla_scopes` · `get` / `set`                                                                                                                                                                              |
+| OAuth scopes                          | `salla_scopes` · `get` / `set` — request only the minimum scopes the app needs                                                                                                                              |
 | App-Store view (App Builder blocks)   | images → `salla_upload`; block list/read/mutate **not yet in MCP** (direct Partners API; planned `salla_app_builder`) — see [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md)                        |
 | Lookups (categories/countries/cities) | `salla_reference`                                                                                                                                                                                           |
 

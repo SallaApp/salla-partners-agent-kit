@@ -9,6 +9,10 @@ Fired in two situations:
 
 Your handler covers both cases. Always upsert, never insert-only.
 
+> The field shape below is authoritative (from the App Events doc above); the token
+> **values** are placeholders. Never hard-code or log real token values from a live
+> payload. Event slugs are confirmable via the Partners MCP (`salla_events action=list`).
+
 ```json
 {
   "event": "app.store.authorize",
@@ -37,9 +41,33 @@ Your handler covers both cases. Always upsert, never insert-only.
 
 ## What to Do On Receipt
 
+**Verify the webhook signature FIRST.** This handler runs only after the request has
+passed `X-Salla-Signature` verification — see [salla-webhooks](../../salla-webhooks/SKILL.md)
+for the verification + idempotency contract. Never persist tokens from an unverified
+request.
+
+**Validate before persisting.** Guard against a missing `data`, missing tokens, a
+malformed `expires`, or an unexpected `token_type` rather than writing garbage to the DB.
+
+**Secret hygiene.** Treat `access_token` / `refresh_token` as secrets: store them
+encrypted at rest, transport over HTTPS only, and **never** write token or secret values
+to logs, error messages, or diagnostics — redact them.
+
 ```typescript
 if (payload.event === "app.store.authorize") {
-  const { access_token, refresh_token, expires, scope } = payload.data;
+  const data = payload.data;
+  // Validate before persisting — never write a partial/garbage record
+  if (
+    !data ||
+    typeof data.access_token !== "string" ||
+    typeof data.refresh_token !== "string" ||
+    !Number.isFinite(data.expires) ||
+    data.token_type !== "bearer"
+  ) {
+    // Log the shape, NOT the token values
+    throw new Error("app.store.authorize: malformed payload.data");
+  }
+  const { access_token, refresh_token, expires, scope } = data;
 
   await db.merchants.upsert({
     where: { id: payload.merchant },
@@ -59,3 +87,10 @@ if (payload.event === "app.store.authorize") {
   });
 }
 ```
+
+## Related events & routing
+
+- Signature verification, idempotency, fast-200 → **[salla-webhooks](../../salla-webhooks/SKILL.md)**.
+- `app.updated` / `app.uninstalled` and the rest of the install/trial/subscription
+  lifecycle → **[salla-app-lifecycle](../../salla-app-lifecycle/SKILL.md)**
+  (on uninstall, revoke and delete the stored tokens).

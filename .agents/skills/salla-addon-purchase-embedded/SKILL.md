@@ -42,9 +42,15 @@ token verified server-side, No-Chrome). Don't re-implement it — follow
 Render the offer inside the page with Salla's design tokens (No-Chrome). Keep it to the addon
 name, what it unlocks, and price — let Salla's checkout handle the money.
 
+Your catalog endpoint must be **merchant-authenticated** — scope it to the verified embedded
+session (the session token verified server-side per **salla-embedded-app**), never an
+unauthenticated public route. Example below is illustrative; map your own catalog to Salla
+addon `item_slug`s.
+
 ```typescript
 embedded.ui.loading.show();
-// fetch the addons you want to surface (your catalog mapped to Salla addon item_slugs)
+// /api/addons must be authenticated and scoped to the verified embedded session.
+// Returns your catalog mapped to Salla addon item_slugs (illustrative shape).
 const addons = await fetch("/api/addons").then((r) => r.json());
 embedded.ui.loading.hide();
 // render cards; each "Buy" button calls startAddonPurchase(addon) (Step 2)
@@ -59,6 +65,8 @@ for the method names and shapes.
 
 > **Must read before implementing — do not guess method signatures or return shapes:**
 > Embedded SDK Checkout module — https://docs.salla.dev/embedded-sdk/modules/checkout/create.md
+> Treat method names/shapes as version-dependent — verify against the current docs and the
+> installed `@salla.sa/embedded-sdk` version, since the SDK can drift.
 
 The Checkout module covers listing the app's add-ons, creating the checkout for the chosen
 addon, and hearing the payment result in the iframe. Confirm the exact calls there, then:
@@ -90,7 +98,9 @@ method or hardcoded URL?"
 
 The redirect/return only means checkout was _opened_, not paid. **Do not unlock the feature
 here.** Activation is webhook-driven and owned by **salla-addon-purchase** (it processes
-`app.subscription.started`, `item_type: "addon"`, matched by `item_slug`).
+`app.subscription.started`, `item_type: "addon"`, matched by `item_slug`). That webhook must
+be signature-verified and idempotent before it grants entitlement — transport rules live in
+**salla-webhooks**; don't trust an unverified payload to unlock paid features.
 
 On return, show a **pending state** and let the activation flip it:
 
@@ -98,7 +108,7 @@ On return, show a **pending state** and let the activation flip it:
 // merchant is back in the iframe — show pending, poll/refresh entitlements
 embedded.ui.toast.show("Finishing your purchase…");
 // when salla-addon-purchase has activated the entitlement, reveal the feature:
-embedded.ui.toast.success("Addon activated 🎉"); // after entitlement is persisted
+embedded.ui.toast.success("Addon activated"); // after entitlement is persisted
 ```
 
 Never block on the redirect; if the webhook hasn't landed yet, keep the pending state.

@@ -39,10 +39,18 @@ async function getMerchantSettings(appId: number, accessToken: string) {
     `https://api.salla.dev/admin/v2/apps/${appId}/settings`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
+  if (!res.ok) {
+    // 401 → refresh the token (see salla-app-auth); 403/404 → app not installed,
+    // missing scope, or inactive. Handle, don't return malformed data.
+    throw new Error(`settings GET failed: ${res.status}`);
+  }
   const { data } = await res.json();
   return data.settings; // { api_key, sandbox_mode, ... }
 }
 ```
+
+> **Never log the returned object** — it can contain API keys or passwords. Store
+> secret-typed values encrypted, and never expose them client-side.
 
 ---
 
@@ -97,80 +105,41 @@ async function setSandboxMode(appId: number, token: string, enabled: boolean) {
 
 ---
 
-## Validating Settings Signature
+## Validating Settings (public Validation URL)
 
-Settings validation requests from Salla carry the HMAC signature in `Authorization: Bearer <hex-sig>` — note this DIFFERS from webhook Signature verification, which uses the `X-Salla-Signature` header (see salla-webhooks). Always read the **raw body** before parsing:
+The Validation URL is a **public, signature-free** endpoint Salla POSTs to **before
+saving**. There is no `Authorization` header or signature to verify — it exists only so you
+can accept or reject the proposed values. It is **not** a storage hook: persist settings
+from the `app.settings.updated` webhook (the storage source of truth — see
+[docs](https://docs.salla.dev/421413m0.md)), not here.
 
 ```ts
-async function verifySignature(
-  rawBody: string,
-  authHeader: string,
-  secret: string,
-): Promise<boolean> {
-  const sig = authHeader.replace("Bearer ", "");
+// Express handler — validate the proposed values, then accept or reject
+app.post("/settings/validate", express.json(), (req, res) => {
+  const { settings } = req.body;
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-
-  function hexToBytes(hex: string): Uint8Array {
-    const arr = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2)
-      arr[i / 2] = parseInt(hex.slice(i, i + 2), 16);
-    return arr;
+  if (!settings?.api_key) {
+    return res.json({
+      success: false,
+      error: {
+        field: "api_key",
+        message: { en: "API key is required", ar: "مفتاح API مطلوب" },
+      },
+    });
   }
 
-  return crypto.subtle.verify(
-    "HMAC",
-    key,
-    hexToBytes(sig),
-    new TextEncoder().encode(rawBody),
-  );
-}
-
-// Express handler — must use raw body middleware
-app.post(
-  "/settings/validate",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const rawBody = req.body.toString();
-    const authHeader = (req.headers["authorization"] as string) ?? "";
-
-    const valid = await verifySignature(
-      rawBody,
-      authHeader,
-      process.env.WEBHOOK_SECRET!,
-    );
-    if (!valid) return res.status(401).json({ success: false });
-
-    const { settings } = JSON.parse(rawBody);
-    if (!settings.api_key) {
-      return res.json({
-        success: false,
-        error: {
-          field: "api_key",
-          message: { en: "API key is required", ar: "مفتاح API مطلوب" },
-        },
-      });
-    }
-
-    res.json({ success: true });
-  },
-);
+  res.json({ success: true }); // 200 → Salla saves; app.settings.updated fires
+});
 ```
 
 ---
 
 ## Settings in the App Lifecycle
 
-| Lifecycle event        | Settings action                                                            |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `app.store.authorize`  | POST defaults for all keys                                                 |
-| `app.updated`          | Re-POST if your schema changed (add new keys with defaults)                |
-| `app.settings.updated` | Merchant saved the form — this event **activates the app**; re-read values |
-| `app.uninstalled`      | No action needed — Salla clears settings automatically                     |
-| Merchant edits form    | Salla calls your Validation URL → on success, Salla calls POST             |
+| Lifecycle event        | Settings action                                                                                                                                                                  |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app.store.authorize`  | POST defaults for all keys                                                                                                                                                       |
+| `app.updated`          | Re-POST if your schema changed (add new keys with defaults)                                                                                                                      |
+| `app.settings.updated` | Merchant saved the form — this event **activates the app**; persist `data.settings` from the payload (authoritative — you may not hold a token to GET)                           |
+| `app.uninstalled`      | A deleted app gets no further access or webhooks; Salla handles its own uninstall. Any partner-side cleanup of your stored copy is your choice — Salla does NOT clear it for you |
+| Merchant edits form    | Salla POSTs to your public Validation URL (if set, validate-only, no signature) → on success Salla stores the values and fires `app.settings.updated`                            |

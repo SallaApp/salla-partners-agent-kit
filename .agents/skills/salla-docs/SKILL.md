@@ -31,7 +31,9 @@ page on **docs.salla.dev** (table below) instead of guessing:
 
 ## 3. Topic → scoped docs entry point
 
-Open the scoped page, not an index:
+Open the scoped page, not an index. The numeric URLs below are stable handles but can
+be renumbered or moved — treat them as a starting point and verify the page is current;
+if one 404s, fall back to step 4 (locate the page from the index, then read just it):
 
 | Topic                            | Entry point                                     |
 | -------------------------------- | ----------------------------------------------- |
@@ -53,7 +55,10 @@ Open the scoped page, not an index:
   a last resort to _locate_ a scoped page, never to read wholesale.
 - **Merchant API reference** — hundreds of endpoints; open only the resource you need
   ([salla-api-core](../salla-api-core/SKILL.md) covers the calling conventions).
-- **Theme (Twilight) docs** — out of scope for app development entirely.
+- **Theme (Twilight) docs** — theme internals are out of scope for app development. For
+  storefront snippet UI or native-UI compliance (which can touch the storefront), route
+  to [salla-snippets](../salla-snippets/SKILL.md) or
+  [salla-ui-compliance](../salla-ui-compliance/SKILL.md), not the Twilight docs.
 
 ## Community & escalation
 

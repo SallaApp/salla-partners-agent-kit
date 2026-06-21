@@ -20,6 +20,12 @@ in order; complete each gate before moving on. This is runtime code against a **
 **Base URL:** `https://api.salla.dev/admin/v2` (all paths below are relative to it).
 Docs (Get Started): https://docs.salla.dev/421117m0.md
 
+Endpoints, payloads, and response shapes below are **illustrative** — confirm the exact
+path, fields, scopes, and envelope for a given resource against current docs (or the
+Partners MCP `salla_apps` / `salla_reference` for app and category lookups) before relying
+on them. Token storage, refresh, and the refresh mutex live in salla-app-auth — don't
+re-implement them here.
+
 ## Step 0 — Discover
 
 1. **Which resource/endpoint** are you calling? (orders, products, customers, settings…)
@@ -48,18 +54,27 @@ Authorization: Bearer <access_token>
 `merchant.id` (top level — user/info has **no `data` envelope**) is the stable internal key —
 cache it rather than re-fetching per request.
 
-Token error cases (all return **401**):
+Token / authorization failures return **401** with an `error` object carrying `code` and
+`message`. The one signal confirmed by the API reference is the missing-scope message —
+the request's token lacks a scope the endpoint requires
+(docs: https://docs.salla.dev/5394145e0.md):
 
-| Scenario                | Key signal in response                                                  |
-| ----------------------- | ----------------------------------------------------------------------- |
-| Deleted user            | `"The User is not exists."`                                             |
-| Inactive account        | Arabic message about account being inactive                             |
-| Refresh token reused    | `"error": "invalid_grant"` — both tokens revoked                        |
-| Missing scope           | `"The access token should have access to one of those scopes: <scope>"` |
-| Expired / invalid token | `"The access token is invalid"`                                         |
+```json
+{
+  "status": 401,
+  "success": false,
+  "error": {
+    "code": "Unauthorized",
+    "message": "The access token should have access to one of those scopes: orders.read_write"
+  }
+}
+```
 
-On `invalid_grant`, both access and refresh tokens are invalidated — the merchant must
-re-authorize (see salla-app-auth).
+Other 401 conditions (deleted/inactive user, expired or malformed token, reused refresh
+token) surface their own `error.message`; treat any 401 as "re-check the token, then
+re-authorize if it can't be refreshed" rather than matching on an exact string. Refresh,
+the single-use refresh-token rule, and the re-authorize flow live in salla-app-auth —
+don't re-implement them here.
 
 **Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `merchant.id` (top level, not `data.merchant.id`)?"
 
@@ -69,13 +84,13 @@ re-authorize (see salla-app-auth).
 
 Common resource endpoints:
 
-| Resource  | Method | Endpoint     | Docs                               |
-| --------- | ------ | ------------ | ---------------------------------- |
-| Orders    | GET    | `/orders`    | https://docs.salla.dev/421124m0.md |
-| Products  | GET    | `/products`  | https://docs.salla.dev/421121m0.md |
-| Customers | GET    | `/customers` | https://docs.salla.dev/421126m0.md |
+| Resource  | Method | Endpoint     | Docs                                |
+| --------- | ------ | ------------ | ----------------------------------- |
+| Orders    | GET    | `/orders`    | https://docs.salla.dev/5394146e0.md |
+| Products  | GET    | `/products`  | https://docs.salla.dev/5394168e0.md |
+| Customers | GET    | `/customers` | https://docs.salla.dev/5394121e0.md |
 
-A 2xx response always wraps `data`:
+A 2xx response with a body wraps `data` (a 204 carries no body — see below):
 
 ```json
 { "status": 200, "success": true, "data": {} }
@@ -98,12 +113,16 @@ async function sallaRequest<T>(
   accessToken: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const method = (options.method ?? "GET").toUpperCase();
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
-      "Content-Type": "application/json",
+      // Content-Type only when sending a body
+      ...(method === "GET" || method === "DELETE"
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...options.headers,
     },
   });
@@ -194,22 +213,18 @@ Error envelope (single + multi-field share the same shape — `fields` is field 
 | 500    | `server_error`        | Internal server error — retry later      |
 | 503    | `service_unavailable` | Temporary overload or maintenance        |
 
-Rate limiting uses a **leaky bucket**, per store plan per minute:
-
-| Plan    | Max Requests/min | Leak Rate |
-| ------- | ---------------- | --------- |
-| Plus    | 120              | 1 req/sec |
-| Pro     | 360              | 1 req/sec |
-| Special | 720              | 1 req/sec |
-
-**Customer endpoints** have a separate cap: **500 requests per 10 minutes**, regardless of
-plan. Exceeding limits or unusual patterns may cause temporary restrictions (403).
+Rate limiting is applied per store and varies by plan; some resources (e.g. customer
+endpoints) may carry their own tighter caps. **Don't hardcode specific numbers** — they
+are not pinned by the API reference and can change. Verify current limits via the live
+`X-RateLimit-*` / `Retry-After` response headers and the API reference. Exceeding limits
+returns **429**; sustained abuse or unusual patterns may trigger a temporary **403**.
 
 Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`.
 
 ```typescript
 if (response.status === 429) {
-  const retryAfter = parseInt(response.headers["retry-after"] ?? "60", 10);
+  // Fetch Headers: use .get(), not bracket access
+  const retryAfter = parseInt(response.headers.get("retry-after") ?? "60", 10);
   await sleep(retryAfter * 1000);
   // retry the request
 }

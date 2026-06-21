@@ -207,16 +207,24 @@ confirms), webhook URL registered?"
 
 ### Strategy A: Signature (default ✅)
 
-Salla sends `X-Salla-Security-Strategy: Signature` and `X-Salla-Signature:
-<64-char HMAC-SHA256 hex>`, computed as `HMAC-SHA256(rawRequestBody, secret)`. **Always
-use timing-safe comparison — never `===` on signatures.**
+A **Secret must be set** when establishing the webhook — this is what enables verification.
+Salla appends the request body's **64-character SHA256 HMAC hash** to the
+`x-salla-signature` header (alongside `X-Salla-Security-Strategy: Signature`), computed as
+`HMAC-SHA256(rawRequestBody, secret)`. The secret is viewable in the partner dashboard.
+**Always use timing-safe comparison — never `===` on signatures. Verify the signature
+before processing or persisting any payload, and never log the signing secret**
+(`SALLA_WEBHOOK_SECRET`) — keep it in env only. Docs:
+https://docs.salla.dev/421119m0.md
 
 ```typescript
-// TypeScript — Web Crypto API (Node 16+, Deno, Cloudflare Workers)
-async function verifySignature(req: Request, secret: string): Promise<boolean> {
-  const signature = req.headers.get("X-Salla-Signature") ?? "";
-  const body = await req.text();
-
+// TypeScript — Web Crypto API (Node 16+, Deno, Cloudflare Workers).
+// Pass the RAW request body (the exact bytes Salla sent). HMAC must run on the
+// unparsed body, so capture it BEFORE any JSON middleware parses it.
+async function verifySignature(
+  rawBody: string,
+  signatureHex: string,
+  secret: string,
+): Promise<boolean> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -228,8 +236,8 @@ async function verifySignature(req: Request, secret: string): Promise<boolean> {
   return crypto.subtle.verify(
     "HMAC",
     key,
-    hexToBytes(signature),
-    new TextEncoder().encode(body),
+    hexToBytes(signatureHex),
+    new TextEncoder().encode(rawBody),
   );
 }
 
@@ -269,7 +277,8 @@ Both strategies support additional headers (internal routing, gateway auth, mult
 ```
 
 Set via the Portal UI, the register/update API, or `salla_apps action=connect`
-`webhook_headers`.
+`webhook_headers`. Use **standard header names** (e.g. `X-App-Source`, `X-Tenant-ID`) and
+let the **Partners MCP validate** what's accepted — don't assume a custom character rule.
 
 **Gate:** "Every request is verified (timing-safe) and unverified ones get 401?"
 
@@ -305,7 +314,9 @@ Full attribute reference: https://docs.salla.dev/421120m0.md
 
 ## Step 5 — Respond Fast & Stay Idempotent
 
-Every webhook wraps its data in the standard envelope:
+Every webhook wraps its data in the standard envelope (values below are **illustrative** —
+confirm the exact envelope and per-event `data` shape via the Partners MCP
+(`salla_events action=list`) or the webhooks docs before coding):
 
 ```json
 {
@@ -326,20 +337,28 @@ Every webhook wraps its data in the standard envelope:
 
 Response & retry rules — **non-negotiable:**
 
-| Rule                         | Detail                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Respond 200 immediately**  | Return `200 OK` within **3 seconds** — Salla won't wait longer                                         |
-| **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after                                 |
-| **Retry behavior**           | Salla retries **3 times** (waits 30s, 15s, 10s) on non-2xx or timeout — see `references/operations.md` |
-| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                          |
+| Rule                         | Detail                                                                                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Respond 200 immediately**  | Return `200 OK` within **3 seconds** — Salla won't wait longer                                                                                      |
+| **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after                                                                              |
+| **Retry behavior**           | Salla retries **3 times** (waits 30s, 15s, 10s) on non-2xx or timeout ([docs](https://docs.salla.dev/421119m0.md)) — see `references/operations.md` |
+| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                                                                       |
 
 ```typescript
-// Fast response + async processing (Express)
-app.post("/webhooks/salla", async (req, res) => {
-  const valid = await verifySignature(req, process.env.SALLA_WEBHOOK_SECRET!);
+// Fast response + async processing (Express).
+// Mount a RAW body parser on this route — NOT a global express.json(), which would
+// consume the body and break HMAC. Parse JSON only AFTER the signature checks out.
+app.post("/webhooks/salla", express.raw({ type: "*/*" }), async (req, res) => {
+  const raw = req.body.toString("utf8"); // Buffer from express.raw
+  const signature = req.get("X-Salla-Signature") ?? "";
+  const valid = await verifySignature(
+    raw,
+    signature,
+    process.env.SALLA_WEBHOOK_SECRET!,
+  );
   if (!valid) return res.status(401).end();
-  res.status(200).end(); // respond immediately
-  processWebhookAsync(req.body).catch(console.error);
+  res.status(200).end(); // respond immediately (within 3s)
+  processWebhookAsync(JSON.parse(raw)).catch(console.error); // parse AFTER verifying
 });
 ```
 
@@ -381,7 +400,7 @@ Subscribe to all of these — they keep your app in sync with merchant state:
 | `app.subscription.expired` | Paid plan lapsed         | Restrict access, notify merchant                              |
 | `app.uninstalled`          | Merchant removes app     | Clean up merchant data per retention policy                   |
 
-`app.store.authorize` payload:
+`app.store.authorize` payload (illustrative shape — confirm exact fields via the MCP/docs):
 
 ```json
 {
@@ -402,34 +421,27 @@ Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-a
 
 ## Step 7 — Event Reference
 
-Pull exact payload schemas from the webhooks reference
-(https://docs.salla.dev/421119m0.md) before writing handlers.
+The events catalogue and the exact payload schema for each event are **maintained by
+Salla** — treat the docs as the source of truth, not a list baked into this skill (event
+names and shapes change). Resolve names two ways:
 
-**Order:** `order.created` · `order.updated` · `order.status.updated` · `order.cancelled` ·
-`order.refunded` · `order.deleted` · `order.products.updated` · `order.payment.updated` ·
-`order.coupon.updated` · `order.total.price.updated` · `order.shipment.creating` ·
-`order.shipment.created` · `order.shipment.cancelled` · `order.shipment.return.creating` ·
-`order.shipment.return.created` · `order.shipment.return.cancelled` ·
-`order.shipping.address.updated`
+- **Live, programmatic:** `salla_events action=list` (`app_id`) returns the events your app
+  can subscribe to right now.
+- **Docs:** store-events and their per-event payload schemas are split by domain — use the
+  page for the domain you need (transport + overview: https://docs.salla.dev/421119m0.md):
 
-**Product:** `product.created` · `product.deleted` · `product.quantity.low` ·
-`product.price.updated` · `product.status.updated` · `product.image.updated` ·
-`product.category.updated` · `product.brand.updated` · `product.tags.updated`
+  | Domain    | Doc                                | Domain        | Doc                                 |
+  | --------- | ---------------------------------- | ------------- | ----------------------------------- |
+  | Order     | https://docs.salla.dev/433804m0.md | Store         | https://docs.salla.dev/433811m0.md  |
+  | Product   | https://docs.salla.dev/433805m0.md | Cart          | https://docs.salla.dev/433812m0.md  |
+  | Shipping  | https://docs.salla.dev/433806m0.md | Invoice       | https://docs.salla.dev/433813m0.md  |
+  | Shipments | https://docs.salla.dev/433807m0.md | Special Offer | https://docs.salla.dev/433814m0.md  |
+  | Customer  | https://docs.salla.dev/433808m0.md | Miscellaneous | https://docs.salla.dev/433815m0.md  |
+  | Category  | https://docs.salla.dev/433809m0.md | Communication | https://docs.salla.dev/1380572m0.md |
+  | Brand     | https://docs.salla.dev/433810m0.md |               |                                     |
 
-> ~~`product.updated`~~ · ~~`product.available`~~ — deprecated, do not use
-
-**Shipments:** `shipment.creating` · `shipment.created` · `shipment.cancelled` · `shipment.updated`
-
-**Customer:** `customer.created` · `customer.updated` · `customer.login` · `customer.otp.request`
-
-**Store:** `store.branch.created` · `store.branch.updated` · `store.branch.setDefault` ·
-`store.branch.activated` · `store.branch.deleted` · `storetax.created`
-
-**Cart:** `abandoned.cart` · `coupon.applied`
-
-**Other:** `category.created` · `category.updated` · `brand.created` · `brand.updated` ·
-`brand.deleted` · `invoice.created` · `specialoffer.created` · `specialoffer.updated` ·
-`review.added`
+Always confirm the exact name (case-sensitive) and `data` shape from one of those before
+writing a handler.
 
 ---
 

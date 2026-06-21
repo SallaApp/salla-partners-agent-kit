@@ -19,9 +19,8 @@ before moving on. Step 1 **performs** the subscription with the Salla Partners M
 
 ## Tools & MCPs
 
-Confirm every payload shape in the App Events reference
-(https://docs.salla.dev/421413m0.md) before coding. The **Salla Partners MCP**
-_performs actions_:
+The App Events doc (https://docs.salla.dev/421413m0.md) is the authoritative source for
+every lifecycle payload shape. The **Salla Partners MCP** _performs actions_:
 
 | Tool           | Action               | What it does                                 |
 | -------------- | -------------------- | -------------------------------------------- |
@@ -41,7 +40,7 @@ _performs actions_:
 | `app.installed`             | First install                    | Provision merchant resources, set defaults                                 |
 | `app.store.authorize`       | Install **or** token refresh     | Save/update `access_token` + `refresh_token` + expiry per merchant         |
 | `app.updated`               | Merchant updates the app         | Salla fires `app.store.authorize` right after — wait for it for new tokens |
-| `app.settings.updated`      | Merchant changes app settings    | Apply new values from `data.settings`                                      |
+| `app.settings.updated`      | Merchant changes app settings    | Apply `data.settings` — schema/validation owned by **salla-app-settings**  |
 | `app.trial.started`         | Trial begins                     | Enable trial features                                                      |
 | `app.trial.expired`         | Trial ended without upgrade      | Restrict access                                                            |
 | `app.trial.canceled`        | Trial cancelled                  | Restrict access                                                            |
@@ -51,11 +50,12 @@ _performs actions_:
 | `app.subscription.canceled` | Plan/addon cancelled             | Restrict access                                                            |
 | `app.feedback.created`      | Merchant leaves a review         | Log rating/comment                                                         |
 
-> `app.subscription.*` and `app.trial.*` fire for **both** plans and addons — the
-> `data.item_type` (`"plan"` | `"addon"`) tells them apart. Full subscription payload +
-> plan-state handling → **salla-app-billing**. Full per-event JSON →
-> **[references/lifecycle-payloads.md](references/lifecycle-payloads.md)** (confirm field
-> names against https://docs.salla.dev/421413m0.md before relying on them).
+> `app.subscription.*` fires for **both** plans and addons — `data.item_type`
+> (`"plan"` | `"addon"`) tells them apart. `app.trial.*` carries a **smaller** payload than
+> subscription (no `subscription_id`, `item_type`, pricing, etc.) — see the reference. Full
+> subscription payload + plan-state handling → **salla-app-billing**. Full per-event JSON
+> (authoritative shapes from https://docs.salla.dev/421413m0.md) →
+> **[references/lifecycle-payloads.md](references/lifecycle-payloads.md)**.
 
 ---
 
@@ -78,8 +78,9 @@ Lifecycle events only arrive if the app is subscribed and a `webhook_url` is set
 with the Partners MCP:
 
 1. Configure the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
-   `webhook_security_strategy: "signature"`, `generate_secret: true` (store the returned
-   secret for HMAC verification).
+   `webhook_security_strategy: "signature"`, `generate_secret: true`. Store the returned
+   secret in a secret manager/KMS (never in source or logs) — secure storage and HMAC
+   verification are owned by **salla-webhooks**.
 2. List valid slugs: `salla_events action=list`, `app_id`.
 3. Subscribe: `salla_events action=subscribe`, `app_id`, `events: [...]` — e.g.
    `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,
@@ -113,6 +114,7 @@ if (payload.event === "app.installed") {
 
 if (payload.event === "app.store.authorize") {
   // Persist tokens — see salla-app-auth for the full upsert + refresh rules.
+  // Encrypt access_token/refresh_token at rest and keep them out of logs.
   const { access_token, refresh_token, expires, scope } = payload.data;
   await db.merchants.upsert({
     where: { id: payload.merchant },

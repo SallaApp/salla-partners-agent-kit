@@ -2,6 +2,13 @@
 
 Your app runs inside the Salla Merchant Dashboard. It must look and behave like a native part of the platform — not a foreign iframe.
 
+> **Auth is not optional here.** This file is design only — it shows the app shell, not how
+> to authenticate it. Every embedded page MUST run on your app's **own OAuth session** before
+> any of this UI renders. (The SDK's client-side auto-login is trusted UX only — never
+> introspect the token on the FE; your backend validates and owns the session; SKILL.md Step 3 →
+> [`auth-and-session.md`](auth-and-session.md).) OAuth/merchant-token specifics →
+> `salla-app-auth`.
+
 ---
 
 ## Core Requirements
@@ -57,7 +64,9 @@ Set a data attribute from the same `layout`:
 document.documentElement.setAttribute("data-theme", layout.theme ?? "light");
 ```
 
-Use CSS variables that respond to the attribute:
+There is no official published token set to import — the goal is to **match Salla's look &
+feel**. Use CSS variables that respond to the attribute; the values below are recommended
+defaults that align with the dashboard:
 
 ```css
 :root {
@@ -74,7 +83,7 @@ Use CSS variables that respond to the attribute:
 
 ## Typography
 
-Match the Salla dashboard font stack:
+Recommended defaults to match the Salla dashboard font stack and scale:
 
 ```css
 body {

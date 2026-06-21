@@ -73,9 +73,9 @@ it from the full index, then read just that page.
 - **Merchant API reference** has hundreds of endpoints; open only the resource you need
   ([salla-api-core](../salla-api-core/SKILL.md) covers the calling conventions).
 - **Theme (Twilight) internals** are out of scope. For storefront snippet UI or
-  native-UI compliance (which can touch the storefront), route to
+  native storefront-UI compliance, route to
   [salla-snippets](../salla-snippets/SKILL.md) or
-  [salla-ui-compliance](../salla-ui-compliance/SKILL.md).
+  [salla-storefront-ui](../salla-storefront-ui/SKILL.md).
 
 ## Community & escalation
 

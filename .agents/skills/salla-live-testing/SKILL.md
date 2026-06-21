@@ -5,8 +5,8 @@ description: >
   action=demo_stores, then verify the settings form actually SAVES, the embedded dashboard
   authenticates, the storefront snippet renders, and webhooks / App Functions fire from
   real Salla events. MCP/config success and passing endpoint tests are NOT proof the
-  integration works — this is the live gate. Build flow → salla-app-builder; UI →
-  salla-ui-compliance.
+  integration works — this is the live gate. Build flow → salla-app-builder; storefront UI →
+  salla-storefront-ui; embedded UI → salla-embedded-ui.
 ---
 
 # Salla Live Testing
@@ -54,7 +54,7 @@ shape from the actual response.
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Settings**   | Open the app's settings page, **change a value and SAVE**, reopen — value persists.                                                                                                                                                                                                       | `salla-app-settings` (save smoke test); also the `app.settings.updated` webhook payload if the app subscribes to that event |
 | **Embedded**   | Open the embedded page in the dashboard — it authenticates (the SDK token is verified server-side, the session is established, then it renders), loads data, and doesn't hang. Test an expired token → the SDK refresh path recovers. Verify the exact auth flow in `salla-embedded-app`. | `salla-embedded-app`                                                                                                        |
-| **Storefront** | Visit a product page — the snippet renders **natively** (theme, icons, RTL); screenshot it. No duplicate widgets. Verify the snippet actually **runs** in the browser DevTools Console (load marker, no red errors, event payloads) — see `salla-snippets`' browser-test step.            | `salla-snippets` + `salla-ui-compliance`                                                                                    |
+| **Storefront** | Visit a product page — the snippet renders **natively** (theme, icons, RTL); screenshot it. No duplicate widgets. Verify the snippet actually **runs** in the browser DevTools Console (load marker, no red errors, event payloads) — see `salla-snippets`' browser-test step.            | `salla-snippets` + `salla-storefront-ui`                                                                                    |
 | **Events**     | Trigger real events (place a test order, change stock, save settings) — confirm the webhook receives them (and that signature/idempotency handling passes, per `salla-webhooks`) / the App Function fires.                                                                                | `salla-webhooks` / `salla-app-functions`                                                                                    |
 | **Logs**       | Check Partner/Portal logs and the browser console for errors during the above. Confirm no tokens or secrets are printed to the console/logs.                                                                                                                                              | —                                                                                                                           |
 
@@ -63,7 +63,7 @@ shape from the actual response.
 Config-level success is not integration success — verify the merchant-facing behavior:
 
 - Portal accepting a settings schema → confirm the **installed form saves** (Step 2).
-- A snippet executing → confirm **it looks right** natively (see `salla-ui-compliance`).
+- A snippet executing → confirm **it looks right** natively (see `salla-storefront-ui`).
 - An endpoint returning 200 in isolation → confirm **Salla calls it with the real
   payload** (Step 2 Events).
 

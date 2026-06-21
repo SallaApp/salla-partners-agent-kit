@@ -73,7 +73,8 @@ Every behavior attaches at exactly one surface. Decide in this order:
 | SMS / WhatsApp / email channel apps                                                                | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                 | [salla-api-core](../salla-api-core/SKILL.md)                               |
-| Native UI components (storefront + embedded)                                                       | [salla-ui-compliance](../salla-ui-compliance/SKILL.md)                     |
+| Native UI — storefront (store)                                                                     | [salla-storefront-ui](../salla-storefront-ui/SKILL.md)                     |
+| Native UI — embedded app (dashboard)                                                               | [salla-embedded-ui](../salla-embedded-ui/SKILL.md)                         |
 | Test the app end-to-end on a demo store                                                            | [salla-live-testing](../salla-live-testing/SKILL.md)                       |
 | Publish / submit an app — stepwise `app_publish` flow + pre-submit consistency                     | [salla-publication-consistency](../salla-publication-consistency/SKILL.md) |
 | Find the right doc / live API schema                                                               | [salla-docs](../salla-docs/SKILL.md)                                       |

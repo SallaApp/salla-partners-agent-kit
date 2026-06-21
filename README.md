@@ -22,7 +22,7 @@ curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/m
 
 For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/getting-started.md)**.
 
-## Skills — 25 across 5 layers
+## Skills — 26 across 5 layers
 
 | Layer                    | Skills                                                                                                          |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
@@ -30,7 +30,7 @@ For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/
 | Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
 | App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                          |
 | Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded`          |
-| Quality & release        | `salla-ui-compliance` · `salla-live-testing` · `salla-publication-consistency`                                  |
+| Quality & release        | `salla-storefront-ui` · `salla-embedded-ui` · `salla-live-testing` · `salla-publication-consistency`            |
 
 `salla-app-expert` is the master router — describe your goal and it picks the right skill.
 Each skill is a step-by-step workflow with checkpoints; agents load them on demand.

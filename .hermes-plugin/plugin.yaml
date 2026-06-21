@@ -32,11 +32,12 @@ provides_skills:
   - salla-communication-app
   - salla-docs
   - salla-embedded-app
+  - salla-embedded-ui
   - salla-live-testing
   - salla-publication-consistency
   - salla-shipping-app
   - salla-snippets
-  - salla-ui-compliance
+  - salla-storefront-ui
   - salla-webhooks
 
 # Salla Partners MCP — a remote streamable-HTTP server. Mirrors ../.mcp.json,

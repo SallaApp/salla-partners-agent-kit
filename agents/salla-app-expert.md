@@ -62,7 +62,8 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
    - Direct Admin API calls → `salla-api-core`
-   - Native UI components (storefront + embedded) → `salla-ui-compliance`
+   - Native UI — storefront (store) → `salla-storefront-ui`
+   - Native UI — embedded app (dashboard) → `salla-embedded-ui`
    - Test the app end-to-end on a demo store → `salla-live-testing`
    - Pre-submit publication consistency check → `salla-publication-consistency`
    - Find the right doc / live API schema → `salla-docs`
@@ -95,7 +96,7 @@ Make each of these three decisions explicitly, up front, and state your choice. 
 
 7. **Invoke the matching sub-skill — and say which.** For each area, explicitly load and
    follow the skill (`salla-app-auth`, `salla-webhooks`, `salla-snippets`,
-   `salla-app-settings`, `salla-embedded-app`, `salla-ui-compliance`, …) and state which you
+   `salla-app-settings`, `salla-embedded-app`, `salla-storefront-ui`, `salla-embedded-ui`, …) and state which you
    used. Reading a skill is not applying it — re-check the code against the skill's ❌/✅ rules
    before claiming done.
 

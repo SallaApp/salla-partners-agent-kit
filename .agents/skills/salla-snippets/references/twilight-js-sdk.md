@@ -57,7 +57,7 @@ But snippets are NOT themes — some SDK affordances are theme-development const
   webhook ([salla-webhooks](../../salla-webhooks/SKILL.md)).
 - Do a customer-side action/listen here; for a **server reaction** (persist, sync, call the
   Admin API, react reliably) route to salla-app-functions / salla-webhooks. Native visible
-  UI → [salla-ui-compliance](../../salla-ui-compliance/SKILL.md).
+  UI → [salla-storefront-ui](../../salla-storefront-ui/SKILL.md).
 
 > Almost all methods return a **Promise** resolving to `{ status, success, message?, data }`.
 > Each module also exposes alias events (`salla.event.<module>.on…` / `salla.<module>.event.on…`)
@@ -107,7 +107,7 @@ App snippet ✅. Cross-browser local storage (Store.js). Token/cart/wishlist liv
 
 ### Notify — https://docs.salla.dev/422610m0.md (Notify)
 
-App snippet ✅ (prefer a theme-native notifier — see salla-ui-compliance).
+App snippet ✅ (prefer a theme-native notifier — see salla-storefront-ui).
 
 - `salla.notify.success(message, data?)` · `salla.notify.info(message, data?)` ·
   `salla.notify.error(message, data?)`

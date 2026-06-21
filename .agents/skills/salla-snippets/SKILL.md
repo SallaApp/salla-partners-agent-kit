@@ -199,7 +199,7 @@ snippets). For a **server reaction** to the same activity, the hookable rule app
 server event with an App Function trigger → **App Function**
 ([salla-app-functions](../salla-app-functions/SKILL.md), server-side V8 isolate,
 preferred); else → **webhook** ([salla-webhooks](../salla-webhooks/SKILL.md)). Native
-visible UI → [salla-ui-compliance](../salla-ui-compliance/SKILL.md).
+visible UI → [salla-storefront-ui](../salla-storefront-ui/SKILL.md).
 
 #### Storefront UI compliance (when the snippet renders visible UI)
 
@@ -225,9 +225,9 @@ as part of the store rather than a standalone SaaS badge.
   `url`) and screenshot the product page. UI that "runs" in code is not proof it looks
   right.
 
-`salla-ui-compliance` owns the "use native components + native look-and-feel" rule (and the
+`salla-storefront-ui` owns the "use native components + native look-and-feel" rule (and the
 live-verification gate) — follow it for full guidance:
-[salla-ui-compliance](../salla-ui-compliance/SKILL.md).
+[salla-storefront-ui](../salla-storefront-ui/SKILL.md).
 
 **UI Component families** (all `<salla-*>`; full catalogue in the docs):
 

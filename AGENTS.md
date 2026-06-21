@@ -34,7 +34,8 @@ agent). One routing brain, three surfaces — keep them in sync.
 | SMS / WhatsApp / email apps                                   | `salla-communication-app`       |
 | Carriers, shipments, labels                                   | `salla-shipping-app`            |
 | Direct Admin API calls                                        | `salla-api-core`                |
-| Native UI (storefront + embedded)                             | `salla-ui-compliance`           |
+| Native UI — storefront (store)                                | `salla-storefront-ui`           |
+| Native UI — embedded app (dashboard)                          | `salla-embedded-ui`             |
 | Test the app on a demo store                                  | `salla-live-testing`            |
 | Pre-submit publication consistency                            | `salla-publication-consistency` |
 | Find the right doc / API schema                               | `salla-docs`                    |
@@ -64,7 +65,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 - `gemini-extension.json` — **Gemini CLI** manifest: `contextFileName: "AGENTS.md"` loads
   this router at session start, and `mcpServers` inlines the Salla MCP (Gemini's `httpUrl`
   field). Skills come from the auto-discovered `.agents/skills/` tree.
-- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 25
+- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 26
   skills + MCP wiring), `install.sh` (clones the repo and symlinks `.hermes-plugin/` next
   to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
   canonical skill tree). No CLI passthrough — partners act through the MCP.

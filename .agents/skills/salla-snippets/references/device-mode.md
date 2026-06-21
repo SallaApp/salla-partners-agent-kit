@@ -315,7 +315,7 @@ URL (templatize, fail the build if it survives).
 
 ## UI compliance (storefront)
 
-Injected UI must follow [salla-ui-compliance](../../salla-ui-compliance/SKILL.md) — inherit
+Injected UI must follow [salla-storefront-ui](../../salla-storefront-ui/SKILL.md) — inherit
 theme tokens, use Salla icons, match the surrounding page (full checklist in SKILL.md). The
 theme's single-product insertion points are `product:single.form.start` /
 `product:single.form.end`; target near those when placing UI on the product page.

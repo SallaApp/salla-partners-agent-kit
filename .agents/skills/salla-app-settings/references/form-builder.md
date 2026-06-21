@@ -17,35 +17,40 @@ Two things to configure:
 
 ## Field Schema (`type` + `format`)
 
-Salla's form-builder renders from `type` **+** `format`, not a single loose `type`. Bare
-aliases (`toggle`, `text`, `number`, `select`) save but render broken/empty — always use a
-real pair.
+Salla's form-builder renders from `type` **+** `format`, not a single loose `type`. Always
+use a real pair from the taxonomy (a bare alias like `toggle` / `text` / `number` /
+`select` is not Portal-safe).
 
-The table below is the supported set (matching the `salla_settings action=define_form` MCP
-schema). The form-builder source has a few extra string/number formats and a `collection`
-type; they are complex or have a simpler equivalent here — prefer these pairs:
+This is the **curated core** of pairs to use:
 
-| Control                  | `type`    | `format`        | Extra props          |
-| ------------------------ | --------- | --------------- | -------------------- |
-| Switch                   | `boolean` | `switch`        | `value`, `icon`      |
-| Checkbox                 | `boolean` | `checkbox`      | `value`              |
-| Text                     | `string`  | `text`          | `placeholder`        |
-| Email                    | `string`  | `email`         |                      |
-| URL                      | `string`  | `url`           | `placeholder`        |
-| Password / secret        | `string`  | `password`      |                      |
-| Integer                  | `number`  | `integer`       | `minimum`, `maximum` |
-| Float                    | `number`  | `float`         | `minimum`, `maximum` |
-| Single choice (radio)    | `items`   | `radio-list`    | `options`            |
-| Single choice (dropdown) | `items`   | `dropdown-list` | `options`            |
-| Multi choice             | `items`   | `checkbox-list` | `options`            |
+| `type`                   | `format` (core)                                | Notes                                   |
+| ------------------------ | ---------------------------------------------- | --------------------------------------- |
+| `boolean`                | `checkbox` (a `switch` is the same boolean)    | `value`, `icon`                         |
+| `string`                 | `text`, `textarea`, `password`, `url`, `email` | `minLength`, `maxLength`; `placeholder` |
+| `string` (value pickers) | `color`, `image`, `date`, `time`, `datetime`   |                                         |
+| `number`                 | `integer`, `float`                             | `minimum`, `maximum`, `step`            |
+| `items`                  | `dropdown-list`, `radio-list`, `checkbox-list` | `options` + scalar default `value`      |
+
+**Prefer the simplest type that fits the data.** A `number` (with `minimum` / `maximum` /
+`step`) covers what a slider or unit-input would do — don't reach for those. `checkbox`
+covers on/off (a `switch` is the same boolean). Use `textarea` for multi-line text.
+
+**Advanced formats exist but add complexity — avoid unless genuinely required:** `richtext`
+(use `textarea` unless rich formatting is essential), `code`, `icon`, the nested
+`collection` type (repeatable sub-field groups), and `static` display blocks
+(`title` / `description` / `line`). Prefer the core; only use these when the use case truly
+needs them.
 
 Common props: `id` (**snake_case**), `type`, `format`, `label`, `value` (the **default** —
 required fields MUST have one), `required`, `public`, `icon` (a Salla icon, e.g.
-`sicon-toggle-off`), `placeholder`, `labelHTML`, `multilanguage`.
+`sicon-toggle-off`), `placeholder`, `labelHTML`, `multilanguage`. The builder seeds string
+fields with `minLength` / `maxLength` and number fields with `minimum` / `maximum` / `step`;
+`items` fields carry `options` plus a scalar default `value`.
 
 **Labels are Arabic-first.** Most merchants are Arabic — write `label` / `description` in
-Arabic and set `multilanguage: true` to also supply English. `public: true` = safe to read
-client-side (storefront); secrets stay `public: false`.
+Arabic and set `multilanguage: true` to also supply English. `multilanguage` applies to
+string `text` / `textarea` fields only (the builder gates it via `supportsMultilanguage`).
+`public: true` = safe to read client-side (storefront); secrets stay `public: false`.
 
 ---
 
@@ -65,13 +70,12 @@ Pass these field objects as the **`settings`** array to `salla_settings action=d
       "required": true,
       "value": "",
       "placeholder": "أدخل مفتاح API",
-      "multilanguage": true,
       "public": false
     },
     {
       "id": "sandbox_mode",
       "type": "boolean",
-      "format": "switch",
+      "format": "checkbox",
       "label": "الوضع التجريبي",
       "icon": "sicon-toggle-off",
       "value": false,
@@ -93,8 +97,15 @@ Pass these field objects as the **`settings`** array to `salla_settings action=d
 ```
 
 The field identifier is **`id`** (snake_case); `label` / `placeholder` / `description` are
-**plain strings** — set `multilanguage: true` to translate a field's text (no inline
-`{en, ar}` objects).
+**plain strings** — set `multilanguage: true` (string `text` / `textarea` only) to
+translate a field's text (no inline `{en, ar}` objects).
+
+**`items` options + default.** At this layer (the `salla_settings action=define_form` MCP
+tool + the App Settings docs OpenAPI), an `items` field carries `options: [{label, value}]`
+and the default is the **scalar `value`** of the chosen option (`"production"` above), which
+is the shape shown here. (The builder UI tracks the selection internally as a `selected`
+array of option objects with a `key`; that internal model differs, but define_form and the
+runtime GET/POST work in scalar `value`s.)
 
 ---
 
@@ -145,14 +156,16 @@ Content-Type: application/json
 ## Critical Rules
 
 1. **Send ALL keys on POST** — partial updates set omitted keys to `null`.
-2. **Labels are plain strings** — set `multilanguage: true` to translate a field (no inline
-   `{en, ar}` objects).
-3. **Secrets stay `public: false`** — API keys, passwords, and tokens are read only
-   server-side or from `context.settings`, stored encrypted, never logged or sent to
-   client code.
+2. **Labels are plain strings** — set `multilanguage: true` (string `text` / `textarea`
+   only) to translate a field (no inline `{en, ar}` objects).
+3. **Secrets are non-public** — API keys, passwords, and tokens use `format: "password"`,
+   read only server-side or from `context.settings`, stored encrypted, never logged or sent
+   to client code. The builder's password control carries `hide: true`, which removes the
+   public option, so a secret can never be exposed to the storefront (keep `public: false`
+   to make the intent explicit).
 4. **Validation URL validates, never stores** — public, signature-free; settings are
    persisted from the `app.settings.updated` webhook.
-5. **Use a real `type`+`format` pair** — loose aliases save but render broken.
+5. **Use a real `type`+`format` pair** from the taxonomy above.
 
 ---
 

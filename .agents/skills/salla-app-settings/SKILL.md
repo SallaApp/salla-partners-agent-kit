@@ -45,44 +45,62 @@ Ask before starting:
 ## Step 1 — Design the Settings Schema
 
 Salla renders the merchant form from a **form-builder schema**: every field uses a real
-`type` **+** `format` pair from the table below. (Loose aliases like `toggle` or a bare
-`text` / `number` / `select` save fine but render broken or empty — use the pairs.) Rules:
+`type` **+** `format` pair from the taxonomy below. Use a real pair (a bare alias like
+`toggle` / `text` / `select` is not Portal-safe). Rules:
 
 - **Flat only** — no nested objects.
 - **`id` is snake_case** (`stock_threshold`, not `stockThreshold`) — the installed-app save
   path is reliable only with snake_case.
 - **Every required field carries a default `value`** — required for first activation/save.
 - **Arabic-first labels.** Most Salla merchants are Arabic — write `label` / `description`
-  in Arabic; set `multilanguage: true` to also provide English.
+  in Arabic; set `multilanguage: true` to also provide English. `multilanguage` applies to
+  string `text` / `textarea` fields only (the builder gates it via
+  `supportsMultilanguage`).
 - `public: true` marks a value safe to read client-side. A storefront snippet reads a
   public setting via `salla.config.get('app.<key>')`; `public: false` values stay
   server-side only. → [salla-snippets](../salla-snippets/SKILL.md).
-- **Secrets** (API keys, passwords, tokens) use `format: "password"` with `public: false`,
-  stored encrypted at runtime and read only server-side or via `context.settings`. OAuth/
-  merchant access tokens are not settings — handle those via
-  [salla-app-auth](../salla-app-auth/SKILL.md).
+- **Secrets** (API keys, passwords, tokens) use `format: "password"`, stored encrypted at
+  runtime and read only server-side or via `context.settings`. A password field is
+  inherently non-public — the builder's password control carries `hide: true`, which removes
+  the public option, so a secret can never be exposed to the storefront (keep `public: false`
+  to make the intent explicit). OAuth/merchant access tokens are not settings — handle those
+  via [salla-app-auth](../salla-app-auth/SKILL.md).
 - **Scopes.** Rendering a form or receiving `app.settings.updated` needs no settings scope;
   a settings scope is required only to read/write values via the Admin API when activation
   happens partner-side (not from the merchant dashboard). The **Webhooks** scope is
   required if your app listens to any store events.
 
-| Control                 | Schema                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------- |
-| Switch                  | `type: "boolean"`, `format: "switch"`, `value: true`, `icon: "sicon-toggle-off"` |
-| Checkbox                | `type: "boolean"`, `format: "checkbox"`                                          |
-| Text / email / password | `type: "string"`, `format: "text" \| "email" \| "password"`                      |
-| Integer / float         | `type: "number"`, `format: "integer" \| "float"` (+ `minimum`, `maximum`)        |
-| Single choice           | `type: "items"`, `format: "radio-list" \| "dropdown-list"` (+ `options`)         |
-| Multi choice            | `type: "items"`, `format: "checkbox-list"` (+ `options`)                         |
+Use this **curated core** of `type` + `format` pairs:
+
+| `type`                   | `format` (core)                                        |
+| ------------------------ | ------------------------------------------------------ |
+| `boolean`                | `checkbox` (a `switch` is the same boolean, toggle UI) |
+| `string`                 | `text`, `textarea`, `password`, `url`, `email`         |
+| `string` (value pickers) | `color`, `image`, `date`, `time`, `datetime`           |
+| `number`                 | `integer`, `float`                                     |
+| `items`                  | `dropdown-list`, `radio-list`, `checkbox-list`         |
+
+**Prefer the simplest type that fits the data.** A `number` (with `minimum` / `maximum` /
+`step`) covers what a slider or unit-input would do — don't reach for those. `checkbox`
+covers on/off (a `switch` is the same boolean). Use `textarea` for multi-line text.
+
+**Advanced formats exist but add complexity — avoid unless genuinely required:** `richtext`
+(use `textarea` unless rich formatting is essential), `code`, `icon`, the nested
+`collection` type (repeatable sub-field groups), and `static` display blocks
+(`title` / `description` / `line`). Prefer the core; only use these when the use case truly
+needs them.
 
 Common props: `id` (snake_case), `type`, `format`, `label`, `value` (default),
-`required`, `public`, `icon`, `placeholder`, `labelHTML`, `multilanguage`. Example switch:
+`required`, `public`, `icon`, `placeholder`, `labelHTML`, `multilanguage`. Numbers carry
+`minimum` / `maximum` / `step`; strings carry `minLength` / `maxLength`; `items` carry
+`options` plus a scalar default `value`. `multilanguage` applies to string `text` /
+`textarea` only. Example checkbox:
 
 ```json
 {
   "id": "hurrify_enabled",
   "type": "boolean",
-  "format": "switch",
+  "format": "checkbox",
   "label": "تفعيل هيرفاي",
   "icon": "sicon-toggle-off",
   "value": true,
@@ -107,7 +125,8 @@ value on each required field?"
 
 1. Call `salla_settings` with `action: "define_form"`, the `app_id`, and `settings` (the
    array of field objects from Step 1). Give each field a plain-string `label`; set
-   `multilanguage: true` on any field whose text should be translated.
+   `multilanguage: true` on a string `text` / `textarea` field whose text should be
+   translated.
 2. **Optional Validation URL — validation only, not storage.** To reject bad input before
    Salla saves it, call `salla_settings` with `action: "set_validation_url"`, `app_id`, and
    `validation_url`. Salla POSTs the proposed values there before saving; respond with field

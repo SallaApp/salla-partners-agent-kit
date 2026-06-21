@@ -33,18 +33,18 @@ page on **docs.salla.dev** (table below) instead of guessing:
 
 Open the scoped page, not an index:
 
-| Topic                            | Entry point                                            |
-| -------------------------------- | ------------------------------------------------------ |
-| OAuth 2.0 (Easy & Custom Mode)   | https://docs.salla.dev/421118m0.md                     |
-| Webhooks guide + event list      | https://docs.salla.dev/421119m0.md                     |
-| App events (lifecycle)           | https://docs.salla.dev/421413m0.md                     |
-| App Functions — overview         | https://docs.salla.dev/1726814m0.md                    |
-| App Functions — supported events | https://docs.salla.dev/1726818m0.md                    |
-| Storefront events (snippets)     | https://docs.salla.dev/1724504m0.md                    |
-| Communication App payloads       | https://docs.salla.dev/1380572m0.md                    |
-| Embedded SDK modules             | https://docs.salla.dev/embedded-sdk/overview.md        |
-| Merchant/Admin API reference     | https://docs.salla.dev/421117m0.md                     |
-| App Settings form (guide)        | https://salla.dev/blog/how-to-build-app-settings-form/ |
+| Topic                            | Entry point                                     |
+| -------------------------------- | ----------------------------------------------- |
+| OAuth 2.0 (Easy & Custom Mode)   | https://docs.salla.dev/421118m0.md              |
+| Webhooks guide + event list      | https://docs.salla.dev/421119m0.md              |
+| App events (lifecycle)           | https://docs.salla.dev/421413m0.md              |
+| App Functions — overview         | https://docs.salla.dev/1726814m0.md             |
+| App Functions — supported events | https://docs.salla.dev/1726818m0.md             |
+| Storefront events (snippets)     | https://docs.salla.dev/1724504m0.md             |
+| Communication App payloads       | https://docs.salla.dev/1380572m0.md             |
+| Embedded SDK modules             | https://docs.salla.dev/embedded-sdk/overview.md |
+| Merchant/Admin API reference     | https://docs.salla.dev/421117m0.md              |
+| App Settings form (guide)        | `salla-app-settings` skill                      |
 
 ## 4. Know what to avoid
 

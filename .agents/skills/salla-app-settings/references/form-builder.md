@@ -171,7 +171,7 @@ Your App Functions can now read settings via context.settings
 
 ## Resources
 
-| Topic                             | Link                                                   |
-| --------------------------------- | ------------------------------------------------------ |
-| How to build an App Settings form | https://salla.dev/blog/how-to-build-app-settings-form/ |
-| App Settings API spec             | api-spec.md                                            |
+| Topic                    | Link                 |
+| ------------------------ | -------------------- |
+| App Settings API spec    | api-spec.md          |
+| Common settings patterns | settings-patterns.md |

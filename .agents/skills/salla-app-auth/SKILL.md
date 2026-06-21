@@ -2,12 +2,11 @@
 name: salla-app-auth
 description: >
   Salla OAuth 2.0 and merchant token management — the Salla delta on standard OAuth:
-  Easy Mode (tokens arrive via the app.store.authorize webhook, no callback URL; how
-  published apps work) vs Custom Mode (standard authorization-code, dev/testing only),
-  the offline_access scope, single-use refresh tokens that need a per-merchant refresh
-  lock, and the User Info endpoint. Use before writing any Salla token-handling code.
-  Lifecycle event handling → salla-app-lifecycle; webhook verification → salla-webhooks;
-  API usage → salla-api-core.
+  Easy Mode (tokens via the app.store.authorize webhook, no callback — published apps)
+  vs Custom Mode (authorization-code, dev/testing only), the offline_access scope,
+  single-use refresh tokens needing a per-merchant refresh lock, and the User Info
+  endpoint. Use before writing any Salla token-handling code. Lifecycle events →
+  salla-app-lifecycle; webhook verification → salla-webhooks; API usage → salla-api-core.
 ---
 
 # Salla App Auth Flow
@@ -16,6 +15,11 @@ Get and keep valid merchant tokens for your app — choose the OAuth mode, confi
 app, receive/exchange tokens, and refresh them safely. Work through the steps in order;
 complete each gate before moving on. Step 2 **performs actions** with the Salla Partners
 MCP; the token handling is runtime code.
+
+> **Publishing the app? → Easy Mode. Stop — do NOT build an OAuth callback or `state`
+> handling.** Tokens arrive in the `app.store.authorize` webhook. Custom Mode (a `/callback`
+> code exchange) is local-dev / Postman only. This is a hard requirement — do not substitute
+> a familiar OAuth2 callback pattern.
 
 ## Tools & MCPs
 
@@ -123,6 +127,21 @@ Portal registration, and `scope` must always include `offline_access`.
 
 **Step 3b — Handle the callback** (`GET /callback?code=…&state=…`): verify `state`, extract `code`.
 
+> **Custom Mode callback rules — all are required:**
+>
+> - **Salla-initiated install ≠ app-initiated OAuth.** When the merchant installs from the App
+>   Store, Salla redirects **straight to your callback** with **its own `state`** — your app
+>   never ran the authorize step and never set a `state` cookie. Do NOT reject the request for
+>   a missing/mismatched cookie in that flow. (Easy Mode avoids this entirely — no callback.)
+> - **Salla strips hyphens from `state`** when echoing it back. If you use a UUID, compare
+>   hyphen-insensitively (or don't put hyphens in `state`).
+> - **Next.js cookie-in-redirect trap:** `redirect()` from `next/navigation` drops cookies set
+>   via `cookies().set()` in a GET handler. Set the cookie on the response you return:
+>   `const res = NextResponse.redirect(url); res.cookies.set(...); return res;`.
+> - **`invalid_grant` on retry:** authorization `code`s are **single-use**. Re-visiting a used
+>   callback URL (refresh, back button) always fails — start a fresh install, don't retry the
+>   same code.
+
 **Step 3c — Exchange code for tokens:**
 
 ```bash
@@ -187,7 +206,9 @@ https://github.com/SallaApp/laravel-starter-kit/blob/master/app/Http/Controllers
 `expires` is a **Unix timestamp** (seconds), not a duration — convert before storing:
 
 ```typescript
+// ✅ expires is an absolute Unix timestamp (seconds)
 const expiresAt = new Date(payload.data.expires * 1000); // ms
+// ❌ it is NOT a duration — never do: new Date(Date.now() + expires * 1000)
 ```
 
 Refresh tokens are only issued when `offline_access` is in scope. **Always include
@@ -298,6 +319,18 @@ Authorization: Bearer <access_token>
     "domain": "https://salla.sa/my-store"
   }
 }
+```
+
+**The store id is `merchant.id` — top level of the response, NOT under `data`.** user/info
+has no `data` envelope (unlike webhooks/API responses). Extract defensively:
+
+```typescript
+// ✅ user/info shape: { id, name, email, merchant: { id, ... } }
+const merchantId = info?.merchant?.id; // number, top level — NOT info.data.merchant.id
+if (!merchantId) throw new Error("user/info: missing merchant.id"); // guard BEFORE stringify
+const storeId = String(merchantId);
+// ❌ String(info?.merchant?.id ?? "") — turns a missing id into "" / a 0 id into "0", both
+//    truthy after String(), so the guard silently passes and a bad value reaches the DB
 ```
 
 **Gate:** "Merchant id + store details are stored alongside the tokens?"

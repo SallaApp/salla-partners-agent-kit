@@ -15,6 +15,22 @@ Integrate a custom page inside the Salla Merchant Dashboard. Step 1 **performs**
 page registration with the Salla Partners MCP; the SDK steps are code you write into the
 app. Follow the steps in order — complete each gate before moving to the next.
 
+## Security guidelines (binding — no exceptions)
+
+- **Every merchant dashboard interface MUST be authenticated by the merchant — there are no
+  unauthenticated pages.** Render content only after the session is verified server-side.
+- **Authenticate via the embedded session token** (Step 3): verify the short-lived token
+  server-side, then bootstrap your own signed session (cookie/JWT). Never trust the token
+  client-side only; never use the OAuth introspect endpoint for this.
+- **Never expose a merchant page outside Salla's native embedded-app support** — no standalone
+  `/dashboard?store_id=…` URL, and no page that trusts a query param or referer for identity.
+  Someone who guesses a `store_id` must NOT be able to reach merchant data.
+- **Protect every route, not just the page.** Each API the page calls (settings, data,
+  actions) must require the same verified session, and every request must be authorized
+  against the authenticated merchant — never derive the merchant from client-supplied input.
+- **Token handling:** the embedded token is short-lived bootstrap only; keep secrets
+  server-side and scope every query to the authenticated merchant id.
+
 ## Tools
 
 | Tool                   | Action                                  | What it does                                       |
@@ -104,6 +120,13 @@ Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guid
 
 Verify the merchant's identity **before** rendering any content. Never trust the token
 client-side only.
+
+> **Anti-pattern — never build a custom merchant dashboard OUTSIDE Salla's native
+> embedded-app support.** The merchant UI MUST be an embedded page rendered inside the Salla
+> dashboard iframe (`salla_embedded_pages`), authenticated by the embedded token (verified
+> below). A standalone `/dashboard?store_id=…` page trusts the query param — it has no auth,
+> so anyone who knows a `store_id` gets in. Native embedded support is the auth model; a
+> public URL is not.
 
 The token is short-lived — use it to **bootstrap your own app session** (set a signed
 cookie / JWT after introspection); don't treat the embedded token as a long-lived API

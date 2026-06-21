@@ -45,7 +45,8 @@ GET https://accounts.salla.sa/oauth2/user/info
 Authorization: Bearer <access_token>
 ```
 
-`data.merchant.id` is the stable internal key — cache it rather than re-fetching per request.
+`merchant.id` (top level — user/info has **no `data` envelope**) is the stable internal key —
+cache it rather than re-fetching per request.
 
 Token error cases (all return **401**):
 
@@ -60,7 +61,7 @@ Token error cases (all return **401**):
 On `invalid_grant`, both access and refresh tokens are invalidated — the merchant must
 re-authorize (see salla-app-auth).
 
-**Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `data.merchant.id`?"
+**Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `merchant.id` (top level, not `data.merchant.id`)?"
 
 ---
 
@@ -248,12 +249,12 @@ no API call needed there.
 
 ## Quick-Reference Docs Links
 
-| Topic                     | URL                                                    |
-| ------------------------- | ------------------------------------------------------ |
-| Get Started               | https://docs.salla.dev/421117m0.md                     |
-| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0.md                     |
-| Responses & Errors        | https://docs.salla.dev/421123m0.md                     |
-| Pagination                | https://docs.salla.dev/421124m0.md                     |
-| Rate Limiting             | https://docs.salla.dev/421125m0.md                     |
-| Versioning                | https://docs.salla.dev/421126m0.md                     |
-| App Settings guide        | https://salla.dev/blog/how-to-build-app-settings-form/ |
+| Topic                     | URL                                                     |
+| ------------------------- | ------------------------------------------------------- |
+| Get Started               | https://docs.salla.dev/421117m0.md                      |
+| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0.md                      |
+| Responses & Errors        | https://docs.salla.dev/421123m0.md                      |
+| Pagination                | https://docs.salla.dev/421124m0.md                      |
+| Rate Limiting             | https://docs.salla.dev/421125m0.md                      |
+| Versioning                | https://docs.salla.dev/421126m0.md                      |
+| App Settings guide        | `salla-app-settings` skill (references/form-builder.md) |

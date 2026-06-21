@@ -33,5 +33,8 @@ fi
 
 ln -s "$REPO_DIR/.hermes-plugin" "$PLUGIN_LINK"
 
+# Derive version + skill count from the cloned repo so this never drifts on a bump.
+VERSION=$(sed -n 's/^version:[[:space:]]*//p' "$REPO_DIR/.hermes-plugin/plugin.yaml" | tr -d '"' | head -1)
+SKILLS=$(find "$REPO_DIR/.agents/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
 echo "✓ Installed. Launch hermes and run /plugins to verify."
-echo "  Expected: ✓ salla-partners v1.0.2 (25 skills)"
+echo "  Expected: ✓ salla-partners v${VERSION} (${SKILLS} skills)"

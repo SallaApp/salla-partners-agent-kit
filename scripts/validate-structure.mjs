@@ -184,6 +184,15 @@ check(
   existsSync(join(ROOT, ".hermes-plugin/__init__.py")),
   ".hermes-plugin/__init__.py exists",
 );
+// install.sh must derive version/skill-count at runtime — a hardcoded literal would
+// silently drift on a version bump (validate-structure can't reach a shell string).
+const installSh = existsSync(join(ROOT, ".hermes-plugin/install.sh"))
+  ? readFileSync(join(ROOT, ".hermes-plugin/install.sh"), "utf8")
+  : "";
+check(
+  !/\d+\.\d+\.\d+/.test(installSh),
+  ".hermes-plugin/install.sh must not hardcode a version (derive it from plugin.yaml at runtime)",
+);
 let hermesVersion = null;
 let hermesSkills = [];
 if (hermesYaml) {

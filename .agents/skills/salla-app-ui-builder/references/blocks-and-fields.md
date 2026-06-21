@@ -39,7 +39,7 @@ What `action=list` / `action=catalog` / `action=show` return for a block.
 
 > Contact details live in the publication's **`contact_information`** section (salla-publication-consistency). Some support/contact channels may surface on `app-information` as flat `support_*` elements — confirm with `action=show`.
 >
-> `app-information` is the one pinned block: `init` seeds it and `remove` rejects it (`is_required: true`). The other required/optional blocks are revealed dynamically by `init` / `catalog` — confirm the live set and each block's `is_required` / `editable` / `is_visible` at call time. **Pricing/plans are not a builder block** — they live in the publish flow's pricing step (salla-publication-consistency).
+> `app-information` is the one pinned block: `init` seeds it and `remove` rejects it (`is_required: true`). The other required/optional blocks are revealed dynamically by `init` / `catalog` — confirm the live set and each block's `is_required` / `editable` / `is_visible` at call time. **App Plans always renders on the listing as a placeholder** (even when the app has no plans) but is **not an editable builder block** — populate it via the publish flow's pricing step (salla-publication-consistency / salla-app-billing).
 
 ---
 

@@ -105,7 +105,7 @@ See [Blocks and Fields](references/blocks-and-fields.md) for the block/element m
 
 > - **Run `init` first** on a fresh draft — it seeds the required blocks and returns the current page.
 > - **Confirm ids and keys at call time** with `action=catalog` (block types) and `action=show` (element keys); example ids/keys in this skill are illustrative.
-> - **App Information is the one pinned block** — always present, stays first, can't be removed. The rest of the required/optional blocks are revealed by `init` / `catalog` (slugs illustrative — confirm at call time). Pricing/plans are **not** a builder block; they live in the publish flow's pricing step → salla-publication-consistency.
+> - **App Information is the one pinned block** — always present, stays first, can't be removed. The rest of the required/optional blocks are revealed by `init` / `catalog` (slugs illustrative — confirm at call time). **App Plans always renders on the listing as a placeholder** (even when the app has no plans) — but it's **not an editable builder block**; populate it via the publish flow's pricing step → salla-publication-consistency / salla-app-billing.
 > - **Contact details** live in the publication's **`contact_information`** section → salla-publication-consistency. Some support/contact channels may also surface on App Information as flat `support_*` elements — confirm with `action=show`.
 > - **Lingual elements** carry both Arabic and English (`{ "ar": "…", "en": "…" }`).
 > - **Collection** element children are keyed with the collection id as a prefix (`features.title`). See [payloads.md](references/payloads.md).

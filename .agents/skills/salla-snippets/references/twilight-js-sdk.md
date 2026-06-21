@@ -36,17 +36,21 @@ But snippets are NOT themes — some SDK affordances are theme-development const
 - You **canNOT** define Twig `{% hook %}`s, ship `<salla-*>` web components, use theme
   settings / `twilight.json`, or the Twilight CLI — those are **THEME-development**
   constructs, out of scope for snippets.
-- **No Twig in snippet JS.** Because a snippet is injected browser JS (not a theme template),
-  Twig interpolation — `{{ store.lang }}`, `{% if … %}` — does **not** run. It ships verbatim
-  to the browser as literal text, breaking the script. There is no server-side render pass.
-  Get dynamic values at **runtime** from the SDK instead: `salla.config.get(...)`, event
-  payloads, `salla.lang.get(...)`.
-- **Author pure JS (going-forward) vs the legacy inline branch.** With the `live-js` feature
-  flag the snippet JS is uploaded **verbatim to a CDN** and served via `<script src>`, so
-  write pure JS — no `<script>` wrapper, no HTML. Only on the legacy inline path (store not on
-  `live-js`, or snippet not yet migrated) is `content` injected as HTML, where raw JS needs a
-  `<script>…</script>` wrapper or it silently does nothing. Check `salla_snippets action=list`:
-  a `url` means CDN/pure-JS, inline `content` means legacy. See device-mode.md.
+- **No Twig / no `{}` in snippet JS.** Because a snippet is injected browser JS (not a theme
+  template), Twig interpolation — `{{ store.lang }}`, `{% if … %}` — and any `{}`
+  interpolation do **not** run. They ship verbatim to the browser as literal text, breaking
+  the script. There is no server-side render pass. Get dynamic values at **runtime** from the
+  SDK instead: `salla.config.get(...)`, event payloads, `salla.lang.get(...)`.
+- **A snippet is a pure-JS CDN file (going-forward) vs the legacy inline branch.** Your JS is
+  stored verbatim and served from a CDN as a real `.js` file via `<script src>`, so write
+  pure JS — no `<script>` wrapper, no HTML. The backend wraps your code in a versioned
+  wrapper that runs it inside `Salla.onReady(...)` and rebinds `salla` / `Salla` to a
+  per-app scope (`window.Salla.appScope(...)`) — so **don't call `appScope` yourself or touch
+  `document.currentScript`**; just use `salla` directly. Only on the legacy inline path
+  (store not on `live-js`, or snippet not yet migrated) is `content` injected as HTML, where
+  raw JS needs a `<script>…</script>` wrapper or it silently does nothing. Check
+  `salla_snippets action=list`: a `url` means CDN/pure-JS, inline `content` means legacy.
+  Snippets render **before `</body>`** (`place: "before"`, `tag: "body"`). See device-mode.md.
 
 **Availability key per method below:**
 
@@ -98,7 +102,10 @@ App snippet ✅ (read). `set` is mainly for standalone init.
 
 - `salla.config.get(path)` — dot-path read, e.g. `salla.config.get('user.id')`,
   `salla.config.get('store.id')`, `salla.config.get('currencies.SAR.code')`,
-  `salla.config.get('page.slug')`. (Store-context paths: see device-mode.md.)
+  `salla.config.get('page.slug')`. (Store-context paths: see device-mode.md.) **Your app's
+  settings are exposed under `app.*`** — `salla.config.get('app.<key>')` reads a merchant's
+  App Settings (only `public: true` keys; secrets stay server-side). Define keys and
+  public/secret in [salla-app-settings](../../salla-app-settings/SKILL.md).
   ⚠️ **Read defensively** — a nested read (e.g. `store.lang`) can return `null`/`undefined`,
   and the call can be mangled by rocket-loader wrapping or by running **before init**. Gate
   on `salla.onReady`, null-check every read, and use a fallback chain for load-bearing

@@ -17,45 +17,55 @@ your `tracker.js` script embedded in the storefront.
 
 ---
 
-## Installation
+## A snippet is a pure-JS CDN file
 
-Add `tracker.js` to your storefront. Salla loads it automatically when your App Snippet is
-active.
+Author plain, valid JavaScript and send it as `content` via `salla_snippets`. On save Salla
+stores it verbatim and serves it from a CDN as a real `.js` file, loaded into every
+storefront page via `<script src>` (cacheable / edge-cached). So write clean JS — **no
+`<script>` wrapper, no HTML, no Twig, and no `{}` interpolation of any kind**.
 
-```html
-<!-- Added via App Snippet — injected into every storefront page -->
-<script src="https://your-app.com/tracker.js"></script>
+```js
+(function () {
+  salla.onReady(function () {
+    // your code — salla is already app-scoped (see below)
+  });
+})();
 ```
 
-> **Author pure JavaScript (the going-forward model).** Stores on the `live-js` feature
-> flag upload your snippet JS **verbatim to a CDN** as a `.js` file and the storefront loads
-> it via `<script src>` (cacheable / edge-cached). So write clean JS — **no `<script>`
-> wrapper, no HTML, no Twig.** With pure JS the external loader above is just a plain
-> `import`/`fetch` or top-level statement, not an HTML `<script>` tag. (The HTML→JS
-> auto-converter `SnippetToPureJSAction` and the `app:snippets-to-pure-js` command are
-> deprecated — write clean JS yourself, don't rely on auto-conversion.)
+> **The backend wraps your code — you get a pre-scoped `salla`.** Your code is wrapped in a
+> versioned wrapper (`/*__SALLA_WRAP_V1__*/`, between `/*__SALLA_USER_CODE_START__*/` …
+> `/*__SALLA_USER_CODE_END__*/`) that runs it **inside `Salla.onReady(...)`** and rebinds
+> `salla` / `Salla` to `window.Salla.appScope(<your scope>)`, proxying
+> `document.currentScript` to your own script element. **Don't call `appScope` yourself or
+> touch `document.currentScript`** — just use `salla` / `salla.onReady` /
+> `salla.config.get(...)` directly. The scoped `salla` isolates your snippet from other apps
+> on the page.
+>
+> **If you need an external script** (e.g. a third-party tracker), load it from your JS at
+> runtime (`document.createElement('script')` / dynamic `import`), not as an HTML `<script>`
+> tag. (The HTML→JS auto-converter `SnippetToPureJSAction` and the `app:snippets-to-pure-js`
+> command are deprecated — write clean JS yourself, don't rely on auto-conversion.)
 >
 > **Legacy inline branch (store NOT on `live-js`, or snippet not yet migrated).** There the
 > `content` is dropped into the page as **inline HTML**, not run as a script — inline JS with
 > **no** `<script>…</script>` wrapper renders as inert text and **silently does nothing** (no
-> error). For a legacy store, the external loader and any inline logic must live inside
-> `<script>` tags.
+> error). For a legacy store, wrap the body (and any external loader) in `<script>` tags.
 >
 > **Tell the branches apart with `salla_snippets action=list`:** a returned **`url`** =
-> CDN / `live-js` (pure JS, served as a file); inline **`content`** = legacy (needs
-> `<script>` wrapping). `live-js` rolls out per store (a snippet migrates on its next save
-> once the flag is on), so confirm the store's mode rather than assuming.
+> CDN / `live-js` (pure JS, served as a `.js` file, no inline content); inline **`content`** =
+> legacy (needs `<script>` wrapping). `live-js` rolls out per store (a snippet migrates on
+> its next save once the flag is on), so confirm the store's mode rather than assuming.
 >
-> **No Twig in snippet JS (both branches).** A snippet is browser JS, not a theme template —
-> `{{ … }}` / `{% … %}` do not interpolate; they ship as literal text and break the script.
-> Pull dynamic values at runtime from the SDK (`salla.config.get(...)`, events) — see _Store
-> context & language_ below.
+> **No Twig / no `{}` in snippet JS (both branches).** A snippet is browser JS, not a theme
+> template — `{{ … }}` / `{% … %}` and any `{}` interpolation do not run; they ship as
+> literal text and break the script. Pull dynamic values at runtime from the SDK
+> (`salla.config.get(...)`, events) — see _Store context & language_ below.
 >
 > **Deploy guard:** never ship a literal `https://YOUR_APP_URL` / placeholder. Templatize it
 > at build/deploy and fail the build if the placeholder survives — a shipped placeholder
 > silently breaks every event POST.
 >
-> **No secrets in `tracker.js`:** it is served to every shopper — keep it free of app
+> **No secrets in snippet JS:** it is served to every shopper — keep it free of app
 > secrets, tokens, and keys (full trust-boundary note under _Sending data to your backend_).
 
 ---
@@ -243,10 +253,23 @@ documented in the Twilight Web Components reference above — confirm the exact 
 
 ```js
 salla.config.get("store.id"); // ✅ works (e.g. 1963287162)
+salla.config.get("store.username"); // ✅ store handle
+salla.config.get("user.id"); // ✅ logged-in user id
 salla.config.get("customer.id"); // ✅ null for guests (expected)
+salla.config.get("customer.email"); // ✅ logged-in customer email
 salla.config.get("store.currency"); // 'SAR'
 salla.config.get("store.lang"); // ⚠️ may be null — use a fallback chain
+salla.config.get("store"); // whole object · salla.config.get("user")
 ```
+
+> **Your app's settings reach the storefront under `app.*`.** Read a merchant's App Settings
+> at runtime with `salla.config.get("app.<key>")` — e.g.
+> `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`.
+> **Only settings marked `public: true` are exposed client-side**; secrets stay server-side
+> and never appear in the snippet. This is the bridge from a merchant's settings form to the
+> storefront — define the keys (and which are public vs secret) in
+> [salla-app-settings](../../salla-app-settings/SKILL.md). Read these defensively too
+> (null-check; the setting may be unset on a fresh install).
 
 > **`salla.config.get()` is not reliable on its own — treat every read defensively.** A
 > nested read like `salla.config.get('store.lang')` can return `null`/`undefined`, and the

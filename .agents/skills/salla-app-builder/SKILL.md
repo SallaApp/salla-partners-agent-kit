@@ -117,6 +117,13 @@ keep going through configure → publish.
 
 ## Step 2 — OAuth, Scopes & Webhook Connection
 
+> **Default to Easy Mode.** Easy Mode (tokens via the `app.store.authorize` webhook, no
+> callback) is the **recommended default for every app** — use it unless there's a concrete
+> technical reason it can't work. Custom Mode (an OAuth `/callback` code exchange) is for
+> **local dev / Postman during development**; shipping a published app on Custom Mode
+> **without a real, justified use case can get it rejected at review**. Mode mechanics →
+> [salla-app-auth](../salla-app-auth/SKILL.md).
+
 Configure OAuth and webhooks in **one** `salla_apps action=connect` call. First check the
 app's valid scope slugs and current selection:
 

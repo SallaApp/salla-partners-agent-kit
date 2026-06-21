@@ -21,7 +21,7 @@ Follow [salla-app-builder](../salla-app-builder/SKILL.md) with `type: "communica
 Deltas from a General App:
 
 - **No `sub_category_id`** — communication apps don't use one (only `app` and `shipping` types do).
-- **0 default webhooks** — nothing is subscribed for you (shipping apps get 4 defaults; you get none).
+- **0 default webhooks** — nothing is subscribed for you (shipping apps get default shipment events; you get none).
 - `is_embedded` defaults to `true`.
 
 ## Step 2 — Declare supported channels (publish-blocker)

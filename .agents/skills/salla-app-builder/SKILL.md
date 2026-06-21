@@ -148,13 +148,13 @@ and returning 200, with the secret stored?"
 
 Common slugs by domain:
 
-| Domain             | Key events                                                                                                                 |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| Lifecycle (always) | `app.store.authorize`, `app.installed`, `app.uninstalled`, `app.updated`, `app.subscription.started`                       |
-| Orders             | `order.created`, `order.updated`, `order.status.updated`                                                                   |
-| Products           | `product.created`, `product.updated`, `product.deleted`                                                                    |
-| Customers          | `customer.created`, `customer.updated`                                                                                     |
-| Shipments          | `order.shipment.creating`, `order.shipment.cancelled`, `order.shipment.return.creating`, `order.shipment.return.cancelled` |
+| Domain             | Key events                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lifecycle (always) | `app.store.authorize`, `app.installed`, `app.uninstalled`, `app.updated`, `app.subscription.started`                                                                      |
+| Orders             | `order.created`, `order.updated`, `order.status.updated`                                                                                                                  |
+| Products           | `product.created`, `product.updated`, `product.deleted`                                                                                                                   |
+| Customers          | `customer.created`, `customer.updated`                                                                                                                                    |
+| Shipments          | `shipment.created`, `shipment.cancelled`, `shipment.updated` (async webhooks) — `shipment.creating`/`shipment.cancelling` are sync App Functions (see salla-shipping-app) |
 
 > A `webhook_url` must be set (Step 2) before events will deliver. Unknown slugs are
 > rejected with the valid list — pick from it (`salla_events action=list` is the source

@@ -133,16 +133,16 @@ app's valid scope slugs and current selection:
    - `webhook_url` — your webhook receiver (**HTTPS-only**, must authenticate inbound
      requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
-   - `generate_secret: true` — mints + returns the webhook signing secret. An app
-     already has a secret from creation, so this **rotates** it — don't regenerate if
-     the current secret is already deployed and in use.
+   - `generate_secret: true` — mints + returns the webhook signing secret. An app already
+     has a secret from creation, so this **rotates** it; only pass it when you intend to
+     replace the current secret (rotating a secret already live on production traffic
+     breaks in-flight verification).
    - `trusted_ips`, `webhook_headers`
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
 Store the returned **webhook secret** in a secret manager (never in source/repo); it
-verifies the HMAC-SHA256 signature on every webhook. Don't `generate_secret` again once a
-secret is live on production traffic — rotating it breaks in-flight verification.
+verifies the HMAC-SHA256 signature on every webhook.
 Signature verification + idempotency → **`salla-webhooks`** skill. Token handling
 (Easy vs Custom mode, storage, refresh) → **`salla-app-auth`** skill. (Route, don't
 reimplement here.)
@@ -270,15 +270,15 @@ Ask: "Does your app need serverless handlers triggered by Salla events?"
 
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
   context shape, `Resp` API, and timeouts. App Functions handle **store-event automation**
-  (where a trigger exists); **lifecycle/auth events stay on webhooks** (Step 3) and are
-  owned by **`salla-app-lifecycle`** / **`salla-app-auth`** — don't route them here.
+  (where a trigger exists); lifecycle/auth events stay on webhooks (Step 3, owned by
+  **`salla-app-lifecycle`** / **`salla-app-auth`**).
 
 **Save the function with `salla_functions action=save` (`app_id`, `trigger`, `content`,
-`name`) — an upsert (create or update).** Saving is live on the app's demo stores
-immediately; submit the app with `salla_apps action=publish` to release it to real stores
-after review. Read with `salla_functions action=get`, remove with `action=delete`.
-(`salla_functions` is operator-gated: it errors clearly if the App Builder service is not
-enabled on the MCP deployment.) Details → **`salla-app-functions`**.
+`name`) — an upsert (create or update).** A saved function is live on the app's demo
+stores immediately; it reaches real stores only after the app is published (Step 8). Read
+with `salla_functions action=get`, remove with `action=delete`. (`salla_functions` is
+operator-gated: it errors clearly if the App Builder service is not enabled on the MCP
+deployment.) Details → **`salla-app-functions`**.
 
 **Gate:** "Function saved and working on a demo store?" (Publishing to production is the
 later dedicated publish step — not here.)

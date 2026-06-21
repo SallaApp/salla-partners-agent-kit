@@ -17,14 +17,13 @@ Two things to configure:
 
 ## Field Schema (`type` + `format`)
 
-Salla's form-builder renders from `type` **+** `format` — not a single loose `type`. Bare
-aliases (`toggle`, `text`, `number`, `select`) **save fine but fail to render**: the
-merchant gets broken or empty form output. Always use a real `type`+`format` pair.
+Salla's form-builder renders from `type` **+** `format`, not a single loose `type`. Bare
+aliases (`toggle`, `text`, `number`, `select`) save but render broken/empty — always use a
+real pair.
 
-The table below is the supported, simple, documentable set (it matches the
-`salla_settings action=define_form` MCP schema). The form-builder source carries a few
-extra string/number formats and a `collection` type, but they are either complex or have a
-simpler equivalent — prefer the pairs here:
+The table below is the supported set (matching the `salla_settings action=define_form` MCP
+schema). The form-builder source has a few extra string/number formats and a `collection`
+type; they are complex or have a simpler equivalent here — prefer these pairs:
 
 | Control                  | `type`    | `format`        | Extra props          |
 | ------------------------ | --------- | --------------- | -------------------- |
@@ -93,26 +92,18 @@ Pass these field objects as the **`settings`** array to `salla_settings action=d
 }
 ```
 
-`id` is **snake_case**; `value` is the default (required fields MUST set one). Bare `type`
-without `format` is not Portal-safe — see the Field Schema table above.
-
-Field identifier is **`id`**; `label` / `placeholder` / `description` are **plain
-strings**. To translate a field's text, set `multilanguage: true` on it — there are no
-inline `{en, ar}` objects. `public: true`
-marks a value as safe for client-side use
-(e.g. tracking IDs) — API keys and secrets must stay `public: false` (server/App
-Function only).
+The field identifier is **`id`** (snake_case); `label` / `placeholder` / `description` are
+**plain strings** — set `multilanguage: true` to translate a field's text (no inline
+`{en, ar}` objects).
 
 ---
 
-## Validation URL Contract (public validation ONLY)
+## Validation URL Contract (validation only)
 
 If you set a Validation URL, Salla POSTs the proposed values to it **before saving** so you
-can accept or reject them. It is **public validation only** — there is **NO signature** on
-the request, and it is **not** a storage hook. Don't expect an `Authorization` header and
-don't use this endpoint to persist anything. To **store** settings, use the
-`app.settings.updated` webhook ([docs](https://docs.salla.dev/421413m0.md)) — that is the
-source of truth.
+can accept or reject them. It is a **public endpoint with no signature** and **no
+`Authorization` header** — validate the values and respond, nothing more. Storage is the
+`app.settings.updated` webhook's job ([docs](https://docs.salla.dev/421413m0.md)).
 
 **Request from Salla:**
 
@@ -149,20 +140,19 @@ Content-Type: application/json
 }
 ```
 
-This endpoint is public — there is no signature to verify. Validate the submitted values
-and respond; never treat a validation call as a save.
-
 ---
 
 ## Critical Rules
 
-1. **Always send ALL keys on POST** — partial updates set omitted keys to `null`
-2. **Labels are plain strings** — set `multilanguage: true` on a field to translate its text (no inline `{en, ar}` objects)
-3. **Never mark secrets `public: true`** — API keys, passwords, and tokens stay `public: false` and must never reach storefront / client code; read them only server-side or from `context.settings` in App Functions. Don't log raw settings; store secret values encrypted.
-4. **Validate, don't store, at the Validation URL** — it is a public, signature-free
-   validate-only endpoint; persist settings from the `app.settings.updated` webhook
-5. **Loose aliases render-break, not save-break** — `toggle`/bare `text` save but show
-   broken form output; always use a real `type`+`format` pair from the table above
+1. **Send ALL keys on POST** — partial updates set omitted keys to `null`.
+2. **Labels are plain strings** — set `multilanguage: true` to translate a field (no inline
+   `{en, ar}` objects).
+3. **Secrets stay `public: false`** — API keys, passwords, and tokens are read only
+   server-side or from `context.settings`, stored encrypted, never logged or sent to
+   client code.
+4. **Validation URL validates, never stores** — public, signature-free; settings are
+   persisted from the `app.settings.updated` webhook.
+5. **Use a real `type`+`format` pair** — loose aliases save but render broken.
 
 ---
 

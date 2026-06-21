@@ -17,13 +17,10 @@ the platform — not a foreign iframe.
 ## Use SDK components (a requirement, not a suggestion)
 
 Using the Embedded SDK modules for core dashboard interactions is **mandatory** — it keeps the
-merchant from facing fragmented UI patterns. Crucially:
-
-- **Use methods, not events.** Always call the high-level SDK methods (e.g.
-  `embedded.ui.toast.success`) instead of sending `postMessage` directly. Internal message shapes
-  may change; the SDK handles validation, error states, and abstraction.
-- Toasts, confirms, loading, navbar actions, breadcrumbs, page title, and navigation all have
-  native SDK methods — use them rather than building your own.
+merchant from facing fragmented UI patterns. Toasts, confirms, loading, navbar actions,
+breadcrumbs, page title, and navigation all have native SDK methods; call those rather than
+building your own (and call the methods, never raw `postMessage` — see
+[`sdk-modules-guide.md`](sdk-modules-guide.md)).
 
 ---
 
@@ -192,8 +189,7 @@ layout — that creates a confusing "nested dashboard" effect that wastes space.
 - **Good integration** uses native dashboard components and adheres to the dashboard theme/colors;
   **bad integration** adds its own chrome and off-brand colors.
 
-> **Embedded App Banner:** add a `1420×520 px` banner image to your App Card before publishing
-> (My Apps → App → App Details → Start publishing → App Features → Embedded App Banner).
+> Before publishing, add the `1420×520 px` **Embedded App Banner** to your App Card (SKILL.md Step 1).
 
 ---
 
@@ -276,7 +272,7 @@ Use native Salla UI toasts and confirms where possible. For inline buttons:
   border: 1px solid var(--color-border);
 }
 .btn-danger {
-  background: #ef4444;
+  background: var(--color-danger);
   color: #fff;
 }
 .btn:disabled {

@@ -1,10 +1,8 @@
 # `app_page_builder` — action contract
 
-The App Store listing page is authored through the **`app_page_builder`** MCP tool. There is **no direct REST endpoint and no token to handle** — the MCP holds the app context and credentials. Editing a block's elements writes the **shared listing content** (`name`, `description`, `logo`, `screenshots`, `benefits`) into the app's draft publication.
+The action contract for the **`app_page_builder`** MCP tool. The MCP holds the app context and credentials. Editing a block's elements writes the shared listing content into the draft publication; the model and shared fields are in [SKILL.md](../SKILL.md).
 
-> **Dependency:** `app_page_builder` ships in the Salla Partners MCP (partners-mcp #10) and must be deployed.
-
-> **Prerequisite:** `app_page_builder` is **disabled until the app is public and has a draft** — `app_publish action=open` must have created the draft first. The draft/publish lifecycle is owned by **salla-publication-consistency**.
+> **Prerequisite:** enabled once the app is public and has a draft — run `app_publish action=open` first (lifecycle owned by **salla-publication-consistency**).
 
 ---
 
@@ -41,22 +39,9 @@ Every call takes `action=` plus the action's parameters. The MCP already knows w
 
 ---
 
-## Media
-
-Image elements (`logo`, `screenshots`, collection `*.image`) reference an uploaded media id:
-
-1. `salla_upload` with a `source_url` → integer image **`id`**.
-2. Put `[{ id, url }]` in the `values` map for that element in `action=set`.
-
-Keep an existing image by leaving its stored `{ id, url }` in place.
-
----
-
 ## Block / element shapes
 
-A block returned by `list`/`catalog`/`show` carries `id`, `slug`, `order`, `required` (see [blocks-and-fields.md](blocks-and-fields.md) for the full field meanings). `action=show` adds the block's **element keys** — the keys `action=set` accepts. The element schema (`type`/`format`/`lingual`/…) and the `set` value shapes per format are in [blocks-and-fields.md](blocks-and-fields.md) and [payloads.md](payloads.md).
-
-Example ids/keys in the reference files are **illustrative** — always confirm a real block's element keys with `action=show` and the available types with `action=catalog` before calling `action=set`.
+A block returned by `list`/`catalog`/`show` carries `id`, `slug`, `order`, `required` (full field meanings in [blocks-and-fields.md](blocks-and-fields.md)). `action=show` adds the block's **element keys** — the keys `action=set` accepts. The element schema (`type`/`format`/`lingual`/…) and the per-format `set` value shapes are in [blocks-and-fields.md](blocks-and-fields.md) and [payloads.md](payloads.md).
 
 ---
 

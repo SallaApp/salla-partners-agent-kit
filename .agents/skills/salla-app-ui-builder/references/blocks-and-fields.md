@@ -1,10 +1,8 @@
 # Blocks and Elements
 
-The listing page has two layers: the **block** (a section in the app's App Store listing page) and the **element** (an editable key → value input inside a block). You author both through the **`app_page_builder`** MCP tool — there is no direct REST/token path.
+The listing page has two layers: the **block** (a section of the listing page) and the **element** (an editable key → value input inside a block). Block types come from `action=catalog`; a block's element keys come from `action=show`. Ids, option lists, and element sets drift between environments and over time, so confirm them at call time (cross-check via `salla-docs`) — the examples below are illustrative.
 
-**Discover, don't hardcode.** Block types come from `action=catalog`; a block's element keys come from `action=show`. Block `id`s, option lists, and element sets drift between environments and over time, so the examples below are **illustrative** — confirm them against `action=catalog` / `action=show` (and cross-check via `salla-docs`). `image` and `richtext` values render as **public App-Store content** — use only trusted, sanitized assets/HTML.
-
-> **Prerequisite.** The builder is disabled until the app is public and has a draft — run `app_publish action=open` first to create it. Then run `app_page_builder action=init` once on the fresh draft to seed the required blocks. Draft/publish lifecycle → salla-publication-consistency.
+Prerequisite and standard sequence: [SKILL.md](../SKILL.md#prerequisite-open-a-draft-first).
 
 ---
 
@@ -38,7 +36,7 @@ What `action=list` / `action=catalog` / `action=show` return for a block.
 | `app-faq`         | App FAQ         | —        | ✅       |                                              |
 | `app-stats`       | App Statistics  | —        | ✅       |                                              |
 
-> **`app-contact-info` was removed** — do not re-add it. Contact details live in the publication's **`contact_information`** section (salla-publication-consistency). Some support/contact channels may surface on `app-information` as flat `support_*` elements — confirm with `action=show`.
+> Contact details live in the publication's **`contact_information`** section (salla-publication-consistency). Some support/contact channels may surface on `app-information` as flat `support_*` elements — confirm with `action=show`.
 >
 > `app-information` and `app-pricing` are **required**: `init` seeds them and `remove` rejects them. `app-pricing` is required **and** non-editable (no element keys to `set`).
 
@@ -56,7 +54,7 @@ Editing block elements writes these **shared listing fields** into the draft pub
 | `screenshots` | App Information         | image `[{ id, url }, …]` (multiple)      |
 | `benefits`    | App Features            | collection (array of prefixed-key items) |
 
-> **`short_description` is NOT here.** It belongs to the publication `basic_information` section (50–200 chars), written via `app_publish` → salla-publication-consistency.
+> `short_description` belongs to the publication `basic_information` section, not here → salla-publication-consistency.
 
 ---
 
@@ -252,20 +250,6 @@ The block that carries `name`, `description`, `logo`, `screenshots` (labels in `
 ]
 ```
 
-Notes: `image` elements (`logo`, `screenshots`) carry current files under **`items`** (`[{ id, url }]`), not `value`; upload new ones via `salla_upload` first. The old `app-contact-info` `links` collection is gone — do not author it here; use the publication `contact_information` section.
+Note: `image` elements (`logo`, `screenshots`) carry current files under **`items`** (`[{ id, url }]`), not `value`; upload new ones via `salla_upload` first. Contact details live in the publication `contact_information` section (salla-publication-consistency), not on this block.
 
-### Collection serialization (shape reference)
-
-Any populated collection serializes as an array of items whose keys are the **prefixed child ids**:
-
-```jsonc
-"benefits": [
-  {
-    "benefits.image": [ { "id": 176983, "url": "https://…/a.jpg" } ],
-    "benefits.title": { "ar": "سريع", "en": "Fast" },
-    "benefits.description": { "ar": "أداء فوري", "en": "Instant performance" }
-  }
-]
-```
-
-The rule holds for every collection: each item is an object keyed by prefixed child ids (`benefits.title`). See [payloads.md](payloads.md) for the full `set` value shapes.
+Each collection value serializes as an array of items keyed by **prefixed child ids** (`benefits.title`, not `title`). Full `set` value shapes → [payloads.md](payloads.md).

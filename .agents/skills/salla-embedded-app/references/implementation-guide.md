@@ -173,7 +173,7 @@ async function bootstrap() {
   embedded.nav.setAction({
     title: layout.locale === "ar" ? "حفظ" : "Save",
     value: "save",
-    icon: "sicon-check",
+    icon: "hgi hgi-stroke hgi-tick-02", // Hugeicons class — see design-guidelines.md
   });
   const offAction = embedded.nav.onActionClick(async (value) => {
     if (value !== "save") return;

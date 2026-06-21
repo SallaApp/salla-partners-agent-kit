@@ -19,37 +19,33 @@ your `tracker.js` script embedded in the storefront.
 
 ## A snippet is a pure-JS CDN file
 
-A snippet is a **pure-JavaScript file served from the CDN.** Write the body as plain
-JavaScript — **no `<script>` tags, no HTML, no Twig.** Send it as `content` via
-`salla_snippets`; on save Salla stores it verbatim and serves it from a CDN as a real `.js`
-file, loaded into every storefront page via `<script src>` (cacheable / edge-cached).
+Write the body as plain, valid JavaScript and send it as `content` via `salla_snippets`. On
+save Salla stores it verbatim and serves it from a CDN as a real `.js` file, loaded into
+every storefront page via `<script src>` (cacheable / edge-cached). Use `salla` /
+`salla.onReady` / `salla.config.get(...)` directly — there is nothing to wrap or scope
+yourself:
 
 ```js
 (function () {
   salla.onReady(function () {
-    // your code — just use salla / salla.onReady / salla.config.get directly
+    // your code — use salla / salla.onReady / salla.config.get directly
   });
 })();
 ```
 
-> **You write plain JS; Salla serves and runs it for you.** There's nothing to wrap or scope
-> yourself — author plain, valid JavaScript and use `salla` / `salla.onReady` /
-> `salla.config.get(...)` directly.
->
-> **If you need an external script** (e.g. a third-party tracker), load it from your JS at
-> runtime (`document.createElement('script')` / dynamic `import`).
->
-> **No Twig / no `{}` in snippet JS.** A snippet is browser JS, not a theme template —
-> `{{ … }}` / `{% … %}` and any `{}` interpolation do not run; they ship as literal text and
-> break the script. Pull dynamic values at runtime from the SDK (`salla.config.get(...)`,
-> events) — see _Store context & language_ below.
->
-> **Deploy guard:** never ship a literal `https://YOUR_APP_URL` / placeholder. Templatize it
-> at build/deploy and fail the build if the placeholder survives — a shipped placeholder
-> silently breaks every event POST.
->
-> **No secrets in snippet JS:** it is served to every shopper — keep it free of app
-> secrets, tokens, and keys (full trust-boundary note under _Sending data to your backend_).
+What goes in the body:
+
+- **Browser JS only.** A snippet is not a theme template and there is no server-side render
+  pass, so Twig (`{{ … }}` / `{% … %}`) and any `{}` interpolation ship as literal text and
+  break the script. Pull every dynamic value at runtime from the SDK
+  (`salla.config.get(...)`, event payloads) — see _Store context & language_ below.
+- **External scripts** (e.g. a third-party tracker): load them from your JS at runtime
+  (`document.createElement('script')` / dynamic `import`).
+- **Resolve every URL at deploy time.** Templatize any app URL and fail the build if a
+  placeholder like `https://YOUR_APP_URL` survives — a shipped placeholder silently breaks
+  every event POST.
+- **No secrets.** The file is served to every shopper, so keep it free of app secrets,
+  tokens, and keys (full trust-boundary note under _Sending data to your backend_).
 
 ---
 
@@ -57,10 +53,12 @@ file, loaded into every storefront page via `<script src>` (cacheable / edge-cac
 
 Two rules you MUST follow:
 
-1. **Bootstrap with `salla.onReady(cb)`** — never gate on `typeof salla !== 'undefined'`.
-2. **Register `product::*` and `cart::*` listeners at the module top level, NOT inside the
-   `onReady` callback.** Twilight emits product events **during init, before** `onReady`
-   fires — listeners attached inside `onReady` miss them.
+1. **Bootstrap with `salla.onReady(cb)`** for any code that reads store-loaded state.
+   `window.salla` is already defined when your snippet runs, so gate on readiness, not on
+   `typeof salla`.
+2. **Register `product::*` and `cart::*` listeners at the module top level**, outside
+   `onReady`. Twilight emits product events **during init, before** `onReady` fires — a
+   listener attached inside `onReady` misses them.
 
 ```js
 // ✅ top level — registered before Twilight finishes init
@@ -245,27 +243,24 @@ salla.config.get("store.lang"); // ⚠️ may be null — use a fallback chain
 salla.config.get("store"); // whole object · salla.config.get("user")
 ```
 
-> **Read your app's settings ONLY with `salla.config.get("app.<key>")`.** This is the one and
-> only way to read a merchant's App Settings in a storefront snippet — e.g.
-> `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`.
-> **Hard rule:** only settings marked **`public: true`** are accessible in a storefront
-> snippet; **private settings (`public: false`) are NOT accessible on the storefront** — they
-> stay server-side and never appear in the snippet. This is the bridge from a merchant's
-> settings form to the storefront — define the keys (and which are `public`) in
-> [salla-app-settings](../../salla-app-settings/SKILL.md). Read these defensively too
-> (null-check; the setting may be unset on a fresh install).
+> **Read your app's settings with `salla.config.get("app.<key>")`** — the one and only way to
+> read a merchant's App Settings in a storefront snippet (e.g.
+> `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`).
+> Only settings marked **`public: true`** are visible here; private settings (`public: false`)
+> stay server-side. This is the bridge from a merchant's settings form to the storefront —
+> define the keys (and which are `public`) in
+> [salla-app-settings](../../salla-app-settings/SKILL.md).
 
-> **`salla.config.get()` is not reliable on its own — treat every read defensively.** A
-> nested read like `salla.config.get('store.lang')` can return `null`/`undefined`, and the
-> call itself can be **disrupted** — Cloudflare rocket-loader wrapping (see _console noise_)
-> or reading **before init** (a top-level read that runs before Twilight finishes init). Safe
-> patterns:
+> **Treat every `salla.config.get()` read defensively.** A nested read like
+> `salla.config.get('store.lang')` can return `null`/`undefined`, the value may be unset on a
+> fresh install, and the call can be disrupted by Cloudflare rocket-loader wrapping (see
+> _console noise_) or by running before init. Safe patterns:
 >
 > - **Gate reads on `salla.onReady(cb)`** — config is only guaranteed populated once the
->   store is loaded. Don't read store-loaded config at module top level (only event listeners
->   belong there — see _Bootstrap & event-timing_).
-> - **Null-check every `config.get`** — never assume a path resolved. Don't chain logic on a
->   single unchecked read.
+>   store is loaded. Keep module top level for event listeners only (see _Bootstrap &
+>   event-timing_).
+> - **Null-check every read** and resolve a single read at a time, rather than chaining logic
+>   on one unchecked path.
 > - **Use a fallback chain** for anything load-bearing (the lang fallback below is the model).
 
 Language fallback (don't trust `store.lang` alone — the pattern for any config read):
@@ -295,29 +290,28 @@ salla.event.on("cart::item.added", async (e) => {
 });
 ```
 
-> **Same deploy guard as the snippet URL:** `https://your-app.com/track` is a placeholder —
-> templatize it and fail the build if it survives, or every event POST silently goes nowhere.
+`https://your-app.com/track` is a placeholder — apply the same deploy guard as the snippet
+URL (templatize, fail the build if it survives).
 
-> **Trust boundary (snippet code runs in the shopper's untrusted browser):**
+> **Trust boundary — snippet code runs in the shopper's untrusted browser:**
 >
-> - **Never embed secrets in snippet/tracker.js** — no app secret, OAuth/merchant access
->   token, API key, or signing secret. Anything in storefront JS is fully public. Token and
->   OAuth handling belong on your server → **salla-app-auth**.
+> - **Keep secrets out of snippet/tracker.js** — no app secret, OAuth/merchant access token,
+>   API key, or signing secret; storefront JS is fully public. Token and OAuth handling
+>   belong on your server → **salla-app-auth**.
 > - **Treat every POST as untrusted.** A shopper can forge, replay, or tamper with the body
->   (`store_id`, `product_id`, prices). Re-validate server-side; never trust client-supplied
->   prices/totals — re-derive them from the Admin API.
-> - **Authenticate and validate the tracking endpoint** — don't accept anonymous writes.
->   Verify the request (e.g. origin/session check) and validate the payload schema before
->   acting; rate-limit it.
+>   (`store_id`, `product_id`, prices). Re-validate server-side and re-derive
+>   prices/totals from the Admin API rather than trusting client-supplied values.
+> - **Authenticate the tracking endpoint** — verify the request (e.g. origin/session check),
+>   validate the payload schema before acting, and rate-limit it.
 
 ---
 
 ## UI compliance (storefront)
 
-Injected UI must follow `salla-ui-compliance`: use `<salla-button>` (not raw `<button>`),
-Salla icons `sicon-*` (not emoji), and theme variables like `--color-primary` (not hardcoded
-hex). Hook points for the single product page: `product:single.form.start` /
-`product:single.form.end`.
+Injected UI must follow [salla-ui-compliance](../../salla-ui-compliance/SKILL.md) — inherit
+theme tokens, use Salla icons, match the surrounding page (full checklist in SKILL.md). The
+theme's single-product insertion points are `product:single.form.start` /
+`product:single.form.end`; target near those when placing UI on the product page.
 
 ---
 

@@ -27,10 +27,9 @@ to the target store → **Authorize App** on the consent screen. The app then sh
 demo store's home page.
 
 > **Install links expire (~1 hour).** A link from the Portal (or `salla_apps
-action=demo_stores`) is time-limited — generate it immediately before testing and use it
-> right away. An expired link **fails silently or redirects to login** instead of
-> installing; don't save and reuse an old link. If install seems to do nothing, get a fresh
-> one first.
+action=demo_stores`) is time-limited — generate it immediately before each test and use
+> it right away. An expired link fails silently or redirects to login instead of
+> installing, so if install seems to do nothing, generate a fresh link first.
 
 Three demo-store URLs map to three different test surfaces — keep them distinct:
 **install link** → triggers OAuth + install; the **storefront URL** → where you test the

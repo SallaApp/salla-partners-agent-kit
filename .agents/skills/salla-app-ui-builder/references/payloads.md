@@ -1,14 +1,10 @@
 # Payloads — `app_page_builder action=set` value shapes
 
-How a block's element values are shaped when you pass them to **`app_page_builder action=set`** (the `values` element-key → value map). Editing a block's elements writes the **shared listing content** (`name`, `description`, `logo`, `screenshots`, `benefits`) into the app's draft publication.
+How a block's element values are shaped when you pass them to **`app_page_builder action=set`** (the `values` element-key → value map). Each value's shape is dictated by the element's `format` and `lingual` flag. Read the real element keys with `action=show` before building a `set` payload — the ids and URLs below are illustrative.
 
-Each value's shape is dictated by the element's `format` and `lingual` flag. **Discover the real element keys with `action=show`** before building a `set` payload — the ids and URLs below are **illustrative**.
-
-> **Prerequisite:** `app_page_builder` is disabled until the app is public and has a draft — `app_publish action=open` must have created it first. Draft/publish flow → salla-publication-consistency.
+> **`set` replaces the whole block.** Carry over every value you aren't changing — especially `required` elements — to avoid validation errors or wiping existing content. Keep already-stored images by leaving their `{ id, url }` in place.
 >
-> **`set` replaces the whole block.** Carry over every value you aren't changing — especially `required` elements — or you'll trigger validation or wipe existing content. Keep already-stored images by leaving their `{ id, url }` in place.
->
-> Image URLs and richtext become **public App-Store content** — only use trusted, sanitized assets/HTML; don't pass through untrusted input.
+> Image URLs and richtext become **public App-Store content** — use only trusted, sanitized assets/HTML.
 
 ---
 
@@ -16,7 +12,7 @@ Each value's shape is dictated by the element's `format` and `lingual` flag. **D
 
 ### Lingual → `{ ar, en }`
 
-Any element with `lingual: true` (string or richtext) must carry **both** languages — never a bare string. Sending only one fails validation for the missing one.
+Any element with `lingual: true` (string or richtext) must carry **both** languages as `{ ar, en }`. Sending only one fails validation for the missing language.
 
 ```jsonc
 // schema: { "id": "name", "format": "string", "lingual": true }

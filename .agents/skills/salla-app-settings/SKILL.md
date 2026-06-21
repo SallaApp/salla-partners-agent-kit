@@ -44,33 +44,27 @@ Ask before starting:
 
 ## Step 1 — Design the Settings Schema
 
-Salla renders the merchant form from a **form-builder schema** (`type` **+** `format`).
-Loose aliases (`toggle`, bare `text` / `number` / `select`) **save fine but fail to
-render** — the merchant sees broken or empty form-builder output. Always use a real
-`type`+`format` pair from the table below. Rules:
+Salla renders the merchant form from a **form-builder schema**: every field uses a real
+`type` **+** `format` pair from the table below. (Loose aliases like `toggle` or a bare
+`text` / `number` / `select` save fine but render broken or empty — use the pairs.) Rules:
 
 - **Flat only** — no nested objects.
-- **`id` is snake_case** (`stock_threshold`, not `stockThreshold`). camelCase ids are
-  accepted by the API but the installed-app save path is brittle with them.
-- **Every required field needs a default `value`** — without one, first activation/save
-  can fail.
+- **`id` is snake_case** (`stock_threshold`, not `stockThreshold`) — the installed-app save
+  path is reliable only with snake_case.
+- **Every required field carries a default `value`** — required for first activation/save.
 - **Arabic-first labels.** Most Salla merchants are Arabic — write `label` / `description`
-  in Arabic; set `multilanguage: true` to also provide English. Never leave Arabic blank.
-- `public: true` marks a value safe to read client-side (storefront / snippet). A
-  storefront **snippet reads a public setting via `salla.config.get('app.<key>')`**;
-  private (`public: false`) settings are **never** exposed on the storefront. →
-  [salla-snippets](../salla-snippets/SKILL.md).
-- **Secrets stay private and protected.** API keys, passwords, and tokens use
-  `format: "password"` and MUST keep `public: false` — never expose them to storefront /
-  client code. At runtime, store secret-typed values **encrypted**, and never log raw
-  settings (a settings object can carry credentials). OAuth/merchant access tokens are not
-  settings — handle those via [salla-app-auth](../salla-app-auth/SKILL.md), and request
-  only the minimum scopes you need.
-- **Scopes for settings.** You do **not** need a settings scope just to render a form or
-  receive `app.settings.updated`. A settings scope is only required when your app reads or
-  writes settings values via the Admin API **and** activation happens partner-side (not
-  from the merchant dashboard). Separately, the **Webhooks** scope **IS required** if your
-  app listens to any store events.
+  in Arabic; set `multilanguage: true` to also provide English.
+- `public: true` marks a value safe to read client-side. A storefront snippet reads a
+  public setting via `salla.config.get('app.<key>')`; `public: false` values stay
+  server-side only. → [salla-snippets](../salla-snippets/SKILL.md).
+- **Secrets** (API keys, passwords, tokens) use `format: "password"` with `public: false`,
+  stored encrypted at runtime and read only server-side or via `context.settings`. OAuth/
+  merchant access tokens are not settings — handle those via
+  [salla-app-auth](../salla-app-auth/SKILL.md).
+- **Scopes.** Rendering a form or receiving `app.settings.updated` needs no settings scope;
+  a settings scope is required only to read/write values via the Admin API when activation
+  happens partner-side (not from the merchant dashboard). The **Webhooks** scope is
+  required if your app listens to any store events.
 
 | Control                 | Schema                                                                           |
 | ----------------------- | -------------------------------------------------------------------------------- |
@@ -109,14 +103,12 @@ value on each required field?"
 1. Call `salla_settings` with `action: "define_form"`, the `app_id`, and `settings` (the
    array of field objects from Step 1). Give each field a plain-string `label`; set
    `multilanguage: true` on any field whose text should be translated.
-2. **Optional Validation URL — public validation ONLY, not storage.** If you want to
-   reject bad input before Salla saves it, call `salla_settings` with
-   `action: "set_validation_url"`, `app_id`, and `validation_url`. Salla POSTs the values
-   there before saving; you respond with field errors (to block) or `200 OK` (to allow).
-   There is **NO signature on this request** — treat it as a public endpoint, validate
-   only, and never use it as your storage trigger. To **store** settings, rely on the
-   `app.settings.updated` webhook (Step 4), which is the source of truth
-   ([docs](https://docs.salla.dev/421413m0.md)). Contract →
+2. **Optional Validation URL — validation only, not storage.** To reject bad input before
+   Salla saves it, call `salla_settings` with `action: "set_validation_url"`, `app_id`, and
+   `validation_url`. Salla POSTs the proposed values there before saving; respond with field
+   errors (to block) or `200 OK` (to allow). It is a **public endpoint with no signature** —
+   validate the values and respond, nothing more. Storage happens via the
+   `app.settings.updated` webhook (Step 4). Contract →
    [`references/form-builder.md`](references/form-builder.md).
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
@@ -148,10 +140,10 @@ the merchant's `access_token`. When `app.store.authorize` fires on install, seed
 required defaults so the merchant starts with a working configuration.
 
 > **`app.settings.updated` is the storage source of truth**
-> ([docs](https://docs.salla.dev/421413m0.md)). It fires when the merchant saves the
-> form, **activates** the app, and carries the full settings in `data.settings` — persist
-> THAT on every activation/update (don't rely solely on a GET; the webhook is authoritative
-> and you may not hold a token yet). Payload:
+> ([docs](https://docs.salla.dev/421413m0.md)). It fires when the merchant saves the form,
+> **activates** the app, and carries the full settings in `data.settings` — persist THAT on
+> every activation/update. It is authoritative (and may arrive before you hold a token), so
+> rely on it rather than a GET. Payload:
 >
 > ```json
 > {

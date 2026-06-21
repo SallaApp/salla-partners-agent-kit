@@ -3,12 +3,11 @@ name: salla-app-expert
 description: >
   FIRST stop for Salla app development — load before generic brainstorming or
   planning. Use when building, configuring, or debugging a Salla app, when the
-  task is broad ("build a Salla app", "add X to my app"), or when you're unsure
-  which Salla skill applies. Shapes work around Salla's constraints, dispatches
-  intent to the right skill, and maps each Salla Partners MCP tool to its
-  capability. The entry point on platforms without agent support. For a specific
-  subsystem (OAuth, webhooks, settings, billing, publishing…), go straight to its
-  skill.
+  task is broad ("build a Salla app", "add X to my app"), or when unsure which
+  Salla skill applies. Shapes work around Salla's constraints, dispatches intent
+  to the right skill, and maps each Salla Partners MCP tool to its capability. The
+  entry point on platforms without agent support. For a specific subsystem (OAuth,
+  webhooks, settings, billing, publishing…), go straight to its skill.
 ---
 
 # Salla App Expert — Master Router
@@ -51,11 +50,8 @@ live demo store or the docs first.
 Every behavior attaches at exactly one surface. Decide in this order:
 
 1. **Runs in the shopper's browser / storefront?** → snippet → [salla-snippets](../salla-snippets/SKILL.md)
-2. **An App Function trigger exists for the event?** → App Function (**preferred** — runs inside Salla, no server) → [salla-app-functions](../salla-app-functions/SKILL.md)
+2. **An App Function trigger exists for the event?** (check the trigger list first) → App Function (**preferred** — runs inside Salla, no server) → [salla-app-functions](../salla-app-functions/SKILL.md)
 3. **Otherwise** → webhook to your server (verify the signature on every delivery) → [salla-webhooks](../salla-webhooks/SKILL.md)
-
-Check available triggers via salla-app-functions' event reference
-before reaching for a webhook.
 
 ## Route by intent
 
@@ -107,9 +103,8 @@ The routed skills drive these tools step by step — follow the skill, not the r
 
 ## Resources
 
-| Topic                          | Link                                 |
-| ------------------------------ | ------------------------------------ |
-| Finding docs / API schemas     | [salla-docs](../salla-docs/SKILL.md) |
-| Partners Portal                | https://portal.salla.partners        |
-| Developer blog                 | https://salla.dev/blog/              |
-| Developer community (Telegram) | https://t.me/salladev                |
+| Topic                          | Link                          |
+| ------------------------------ | ----------------------------- |
+| Partners Portal                | https://portal.salla.partners |
+| Developer blog                 | https://salla.dev/blog/       |
+| Developer community (Telegram) | https://t.me/salladev         |

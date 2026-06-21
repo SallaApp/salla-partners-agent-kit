@@ -25,27 +25,18 @@ But snippets are NOT themes — some SDK affordances are theme-development const
 
 **App-snippet rules (these differ from themes):**
 
-- **Do NOT call `salla.init()`.** The theme already initialized the SDK via `body:end`.
-  `salla.init()` is only for **standalone / non-theme HTML** that loads `twilight.js`
-  itself (Overview shows it under the "HTML" tab, not the "Twilight Themes" tab). Calling
-  it from a snippet re-inits an already-initialized SDK.
-- **Gate on `salla.onReady(cb)`** for code that reads store-loaded state; **register
-  `salla.event.*` listeners at module top level** for init-time events (Twilight emits
-  product/cart events during init, before `onReady` — see device-mode.md). Never gate on
-  `typeof salla !== 'undefined'`.
-- You **canNOT** define Twig `{% hook %}`s, ship `<salla-*>` web components, use theme
-  settings / `twilight.json`, or the Twilight CLI — those are **THEME-development**
-  constructs, out of scope for snippets.
-- **No Twig / no `{}` in snippet JS.** Because a snippet is injected browser JS (not a theme
-  template), Twig interpolation — `{{ store.lang }}`, `{% if … %}` — and any `{}`
-  interpolation do **not** run. They ship verbatim to the browser as literal text, breaking
-  the script. There is no server-side render pass. Get dynamic values at **runtime** from the
-  SDK instead: `salla.config.get(...)`, event payloads, `salla.lang.get(...)`.
-- **A snippet is a pure-JS CDN file.** Your JS is stored verbatim and served from a CDN as a
-  real `.js` file via `<script src>`, so write the body as plain JavaScript — no `<script>`
-  wrapper, no HTML. You write plain JS and Salla serves and runs it for you — nothing to wrap
-  or scope yourself; just use `salla` directly. Snippets render **before `</body>`**
-  (`place: "before"`, `tag: "body"`). See device-mode.md.
+- **The SDK is already initialized for you — do not call `salla.init()`.** The theme inits it
+  via `body:end`. `salla.init()` is only for standalone / non-theme HTML that loads
+  `twilight.js` itself (Overview shows it under the "HTML" tab, not "Twilight Themes");
+  calling it from a snippet re-inits an already-running SDK.
+- **Reach the SDK at runtime, not via theme constructs.** Twig `{% hook %}`s, `<salla-*>`
+  web components, theme settings / `twilight.json`, and the Twilight CLI are
+  theme-development constructs that snippets cannot use. Get dynamic values from
+  `salla.config.get(...)`, event payloads, and `salla.lang.get(...)` instead.
+- **Bootstrap and event-timing, the pure-JS CDN file format, and the no-Twig rule** are in
+  [device-mode.md](device-mode.md) — gate store-state reads on `salla.onReady`, register
+  init-time `salla.event.*` listeners at module top level, and write plain JS (no `<script>`
+  wrapper, no HTML). Snippets render before `</body>` (`place: "before"`, `tag: "body"`).
 
 **Availability key per method below:**
 
@@ -97,17 +88,10 @@ App snippet ✅ (read). `set` is mainly for standalone init.
 
 - `salla.config.get(path)` — dot-path read, e.g. `salla.config.get('user.id')`,
   `salla.config.get('store.id')`, `salla.config.get('currencies.SAR.code')`,
-  `salla.config.get('page.slug')`. (Store-context paths: see device-mode.md.) **The ONLY way
-  to read your app's settings is `salla.config.get('app.<key>')`** — e.g.
-  `salla.config.get('app.rewards_enabled')`. **Hard rule:** only settings marked
-  `public: true` are accessible in a storefront snippet; private settings (`public: false`)
-  are NOT accessible on the storefront. Define keys and which are `public` in
-  [salla-app-settings](../../salla-app-settings/SKILL.md).
-  ⚠️ **Read defensively** — a nested read (e.g. `store.lang`) can return `null`/`undefined`,
-  and the call can be mangled by rocket-loader wrapping or by running **before init**. Gate
-  on `salla.onReady`, null-check every read, and use a fallback chain for load-bearing
-  values. Don't chain assumptions on one unchecked `config.get` — see device-mode.md (_Store
-  context & language_).
+  `salla.config.get('page.slug')`. App settings are read via `salla.config.get('app.<key>')`
+  (`public: true` settings only). Store-context paths, the app-settings bridge, and the
+  defensive-read patterns (gate on `salla.onReady`, null-check, fallback chain) → device-mode.md
+  (_Store context & language_).
 - `salla.config.set(key, value)` / `salla.config.set({...})` — set config (standalone/init
   use; the theme already configured the SDK).
 - `salla.config.currencies()` → Promise — full currencies list.

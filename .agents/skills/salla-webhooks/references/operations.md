@@ -1,14 +1,10 @@
 # Webhook Operations — Reliability, Custom Headers, Local Dev
 
-> **Provenance.** The retry policy and 200/201 rule below are confirmed against the
-> webhooks docs (https://docs.salla.dev/421119m0.md). The CLI / local-dev details were
-> distilled from Salla Developers blog articles (the salla.dev/blog is a JS-rendered SPA
-> that can't be fetched directly, so the text was captured by hand) — slugs
-> `best-practices-to-handle-webhooks-for-salla-applications`,
-> `custom-webhook-header-is-now-available`, `salla-cli-webhook-server-laravel`; confirm
-> those defaults against the live Portal or the Partners MCP (`salla_events action=list`)
-> before depending on them. For transport rules (signature, idempotency, fast 200) the
-> owner is the parent `SKILL.md`.
+> Transport rules (signature, idempotency, fast 200) are owned by the parent `SKILL.md`.
+> The retry policy and 200/201 rule below are from the webhooks docs
+> (https://docs.salla.dev/421119m0.md). The CLI / local-dev defaults are best confirmed
+> against the live Portal or the Partners MCP (`salla_events action=list`) before relying
+> on them.
 
 ## Timeout, retry / resend mechanism
 
@@ -16,12 +12,9 @@ Salla waits **~30 seconds** for the connection to open and the HTTP response to 
 past that the delivery is treated as failed (source: https://docs.salla.dev/421119m0.md).
 
 When it doesn't get a success response, Salla resends the event **3 times**, with an interval
-of **~5 minutes** between attempts. A prompt success response stops further retries.
-
-> An earlier observation recorded the retry intervals as **30s / 15s / 10s**. The doc value
-> (~5 minutes apart) is primary; treat 30s/15s/10s as possibly-stale and confirm on a live
-> store if exact timing matters. Don't build logic that depends on the precise interval —
-> ack fast and dedupe.
+of **~5 minutes** between attempts. A prompt success response stops further retries. (An
+earlier observation recorded the intervals as 30s / 15s / 10s — see `SKILL.md` Step 5; the
+doc value is primary, so ack fast and dedupe rather than depend on exact timing.)
 
 ## The 200/201 rule
 
@@ -42,9 +35,9 @@ This keeps responses fast (avoids retries) and isolates processing failures from
 Pairs with the idempotency guidance in `SKILL.md` (dedupe by `subscription_id` or body
 hash).
 
-> **The 2xx ack applies only to authenticated deliveries.** Verify the signature/token
-> _before_ acknowledging — a failed verification must still return **401**, never a `200`.
-> Only acknowledge (then queue) requests you've authenticated.
+> **Acknowledge only authenticated deliveries.** Verify the signature/token _before_ the
+> 2xx ack; return **401** on a failed verification, and only acknowledge (then queue)
+> requests you've authenticated.
 
 ## Custom webhook headers — Portal UI mechanics
 
@@ -69,9 +62,8 @@ auth) live in `SKILL.md` Step 3. This is just where to set them by hand:
   Salla delivers events) and syncs credentials into `.env`:
   `SALLA_OAUTH_CLIENT_ID`, `SALLA_OAUTH_CLIENT_SECRET`, `SALLA_OAUTH_CLIENT_REDIRECT_URI`,
   `SALLA_WEBHOOK_SECRET`, `SALLA_AUTHORIZATION_MODE` (easy|custom), `SALLA_APP_ID`.
-  > **Never commit `.env` or log these values.** The client secret and
-  > `SALLA_WEBHOOK_SECRET` are credentials — keep `.env` git-ignored and never print the
-  > webhook secret in logs or error output.
+  > The client secret and `SALLA_WEBHOOK_SECRET` are credentials — keep `.env` git-ignored
+  > and the webhook secret out of logs and error output.
 - Portal setup to receive events: App Keys → OAuth mode; App Scope → enable **Webhooks
   Read/Write**; Notifications/Webhooks → security strategy (the CLI starter scaffolds for
   the **Token** strategy; the platform/MCP default for new webhooks is **Signature** —

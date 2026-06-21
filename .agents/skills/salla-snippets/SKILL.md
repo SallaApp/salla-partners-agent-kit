@@ -5,9 +5,9 @@ description: >
   snippets injected via the salla_snippets tool, reacting to storefront e-commerce
   events (cart, product view, checkout, search). Rule: storefront/browser behavior →
   snippet (Device Mode); server-side handling of the same events → App Function
-  (salla-app-functions, Cloud Mode). Snippets are pure-JS files served from the CDN
-  (no `<script>`/HTML/Twig), placed before `</body>`; covers create/update/delete, the
-  `salla.config.get("app.*")` settings bridge, and the storefront event catalogue.
+  (salla-app-functions, Cloud Mode). Snippets are pure-JS files served from the CDN,
+  placed before `</body>`; covers create/update/delete, the `salla.config.get("app.*")`
+  settings bridge, and the storefront event catalogue.
 ---
 
 # Salla Storefront Snippets Flow
@@ -68,64 +68,46 @@ If still unclear, ask: _"Should this run in the browser or on your server?"_
 The snippet body runs in the storefront browser via the Twilight SDK. Write the listener,
 then **inject it as a storefront snippet** with the tool:
 
-1. Write the snippet body. **A snippet is a pure-JavaScript file served from the CDN.**
-   Write the body as plain JavaScript — **no `<script>` tags, no HTML, no Twig** (`{{ … }}` /
-   `{% … %}` and any `{}` interpolation never run; pull every dynamic value at runtime from
-   `salla.config.get(...)` / events). Salla stores your JS verbatim and serves it from a CDN
-   as a real `.js` file, loaded into every storefront page via `<script src>`. Use `salla`,
-   `salla.onReady`, `salla.event`, and `salla.config.get(...)` directly — there is nothing to
-   wrap or scope yourself.
+1. Write the snippet body as plain JavaScript — a snippet is a pure-JS file Salla serves
+   from the CDN, loaded into every storefront page via `<script src>`. Use `salla`,
+   `salla.onReady`, `salla.event`, and `salla.config.get(...)` directly. (Full rules — no
+   Twig/HTML wrapper, bootstrap timing, deploy guard → [`references/device-mode.md`](references/device-mode.md).)
 
-   A snippet does two distinct, common jobs — **listen to storefront events** and **read the
-   app's settings**. They are separate things; keep them separate.
+   A snippet does two distinct jobs — keep them separate:
 
-   **Listen to storefront events** with the Twilight SDK. Events are `::`-namespaced and the
-   payload arrives in `e.data`:
+   - **Listen to storefront events** (`::`-namespaced; payload in `e.data`). Register
+     listeners at module top level so init-time events aren't missed:
 
-   ```js
-   // Register event listeners at module top level (init-time events fire before onReady).
-   salla.event.on("cart::item.added", (e) => {
-     // payload is in e.data
-     var productId = e.data.product_id;
-     // your handler here
-   });
-   ```
+     ```js
+     salla.event.on("cart::item.added", (e) => {
+       var productId = e.data.product_id; // payload in e.data
+     });
+     ```
 
-   Full event catalogue and payload shapes →
-   [`references/device-mode.md`](references/device-mode.md).
+     Event catalogue and payload shapes → [`references/device-mode.md`](references/device-mode.md).
 
-   **Read the app's settings** with `salla.config.get("app.<key>")` — the one and only way to
-   read a merchant's App Settings from a storefront snippet. Read defensively (gate on
-   `salla.onReady`, null-check, use a fallback for load-bearing values):
+   - **Read the app's settings** with `salla.config.get("app.<key>")` — the only way to read
+     a merchant's App Settings from a storefront snippet, and only settings marked
+     `public: true` are visible there. Gate store-state reads on `salla.onReady`:
 
-   ```js
-   salla.onReady(function () {
-     var rewardsOn = salla.config.get("app.rewards_enabled") || false;
-     var pointValue = salla.config.get("app.point_value_halalah") || 0;
-     // build your storefront UI here
-   });
-   ```
+     ```js
+     salla.onReady(function () {
+       var rewardsOn = salla.config.get("app.rewards_enabled") || false;
+       var pointValue = salla.config.get("app.point_value_halalah") || 0;
+     });
+     ```
 
-   > **App events are separate from app settings.** Events tell you what the shopper is doing
-   > (`salla.event.on`); settings tell you how the merchant configured the app
-   > (`salla.config.get("app.*")`). Don't conflate them.
-   >
-   > **Only `public: true` settings are accessible in a storefront snippet** — private
-   > settings (`public: false`) stay server-side and never appear in the snippet. Define the
-   > keys (and which are `public`) in [salla-app-settings](../salla-app-settings/SKILL.md).
-   >
-   > **Store / session config** uses the same `salla.config.get`:
-   > `salla.config.get("user.id")`, `salla.config.get("store.username")`,
-   > `salla.config.get("customer.email")`, or whole objects via `salla.config.get('user')` /
-   > `salla.config.get('store')`. Read defensively too — null-check every read and use a
-   > fallback chain for load-bearing values (see
-   > [`twilight-js-sdk.md`](references/twilight-js-sdk.md) and the _Store context_ note in
-   > [`device-mode.md`](references/device-mode.md)).
+     Settings are how the merchant configured the app; events are what the shopper is doing.
+     Define the keys and which are `public` in
+     [salla-app-settings](../salla-app-settings/SKILL.md). Store/session config
+     (`user.id`, `store.username`, `customer.email`, whole `store`/`user` objects) and the
+     defensive-read patterns → _Store context & language_ in
+     [`references/device-mode.md`](references/device-mode.md).
 
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.
 3. Inject it: `salla_snippets action=create`, `app_id`, `name` (required), `place`
-   ("before" — the only accepted value), `tag` (`"body"` only — snippets render **before
+   (`"before"` — the only accepted value), `tag` (`"body"` only — snippets render **before
    `</body>`**), `content` (your pure JS). **Dedup first:** call `salla_snippets action=list` and
    `update`/`delete` any existing snippet for this app before creating — stacked duplicates
    double-render the UI and double-fire events. Read back with `salla_snippets action=list` /
@@ -134,12 +116,9 @@ then **inject it as a storefront snippet** with the tool:
    `content` together (it is not a partial patch). `action=update` returns `{"snippet":{}}`
    (empty object) on success — call `action=list` to verify the change.
 
-   > **MCP-only — no direct Partner API.** Snippets are managed exclusively through the
-   > Salla Partners MCP `salla_snippets` tool; there is no hand-written Partner API call
-   > here. The tool owns field mapping and validation (it maps `content` to the underlying
-   > field for you). If an operation isn't covered by an `action`, it must be done via the
-   > MCP — do not reach for a raw Partner API endpoint. Constraints to know: `place`
-   > accepts only `"before"`, paired with `tag` `"body"` (before-body placement).
+   > **Manage snippets only through the `salla_snippets` MCP tool** — it owns field mapping
+   > and validation (it maps `content` to the underlying field). Every snippet operation goes
+   > through one of its actions.
 
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)
@@ -147,21 +126,15 @@ Device Mode setup, full event catalogue, payload shapes →
 #### Twilight JS SDK (for app snippets)
 
 The Twilight theme engine **auto-injects** the Twilight Storefront JS SDK (`window.salla`)
-on every storefront page (the `body:end` hook). Your app snippet runs in that same page,
-so it can call the same runtime API — auth, cart, wishlist, product, order, rating,
-currency, loyalty, comment, profile, booking, `salla.api.component.*`, `salla.config`,
-`salla.event`, `salla.storage`, `salla.notify`, `salla.lang`, `salla.helpers`, metadata.
+on every storefront page (the `body:end` hook). Your snippet runs in that same page, so it
+can call the same runtime API — auth, cart, wishlist, product, order, rating, currency,
+loyalty, comment, profile, booking, `salla.api.component.*`, `salla.config`, `salla.event`,
+`salla.storage`, `salla.notify`, `salla.lang`, `salla.helpers`, metadata.
 
-**Method catalogue (signatures, per-module doc links, theme-vs-snippet boundary) →
-[`references/twilight-js-sdk.md`](references/twilight-js-sdk.md).** Events (the `::`
-catalogue, the `product::fetch.succeeded` trap, price encodings) stay in
+**Method catalogue (signatures, per-module doc links, app-snippet-vs-theme boundary, the
+`salla.init()` rule) → [`references/twilight-js-sdk.md`](references/twilight-js-sdk.md).**
+Events (the `::` catalogue, the `product::fetch.succeeded` trap, price encodings) →
 [`references/device-mode.md`](references/device-mode.md).
-
-Snippet rules that differ from themes: **do NOT call `salla.init()`** (the theme already
-initialized the SDK; `init()` is for standalone HTML only); gate on `salla.onReady` and
-register `salla.event.*` listeners at module top level; you **canNOT** define Twig
-`{% hook %}`s, ship `<salla-*>` web components, or use theme settings / `twilight.json` /
-the Twilight CLI — those are theme-development constructs, out of scope.
 
 **Glue:** this skill = the **shopper's browser** (customer-side actions/events via
 snippets). For a **server reaction** to the same activity, the hookable rule applies — a

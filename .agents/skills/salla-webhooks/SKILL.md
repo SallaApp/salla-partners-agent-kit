@@ -105,12 +105,10 @@ app.post("/webhook", (req, res) => {
 app.listen(8081);
 ```
 
-> **Two verification paths, not a contradiction.** This SDK quick-start
-> (`@salla.sa/webhooks-actions`) verifies the delivery **internally**, so parsed JSON
-> (`bodyParser.json()` + `req.body`) is fine. If you instead verify the **Signature
-> manually** (Step 3, Strategy A), HMAC must run on the **raw request body** — capture the
-> unparsed bytes before any JSON middleware. Pick one path; don't mix parsed-body with a
-> manual HMAC check.
+> **Pick ONE verification path.** Either let this SDK verify the delivery **internally**
+> (then parsed JSON via `bodyParser.json()` + `req.body` is fine), or verify the
+> **Signature manually** (Step 3, Strategy A) and run HMAC on the **raw request body** —
+> capturing the unparsed bytes before any JSON middleware. Use one path per route.
 
 **Pattern B — File-based handlers.** Use `salla app create-webhook <event.name>` to
 scaffold handler files:
@@ -232,14 +230,13 @@ confirms), webhook URL registered?"
 
 ### Strategy A: Signature (default ✅)
 
-A **Secret must be set** when establishing the webhook — this is what enables verification.
-Salla appends the request body's **64-character SHA256 HMAC hash** to the
-`x-salla-signature` header (alongside `X-Salla-Security-Strategy: Signature`), computed as
+Set a **secret** when establishing the webhook — this enables verification. Salla appends
+the request body's **64-character SHA256 HMAC hash** to the `x-salla-signature` header
+(alongside `X-Salla-Security-Strategy: Signature`), computed as
 `HMAC-SHA256(rawRequestBody, secret)`. The secret is viewable in the partner dashboard.
-**Always use timing-safe comparison — never `===` on signatures. Verify the signature
-before processing or persisting any payload, and never log the signing secret**
-(`SALLA_WEBHOOK_SECRET`) — keep it in env only. Docs:
-https://docs.salla.dev/421119m0.md
+Verify the signature with a **timing-safe comparison** before processing or persisting any
+payload, and keep the signing secret (`SALLA_WEBHOOK_SECRET`) in env only — out of logs.
+Docs: https://docs.salla.dev/421119m0.md
 
 ```typescript
 // TypeScript — Web Crypto API (Node 16+, Deno, Cloudflare Workers).
@@ -303,7 +300,7 @@ Both strategies support additional headers (internal routing, gateway auth, mult
 
 Set via the Portal UI, the register/update API, or `salla_apps action=connect`
 `webhook_headers`. Use **standard header names** (e.g. `X-App-Source`, `X-Tenant-ID`) and
-let the **Partners MCP validate** what's accepted — don't assume a custom character rule.
+let the **Partners MCP validate** what's accepted.
 
 **Gate:** "Every request is verified (timing-safe) and unverified ones get 401?"
 
@@ -366,11 +363,9 @@ confirm the exact envelope and per-event `data` shape via the Partners MCP
 }
 ```
 
-> **`merchant` is TOP-LEVEL in the envelope, not inside `data`.** Read ✅ `payload.merchant`
-> — never ❌ `payload.data.merchant.id` (that's `undefined`, so you save the wrong/empty
-> store). Same trap on `app.store.authorize`.
-
-`merchant` is your key to look up the right access/refresh tokens.
+> **Read the store id from `payload.merchant` (top-level), including on
+> `app.store.authorize`.** It is not nested under `data`, so `payload.data.merchant.id` is
+> `undefined`. `merchant` is your key to look up the right access/refresh tokens.
 
 Response & retry rules — **non-negotiable** (421119):
 
@@ -381,10 +376,10 @@ Response & retry rules — **non-negotiable** (421119):
 | **Retry behavior**           | On a non-success response/timeout Salla resends the event **3 times**, **~5 minutes** apart; a success stops further tries ([docs](https://docs.salla.dev/421119m0.md)) |
 | **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                                                                                           |
 
-> **On the retry interval:** the official doc (421119) is the value above — **3 retries
-> ~5 minutes apart**, ~30s timeout. An earlier observation recorded the intervals as
-> **30s / 15s / 10s**; treat that as possibly-stale and follow the doc unless you verify
-> otherwise on a live store. Either way: ack fast, dedupe, don't depend on exact timing.
+> **Retry interval:** follow the doc (421119) — **3 retries ~5 minutes apart**, ~30s
+> timeout. An earlier observation recorded the intervals as **30s / 15s / 10s**; treat that
+> as possibly-stale and verify on a live store before relying on it. Either way, ack fast
+> and dedupe rather than depend on exact timing.
 
 ```typescript
 // Fast response + async processing (Express).

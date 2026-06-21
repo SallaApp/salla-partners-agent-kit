@@ -93,6 +93,11 @@ Common props: `id` (snake_case), `type`, `format`, `label`, `value` (default),
 
 Field-object reference → [`references/form-builder.md`](references/form-builder.md)
 
+Where the field schema is documented (the OpenAPI block in its `docs.salla.dev/<id>.md`
+page — find it via **salla-docs**), validate each field object against it — `type`/`format`
+pairs, `required`, enums — and fix before `define_form`, via the read-schema → build →
+validate → fix → retry loop in **salla-api-core**.
+
 **Gate:** "Every field uses `type`+`format`, snake_case ids, Arabic labels, and a default
 value on each required field?"
 
@@ -117,6 +122,14 @@ value on each required field?"
 (`salla_apps action=demo_stores` → open a store's `install_url`, then `dashboard_url`),
 open its settings page, **change a value and SAVE**, and confirm it persists. The Portal
 accepting the schema is NOT proof the installed-app form saves — test the real save."
+
+**Validate config usage (this skill owns the contract).** The **public** fields you define
+here ARE the keys a storefront snippet can read via `salla.config.get('app.<key>')`. After
+every `define_form`, confirm: (a) the field schema is valid (the `type`+`format` /
+snake_case / required-default checks in Step 1), and (b) every `salla.config.get('app.<key>')`
+your snippets read maps to a field defined here with `public: true` — a missing or private
+key reads `undefined` on the storefront. Settings own the contract; the browser-side check
+of those reads lives in [salla-snippets](../salla-snippets/SKILL.md).
 
 ---
 

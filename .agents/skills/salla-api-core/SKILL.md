@@ -31,6 +31,22 @@ against the current resource doc (see `references/api-resources.md`) or the Part
 (`salla_apps` / `salla_reference`) before relying on them. Token mechanics — storage,
 refresh, the single-use refresh-token rule, and the refresh mutex — live in salla-app-auth.
 
+## The closed loop — schema-driven calls (verify, don't guess)
+
+Build every per-resource call against the endpoint's **own documented OpenAPI schema**, not
+from memory. Each endpoint's `docs.salla.dev/<id>.md` page embeds a full OpenAPI 3.x spec in
+a ` ```yaml ` block (request/response schemas, field types, enums, required fields) — that
+block is the source of truth. Run this loop:
+
+1. **Find** the endpoint's doc page via [salla-docs](../salla-docs/SKILL.md) (or
+   `references/api-resources.md`) and read its embedded `openapi:` YAML block.
+2. **Build** the request to match the schema — required fields, types, enums.
+3. **Call & validate** the response against the schema; on mismatch, fix the request and
+   retry (search → build → validate → fix).
+
+Prefer the doc's OpenAPI block over assumptions; the Partners MCP (`salla_reference`) is the
+alternative source when the doc is unclear.
+
 ## Step 0 — Discover
 
 1. **Which resource/endpoint** are you calling? (orders, products, customers, settings…)

@@ -4,16 +4,26 @@ description: >
   REQUIRED before saving a Salla App Function: keep the template's wrapper exactly — its
   first AND last line — with all code inside the wrapper (no hoisted const/helper), and
   type-check the handler locally with strict `tsc` against the trigger's `types` (.d.ts
-  URLs). `salla_functions action=save` validates ONLY those wrapper lines and rejects a
-  mismatch. Routed from salla-app-functions; release with salla-app-functions-release.
+  URLs), and validate any documented Admin API call's request/response against its OpenAPI
+  schema (salla-api-core loop). `salla_functions action=save` validates ONLY those wrapper
+  lines. Routed from salla-app-functions; release with salla-app-functions-release.
 ---
 
 # App Functions — Validate Before Save
 
-`salla_functions action=save` validates **only the wrapper's first and last line** — it does
-not type-check or run your body. A handler that type-fails or breaks at runtime surfaces
-_after_ save, once it deploys to the demo stores. So run a local **client-side TypeScript
-check before save** — the only pre-save safety net. Pass both checks below before saving.
+**A successful `save` is the START of validation, not the end.** `salla_functions
+action=save` returns 200 once the wrapper's first and last line match — it does not
+type-check or run your body, so a 200 ≠ a correct function. Treat **every `salla_functions
+action=save`** as the trigger for one closed loop: validate → fix → re-`save` → re-validate
+until clean. A handler that type-fails or breaks at runtime surfaces _after_ save, once it
+deploys to the demo stores.
+
+The loop (each step below): **(1)** wrapper first/last line matches the template → **(2)**
+local strict `tsc` against the trigger's `.d.ts` → **(3)** each outbound Admin API call's
+request/response validates against its documented OpenAPI → **(4)** `salla_functions
+action=preview` runs clean on a demo store (→ **salla-app-functions-test**) → fix any
+failure, re-`save`, and run the loop again. Steps 1–2 are the only pre-save safety net; run
+them before each save.
 
 Keep credentials in App Settings (read via `context.settings`), not in the saved source —
 App Functions commonly call external services, but secrets, tokens, and API keys belong in
@@ -77,5 +87,30 @@ declare type Shipments = {
 ```
 
 **Gate:** "First and last wrapper lines match the template, all code inside the wrapper, and
-a strict `tsc --noEmit` against the trigger's `types` compiles clean?" →
-**salla-app-functions-release**.
+a strict `tsc --noEmit` against the trigger's `types` compiles clean?" → step 3.
+
+## 3. Validate outbound Admin API calls against the documented schema
+
+Steps 1–2 cover the handler's shape; this closes the loop on the **Admin API calls the
+handler makes**. When the function calls a documented endpoint, validate the request
+body/params **and** the parsed response against that endpoint's OpenAPI schema — Salla's
+doc page (`docs.salla.dev/<id>.md`) embeds a full OpenAPI 3.x block (paths, `components`
+schemas, types, enums, `required`).
+
+Run the canonical **read the doc's OpenAPI → build to match → validate → fix → retry** loop
+from **salla-api-core** for each call: find the endpoint's doc id (→ **salla-docs**), check
+the request and parsed response against its schema's `required`/types/enums, fix any
+mismatch, and re-run until clean. Don't restate the loop here — salla-api-core owns it.
+
+**Gate:** "Each documented Admin API call's request and parsed response validate clean
+against its endpoint's OpenAPI schema?" → step 4.
+
+## 4. Run the saved function on a demo store
+
+A clean `tsc` and schema check still don't prove the function behaves correctly with real
+data — `save`, then run `salla_functions action=preview` on a demo store to exercise the
+handler end to end (→ **salla-app-functions-test**). If preview fails or returns the wrong
+result, fix the body, re-`save`, and re-run steps 1–4 until preview is clean.
+
+**Gate:** "Wrapper + `tsc` + every Admin API call's schema pass, and `action=preview` runs
+clean on a demo store?" → **salla-app-functions-release**.

@@ -224,7 +224,10 @@ The App Function returns the AWB synchronously. For **out-of-band** updates afte
 confirms (real shipping cost, tracking, status changes), push them with the partner-initiated
 **Update Shipment Details** REST call (`PUT /shipments/{id}`, stored merchant `access_token` —
 token storage/refresh → **`salla-app-auth`**; endpoint shape, required fields, and status enum
-→ [`references/api-endpoints.md`](references/api-endpoints.md)).
+→ [`references/api-endpoints.md`](references/api-endpoints.md)). Validate the
+`PUT /shipments/{id}` body against its documented OpenAPI schema (in the endpoint's
+`docs.salla.dev/<id>.md` page — find it via **salla-docs**) and fix before relying on it,
+via the read-schema → build → validate → fix → retry loop in **salla-api-core**.
 
 **Gate:** "`salla_functions action=preview` returns a valid `Shipment` for `shipment.creating`
 (both `type: shipment` and `type: return`) and `Resp.success()` for `shipment.cancelling` on

@@ -480,7 +480,10 @@ names and shapes change). Resolve names two ways:
   | Brand     | https://docs.salla.dev/433810m0.md |               |                                     |
 
 Always confirm the exact name (case-sensitive) and `data` shape from one of those before
-writing a handler.
+writing a handler. Where an event's payload (or a register/update body) is documented (the
+OpenAPI block in its `docs.salla.dev/<id>.md` page — find it via **salla-docs**), validate
+your handler's parse and any registration body against that schema and fix before relying on
+it, via the read-schema → build → validate → fix → retry loop in **salla-api-core**.
 
 ---
 

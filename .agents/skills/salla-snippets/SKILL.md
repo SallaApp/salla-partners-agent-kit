@@ -123,6 +123,22 @@ then **inject it as a storefront snippet** with the tool:
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)
 
+#### Validate on every create / update (closed loop)
+
+**A successful `salla_snippets create`/`update` is the START of validation, not the end** — a
+200 only confirms the file deployed, not that it runs. Treat **every `create`/`update`** as
+the trigger for one loop, repeated until clean:
+
+1. **Pure-JS check** — the `content` is plain JavaScript only: no `<script>` tag, HTML, or
+   Twig (the snippet is served as a `.js` file). → [`references/device-mode.md`](references/device-mode.md).
+2. **Config-key check** — for **every** `salla.config.get("app.<key>")` the snippet reads,
+   confirm `<key>` is a defined setting marked `public: true` in the app's settings. A key
+   that's missing or not `public` reads `undefined` on the storefront. The settings define
+   the contract → cross-check [salla-app-settings](../salla-app-settings/SKILL.md).
+3. **Browser test** — run the DevTools-console recipe below (load marker, no errors, expected
+   `e.data` and config values).
+4. **Fix → re-`update` via the tool → re-validate** until all three pass.
+
 #### Test the snippet in the browser
 
 A snippet runs in the shopper's browser, so a 200 from `salla_snippets` only confirms it

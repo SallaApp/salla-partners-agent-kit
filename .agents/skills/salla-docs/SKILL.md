@@ -19,11 +19,19 @@ Each Salla skill embeds its own deep links and verified deltas. If a skill cover
 topic, follow it instead of the docs ([salla-app-expert](../salla-app-expert/SKILL.md)
 routes by intent). Come here when the skills don't answer it.
 
-## 2. API shapes → the scoped docs page
+## 2. API shapes → the scoped docs page (schemas are inline OpenAPI)
 
 For an endpoint's exact request/response or an event's payload schema, open the scoped
 page on **docs.salla.dev** (table below), find the endpoint or event on its topic page,
 and read the published schema as the source of truth for field names and types.
+
+Many endpoint pages embed a **full OpenAPI 3.x spec** in a ` ```yaml ` block — top-level
+`openapi, info, servers, paths, components, securitySchemes, security`, with request/response
+schemas, field types, enums, and required fields. To get an endpoint's exact contract, open
+its `https://docs.salla.dev/<id>.md` page and read the `openapi:` YAML block — that block is
+the source of truth (e.g. `https://docs.salla.dev/5394153e0.md` = `POST /orders/options`).
+To build and validate a call against it, follow the closed-loop in
+[salla-api-core](../salla-api-core/SKILL.md).
 
 ## 3. Topic → scoped docs entry point
 

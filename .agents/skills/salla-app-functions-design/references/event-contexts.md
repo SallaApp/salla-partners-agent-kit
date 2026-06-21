@@ -30,16 +30,13 @@ them here.
 
 ## Synchronous vs Asynchronous
 
-Two execution types (see <https://docs.salla.dev/1726818m0.md>):
+Which category is which (timing rules and the 5 s / < 500 ms / 30 s budget live in
+**[../SKILL.md](../SKILL.md)**; docs: <https://docs.salla.dev/1726818m0.md>):
 
-- ⚡ **Synchronous Action** — runs **before** the operation, **blocks the user**, must
-  respond fast: **5 s is the hard platform limit; < 500 ms is the recommended target** (keep
-  each internal async call < 2 s). `Resp.error()` blocks the operation; `Resp.success()`
-  with data can modify it. **Only** triggers in the `merchant_actions` category are
-  synchronous: **`shipment.creating`** and **`shipment.cancelling`**. Do not infer sync
-  behavior from the verb form — confirm the category via `list_triggers`.
-- 🔄 **Asynchronous Event** — runs **after** the operation completes, fire-and-forget.
-  Everything in `merchant_events`, `ecommerce_events`, and `communication_events`.
+- ⚡ **Synchronous** (`merchant_actions`, the only blocking category) — **`shipment.creating`**
+  and **`shipment.cancelling`**. Confirm the category via `list_triggers`, not the verb form.
+- 🔄 **Asynchronous** — everything in `merchant_events`, `ecommerce_events`, and
+  `communication_events`.
 
 ---
 
@@ -665,13 +662,10 @@ interface GenericContext<TData = Record<string, unknown>> {
 
 ---
 
-## Security & merchant-data hand-offs
-
-This skill only picks the trigger and confirms its context shape. When the handler will
-touch tokens, merchant authentication, or outbound calls:
+## Hand-offs
 
 - Token storage / OAuth / merchant access tokens → **salla-app-auth**.
-- Webhook signature verification & idempotency (for the webhook equivalent of an event) →
+- Webhook signature verification & idempotency (webhook equivalent of an event) →
   **salla-webhooks**.
 - Shipping-specific shipment behavior (labels, tracking, cancellation) →
   **salla-shipping-app**.

@@ -10,10 +10,10 @@ description: >
 
 # Salla UI Compliance
 
-A Salla app must look **native**, not like a standalone SaaS widget. "It renders" is not
-the bar — it must match the store/dashboard visually and be verified **live**. This skill
-applies whenever your app draws visible UI; it does not inject anything itself (that's
-`salla-snippets` for storefront and `salla-embedded-app` for the dashboard).
+A Salla app's UI must match the store/dashboard visually and be verified **live** — "it
+renders" is not the bar. This skill applies whenever your app draws visible UI; it does not
+inject anything itself (that's `salla-snippets` for storefront and `salla-embedded-app` for
+the dashboard).
 
 ## When this applies
 
@@ -24,15 +24,15 @@ applies whenever your app draws visible UI; it does not inject anything itself (
 
 ## Storefront (Twilight theme)
 
-- **Inherit theme tokens** — Twilight CSS variables: `--color-primary`, `--color-text`,
-  `--font-main`, and spacing/radius vars. Never hardcode fonts, colors, borders, or
-  shadows except as fallbacks.
-- **Salla Icons** — use `sicon-*` classes, not emoji/custom dots. Twilight themes load the
-  Salla Icons (the theme engine injects the Twilight SDK into every storefront page
-  automatically), so the icon font is available without bundling it yourself.
-- **Match the product page** — adopt the surrounding spacing/density; insert next to the
-  relevant element, not as a floating card overlapping the layout.
-- **RTL + locale** — most stores are Arabic/RTL. Honor `dir`/`lang`, mirror layout, and
+- **Inherit theme tokens** — style from Twilight CSS variables: `--color-primary`,
+  `--color-text`, `--font-main`, and the spacing/radius vars. Use literal fonts, colors,
+  borders, and shadows only as fallbacks.
+- **Salla Icons** — use `sicon-*` classes for icons. Twilight themes inject the Twilight
+  SDK into every storefront page and load the Salla Icons font, so it is available without
+  bundling it yourself.
+- **Match the product page** — adopt the surrounding spacing/density and insert next to the
+  relevant element, inline in the layout.
+- **RTL + locale** — most stores are Arabic/RTL. Honor `dir`/`lang`, mirror the layout, and
   write copy Arabic-first.
 
 Docs: theme https://docs.salla.dev/421877m0.md · Twilight JS SDK (theme engine injects the

@@ -17,11 +17,12 @@ Decide _what_ runs and _when_ before you write any code.
 The doc-grounded event catalog — every trigger grouped Merchant vs Customer, its
 sync/async type, and its documented `payload.data` shape — lives in
 **[references/event-contexts.md](references/event-contexts.md)**. Use it to pick the trigger
-and read the context shape. Never assume a payload. The live source of truth for trigger
-names and categories is **`salla_functions action=list_triggers`** (no `app_id` needed);
-for the exact, authoritative `.d.ts` of a trigger, use `salla_functions action=get`.
-Customer-event docs ship illustrative payloads — confirm those field names against the
-schema doc / `action=get` before relying on them.
+and read the context shape; never assume a payload.
+
+Sources of truth: **`salla_functions action=list_triggers`** (no `app_id` needed) for live
+trigger names and categories; **`salla_functions action=get`** for a trigger's authoritative
+`.d.ts`. Customer-event docs ship illustrative payloads — confirm those field names via
+`action=get` or the schema doc before relying on them.
 
 **Gate:** "Do you have the confirmed `payload.data` field names for this event?"
 
@@ -33,31 +34,34 @@ schema doc / `action=get` before relying on them.
 | **Synchronous action** | Before the operation | Yes          | **5 s total** | Blocking: can **modify** parameters or **reject/block** the operation. |
 
 - **Sync actions** are exactly the `merchant_actions` category — `shipment.creating` and
-  `shipment.cancelling` (confirmed via `salla_functions action=list_triggers`; don't infer
-  it from the verb form). They intercept the lifecycle before it completes: erroring cancels
-  the operation, succeeding can modify its data. Note `shipment.creating` is the documented
+  `shipment.cancelling` (confirm the category via `salla_functions action=list_triggers`
+  rather than the verb form). They intercept the lifecycle before it completes: erroring
+  cancels the operation, succeeding can modify its data. `shipment.creating` is the documented
   sync example and returns a **`Shipment`** (`(context: Shipments): Promise<Shipment>`), not
-  a plain `Resp` — it sets the shipment number/label. Exact builder mechanics →
+  a plain `Resp` — it sets the shipment number/label. Builder mechanics →
   **salla-app-functions-handler**.
 - **Async events** (e.g. `order.created`, `product.added`) run out-of-band; return a valid
   success/error result so it's recorded in logs.
 
-### Sync budget (5 s total)
+### Timeout budget
 
-A synchronously-run app function has a **5-second total timeout** (the **hard platform
-limit**) for the whole function — but since the merchant is blocked, **< 500 ms is the
-recommended target**, not the cutoff. Within it, keep every internal async call (each `fetch`
-/ awaited I/O) to **under 2 s** so a single slow upstream can't blow the budget — bound each
-one with an `AbortController` (**salla-app-functions-handler**). Async events get **30 s**
-total. Stay well inside these limits; an overrun blocks (sync) or drops (async) the run.
+| Type  | Total timeout                           | Per internal async call                 |
+| ----- | --------------------------------------- | --------------------------------------- |
+| Sync  | **5 s hard limit**, **< 500 ms target** | **< 2 s**, bound with `AbortController` |
+| Async | **30 s**                                | bound with `AbortController`            |
+
+The merchant is blocked during a sync action, so treat < 500 ms as the goal and 5 s as the
+ceiling. Bounding each `fetch` / awaited I/O keeps one slow upstream from blowing the budget
+(`AbortController` mechanics → **salla-app-functions-handler**). An overrun blocks (sync) or
+drops (async) the run.
 
 **Gate:** "Sync or async decided, and the timeout budget understood?"
 
 ## Security & data hand-offs
 
-This skill only picks the trigger and execution type. When the handler will touch
-tokens, merchant authentication, or outbound calls, route those concerns out — don't
-duplicate them here: token storage / OAuth / merchant access tokens →
-**salla-app-auth**; webhook signature verification & idempotency → **salla-webhooks**.
+When the handler touches tokens, merchant authentication, or outbound calls, route those
+out: token storage / OAuth / merchant access tokens → **salla-app-auth**; webhook signature
+verification & idempotency → **salla-webhooks**. Full hand-off list →
+**[references/event-contexts.md](references/event-contexts.md)**.
 
 Next: write it in **salla-app-functions-handler**.

@@ -28,8 +28,8 @@ every lifecycle payload shape. The **Salla Partners MCP** _performs actions_:
 | `salla_events` | `list` / `subscribe` | Discover + subscribe to lifecycle events     |
 
 > All events arrive on your single webhook endpoint inside the standard envelope
-> (`event`, `merchant`, `created_at`, `data`). **Verify the signature, respond `200`
-> within 3 s, then process asynchronously. Always upsert keyed by `merchant`.**
+> (`event`, `merchant`, `created_at`, `data`). **Verify the signature, acknowledge fast
+> with `200`, then process asynchronously. Always upsert keyed by `merchant`.**
 > Prerequisites: signature + idempotency + fast 200 → **salla-webhooks**; token
 > persistence from `app.store.authorize` → **salla-app-auth**.
 

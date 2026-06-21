@@ -29,8 +29,7 @@ limits, versioning, multi-language) are pinned from the official docs and author
 **Per-resource** paths, fields, scopes, and envelopes are **illustrative** — confirm them
 against the current resource doc (see `references/api-resources.md`) or the Partners MCP
 (`salla_apps` / `salla_reference`) before relying on them. Token mechanics — storage,
-refresh, the single-use refresh-token rule, and the refresh mutex — live in salla-app-auth;
-don't re-implement them here.
+refresh, the single-use refresh-token rule, and the refresh mutex — live in salla-app-auth.
 
 ## Step 0 — Discover
 
@@ -57,8 +56,8 @@ GET https://accounts.salla.sa/oauth2/user/info
 Authorization: Bearer <access_token>
 ```
 
-`merchant.id` (top level — user/info has **no `data` envelope**) is the stable internal key —
-cache it rather than re-fetching per request.
+`merchant.id` (top level — user/info has **no `data` envelope**) is the stable internal key;
+cache it once and reuse it across requests.
 
 ### The five official 401 cases
 
@@ -73,14 +72,13 @@ Token / authorization failures return **401** with an `error` object carrying `c
 | 4   | Scope not allowed     | `The access token should have access to one of those scopes: products.read_write` | Add the scope to the app; token can't reach this endpoint.             |
 | 5   | Invalid/expired token | `The access token is invalid` (expired, app uninstalled, or bad value)            | Refresh the token (salla-app-auth); if it can't refresh, re-authorize. |
 
-Case 3 is special: it returns the bare OAuth shape `{ "error": "invalid_grant", ... }`
-(not the `{ status, success, error }` envelope) and **invalidates the access token too** —
-reusing a single-use refresh token in parallel forces a full reinstall. The refresh mutex
-that prevents this, the single-use rule, and the re-authorize flow all live in
-salla-app-auth — don't re-implement them here.
+Case 3 returns the bare OAuth shape `{ "error": "invalid_grant", ... }` (not the
+`{ status, success, error }` envelope) and **invalidates the access token too** — reusing a
+single-use refresh token in parallel forces a full reinstall. The refresh mutex that
+prevents it lives in salla-app-auth.
 
-Practically: read `error.message` for logging, but **drive behavior off the case** — for
-1–3 stop and wait for re-install/re-activate; for 4 fix scopes; for 5 refresh then retry.
+Read `error.message` for logging, but **drive behavior off the case**: for 1–3 stop and
+wait for re-install/re-activate; for 4 fix scopes; for 5 refresh then retry.
 
 **Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `merchant.id` (top level, not `data.merchant.id`)?"
 
@@ -261,8 +259,8 @@ Headers on every response:
 | `Retry-After`           | Seconds to wait before retrying (present on 429) |
 | `X-RateLimit-Reset`     | UTC epoch seconds when the window resets         |
 
-Read the live headers rather than assuming — but the tier numbers above are the documented
-maximums to plan against.
+Read the live headers to drive backoff; the tier numbers above are the documented maximums
+to plan against.
 
 ```typescript
 if (response.status === 429) {

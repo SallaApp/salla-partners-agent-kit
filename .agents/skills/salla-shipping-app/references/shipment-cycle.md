@@ -6,13 +6,9 @@ App Functions** that generate and void the AWB, the **`Shipment` builder** they 
 the Salla AWB docs (https://docs.salla.dev/1792089m0.md,
 https://docs.salla.dev/1792119m0.md, https://docs.salla.dev/1797616m0.md, the
 `awb-gen-*` flow guides) and the Shipping App Cycle (https://docs.salla.dev/422994m0.md).
-Order Fulfilment apps have a different cycle → `fulfillment-cycle.md`.
-
-> **Salla AWB = no backend.** Shipping companies write App Functions **inside Salla
-> Partners**; the function calls the shipping company's third-party API to generate the AWB
-> and returns the details to Salla, giving the app a **native presence in the merchant's AWB
-> creation screen** (https://docs.salla.dev/1792089m0.md). There are no servers,
-> deployments, or polling to maintain.
+Order Fulfilment apps have a different cycle → `fulfillment-cycle.md`. The Salla AWB
+"no-backend" model (App Functions inside Salla Partners, native presence in the AWB creation
+screen) is described in the parent `SKILL.md`.
 
 > **App Function runtime mechanics → `salla-app-functions` family** (V8 sandbox, locked
 > template / first-line rule, save/validate/test, the 5-second sync budget with each internal

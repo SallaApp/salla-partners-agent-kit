@@ -299,7 +299,7 @@ route details/create/update/default/delete) — `data` is an **object**:
 }
 ```
 
-Do not assume `data` is always an array. Check the endpoint type before iterating.
+Check the endpoint type (list vs single-resource) before iterating `data`.
 
 Validation errors (`422`) carry a `fields` map; not-found errors return `404`; unauthenticated
 calls return `401` (auth handling → **`salla-app-auth`**):

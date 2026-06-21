@@ -19,20 +19,22 @@ payment — activation, entitlement, renewal — is webhook-driven and owned by
 
 ## Tools & MCPs
 
-The in-iframe purchase is an **embedded-SDK Checkout call, not an MCP tool**. No MCP action
-is performed here; subscribing the activation webhook belongs to **salla-addon-purchase**.
+The in-iframe purchase is an **embedded-SDK Checkout call, not an MCP tool** — no MCP action
+runs here.
 
-> Salla owns billing — never collect payment in the iframe. SDK init/handshake + No-Chrome →
-> **salla-embedded-app** · the addon definition, activation webhook, and entitlement
-> lifecycle → **salla-addon-purchase** · pricing primitives → **salla-app-billing**.
+| Hand-off                                          | Skill                    |
+| ------------------------------------------------- | ------------------------ |
+| SDK init / handshake / No-Chrome                  | **salla-embedded-app**   |
+| Addon definition, activation webhook, entitlement | **salla-addon-purchase** |
+| Pricing primitives                                | **salla-app-billing**    |
 
 ---
 
 ## Prerequisite — a working embedded app
 
-Your page must already be a working embedded app (SDK initialized, handshake done, session
-token verified server-side, No-Chrome). Don't re-implement it — follow
-**salla-embedded-app**. From here on, assume an authenticated embedded session.
+Build the embedded app first via **salla-embedded-app** (SDK initialized, handshake done,
+session token verified server-side, No-Chrome). From here on, assume an authenticated
+embedded session.
 
 **Gate:** "Embedded SDK initialized and the session token verified server-side?"
 
@@ -40,24 +42,24 @@ token verified server-side, No-Chrome). Don't re-implement it — follow
 
 ## The Checkout module
 
-The purchase entry point is the embedded SDK **Checkout module**. Three methods cover the full
-flow, and the docs confirm their exact shapes — use them as written, no guessing or hardcoded
-URLs:
+The purchase entry point is the embedded SDK **Checkout module** — three methods cover the
+full flow:
 
 - `embedded.checkout.getAddons()` — fetch your app's add-ons (slugs, names, prices).
 - `embedded.checkout.create(input, config?)` — open the native checkout drawer.
 - `embedded.checkout.onResult(callback)` — hear the payment result (incl. after a 3DS redirect).
 
-Treat exact shapes as version-dependent across `@salla.sa/embedded-sdk` releases, but the
-signatures and payloads below are from the current Checkout module docs (cited per step).
+Signatures and payloads below are from the current Checkout module docs (cited per step);
+exact shapes are version-dependent across `@salla.sa/embedded-sdk` releases — confirm against
+the docs or the package, never hardcode slugs, prices, or URLs.
 
 ---
 
 ## Step 1 — List the app's add-ons (`getAddons`)
 
-Add-ons are defined in the Pricing step of the App Publish form in the Partners Portal. Fetch
-them at runtime instead of hardcoding slugs or prices — `getAddons` returns the authoritative
-list and the host caches it for ~30 minutes, so repeated calls are cheap.
+Add-ons are defined in the Pricing step of the App Publish form in the Partners Portal.
+`getAddons` returns the authoritative list at runtime; the host caches it for ~30 minutes, so
+repeated calls are cheap.
 
 > Source: https://docs.salla.dev/embedded-sdk/modules/checkout/add-ons.md
 
@@ -162,14 +164,13 @@ real `getAddons()` slug — not a hardcoded URL?"
 
 ---
 
-## Step 3 — Don't unlock on the result — hand off to the webhook
+## Step 3 — Hand off to the webhook to unlock
 
 A `success` result (or `status: "paid"`) means checkout **completed in the iframe** — treat it
-as a UI signal, not as authorization to grant entitlement. **Do not unlock the feature here.**
-Activation is webhook-driven and owned by **salla-addon-purchase** (it processes
-`app.subscription.started`, `item_type: "addon"`, matched by `slug`). That webhook must be
-signature-verified and idempotent before it grants entitlement — transport rules live in
-**salla-webhooks**; don't trust a client-side result to unlock paid features.
+as a UI signal only. The feature unlocks via the activation webhook, owned by
+**salla-addon-purchase** (it processes `app.subscription.started`, `item_type: "addon"`,
+matched by `item_slug`, signature-verified and idempotent — transport rules in
+**salla-webhooks**).
 
 On a successful result, show a **pending state** and let the activation flip it:
 
@@ -180,8 +181,8 @@ embedded.ui.toast.show("Finishing your purchase…");
 embedded.ui.toast.success("Addon activated"); // after entitlement is persisted server-side
 ```
 
-Poll/refresh entitlements from your verified backend; if the webhook hasn't landed yet, keep
-the pending state. Never reveal the feature off the client-side `CheckoutResult` alone.
+Poll/refresh entitlements from your verified backend; reveal the feature once the entitlement
+is persisted server-side, and keep the pending state until the webhook lands.
 
 **Gate:** "Result shows pending only; the feature reveals only after salla-addon-purchase
 persists the entitlement?"

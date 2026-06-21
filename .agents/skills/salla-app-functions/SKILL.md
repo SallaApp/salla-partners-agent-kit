@@ -22,7 +22,7 @@ each in its own skill, and clear every gate before moving on.
 | 2    | Write the handler (template, context, `Resp`, sandbox, timeouts)                     | **salla-app-functions-handler**  |
 | 3    | Keep the template wrapper (first + last line) + type-check locally (before any save) | **salla-app-functions-validate** |
 | 4    | Save (deploys to demo stores)                                                        | **salla-app-functions-release**  |
-| 5    | Test on a demo store with `salla_functions action=preview` (ignore the preview URL)  | **salla-app-functions-test**     |
+| 5    | Test on a demo store with `salla_functions action=preview` (read its return value)   | **salla-app-functions-test**     |
 | 6    | Publish for production (`salla_apps action=publish`)                                 | **salla-app-functions-release**  |
 
 ## Prefer an App Function over a webhook (when a trigger exists)
@@ -38,9 +38,9 @@ each in its own skill, and clear every gate before moving on.
   the operation and your return value shapes or blocks it; a webhook only reacts after.
 
 Fall back to a webhook (**salla-webhooks**) when no App Function trigger exists, or when the
-work can't fit the runtime (sync 5 s total / async 30 s) or the V8 isolate (no npm, no
-`fs`/`net`/`http` servers/`child_process`; Web Crypto only; `fetch` for HTTP) — confirm those
-limits in **salla-app-functions-handler** before committing.
+work can't fit the runtime timeouts or the V8 isolate (no npm; no `fs`/`net`/`http`
+servers/`child_process`; Web Crypto only; `fetch` for HTTP) — confirm those limits in
+**salla-app-functions-handler** before committing.
 
 ## Act with the Salla Partners MCP
 
@@ -49,12 +49,12 @@ limits in **salla-app-functions-handler** before committing.
 | `salla_functions` | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store |
 | `salla_apps`      | `publish`                                                       | Submit the app for review (releases the function to real stores)                                                            |
 
-> Sync actions have a **hard 5 s total** limit (keep each internal async call **< 2 s**); the
-> docs **recommend < 500 ms** since the merchant is blocked (target, not the limit). Async
+> Sync actions have a **hard 5 s total** limit (keep each internal async call **< 2 s**; the
+> docs **recommend < 500 ms** since the merchant is blocked — a target, not the limit); async
 > events get **30 s**. `Resp`, the entity builders (e.g. `Shipment`), `CommunicationEvent`, and
-> all typed contexts are **pre-declared runtime globals** — never re-declare or import them in
-> code you paste into the Portal. Runtime is a **V8 isolate**, not Node — details +
-> module/response specifics in **salla-app-functions-handler**.
+> all typed contexts are **pre-declared runtime globals** — use them directly, already in
+> scope. Runtime is a **V8 isolate**, not Node; module/response specifics live in
+> **salla-app-functions-handler**.
 
 ## Step 0 — Discover (ask first)
 

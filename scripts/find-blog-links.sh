@@ -6,10 +6,12 @@
 # live so they can be reviewed or replaced.
 #
 # Usage:
-#   scripts/find-blog-links.sh              # default: any http(s) URL with "/blog/"
-#   scripts/find-blog-links.sh <regex>      # custom extended-regex URL pattern
+#   scripts/find-blog-links.sh                      # audit: report links, exit 0
+#   scripts/find-blog-links.sh <regex>              # custom extended-regex URL pattern
+#   BLOG_LINKS_FAIL=1 scripts/find-blog-links.sh    # CI gate: exit 1 if any found
 #
-# Exit code: 0 if none found, 1 if any blog links exist (handy as a CI gate).
+# Exit code: 0 by default (so `npm run find-blog-links` audits without an npm error); exits 1
+# only when BLOG_LINKS_FAIL=1 and links are found, keeping CI enforcement opt-in.
 
 set -euo pipefail
 
@@ -39,4 +41,8 @@ echo
 echo "Unique URLs ($(printf '%s\n' "$matches" | sed -E 's/^[^:]+:[0-9]+://' | sort -u | wc -l | tr -d ' ')):"
 printf '%s\n' "$matches" | sed -E 's/^[^:]+:[0-9]+://' | sort -u | sed 's/^/  /'
 
-exit 1
+# Audit runs exit 0; opt into a non-zero CI gate with BLOG_LINKS_FAIL=1.
+if [ "${BLOG_LINKS_FAIL:-0}" = "1" ]; then
+  exit 1
+fi
+exit 0

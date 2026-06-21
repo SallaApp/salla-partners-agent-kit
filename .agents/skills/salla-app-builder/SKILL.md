@@ -75,7 +75,9 @@ Use the answers to tailor Steps 1, 4–7.
 2. **Upload the logo.** Call `salla_upload` with a public image `source_url`. The logo
    must be a **square (1:1) image, ≥ 250×250 px** — ensure the source image satisfies
    that **before** uploading. The result returns only `{id, url}` (no dimensions are
-   echoed), so use the returned `id`.
+   echoed), so use the returned `id`. If there's no logo at creation and an
+   image-generation tool is available, generate one (**1:1, ≥ 250×250**) and upload it —
+   full recipe → **salla-app-ui-builder**.
 3. **Create the app.** The basic info Salla requires at create is **icon, name, category,
    description, app website, and support email**
    ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)); via the MCP these

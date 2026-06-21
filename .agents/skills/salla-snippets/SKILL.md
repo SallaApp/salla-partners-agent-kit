@@ -123,6 +123,48 @@ then **inject it as a storefront snippet** with the tool:
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)
 
+#### Test the snippet in the browser
+
+A snippet runs in the shopper's browser, so a 200 from `salla_snippets` only confirms it
+deployed — prove it **runs** in a real browser via the DevTools Console.
+
+1. **Open the storefront.** Install the app on a demo store first (→
+   [salla-live-testing](../salla-live-testing/SKILL.md)), then open that store's `url` and
+   navigate to the page where the snippet runs. Drive it with a headless browser
+   (Playwright/Puppeteer) if available; otherwise guide the user step by step to open the
+   page and the **DevTools Console** (and Network tab).
+2. **Add debug logging.** Instrument the snippet so execution and data are visible — a load
+   marker, the settings you read, and each event payload:
+
+   ```js
+   (function () {
+     console.log("[myapp] snippet loaded");
+     salla.event.on("cart::item.added", function (e) {
+       console.log("[myapp] cart::item.added", e.data); // real payload shape
+     });
+     salla.onReady(function () {
+       console.log(
+         "[myapp] rewards_on",
+         salla.config.get("app.rewards_enabled"),
+       );
+     });
+   })();
+   ```
+
+3. **Trigger and verify.** Perform the behavior (e.g. add a product to cart), then confirm
+   in the console: the load marker logged, **no red errors**, the handler logged the
+   expected `e.data`, and `salla.config.get("app.<key>")` values are what you expect.
+4. **Diagnose from the console:**
+
+   | You see                                        | It means                                                        | Do                                                                                          |
+   | ---------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+   | Nothing logs                                   | Snippet not on this store / page not reloaded / SDK not on page | Confirm it's deployed to THIS store, reload, and run on a page where `salla.onReady` fires  |
+   | `salla.config.get("app.<key>")` is `undefined` | Setting isn't `public` or the key is wrong                      | Mark it `public: true` ([salla-app-settings](../salla-app-settings/SKILL.md)) / fix the key |
+   | A handler never fires                          | The event name is wrong                                         | Check the `::` catalogue in [`references/device-mode.md`](references/device-mode.md)        |
+
+5. **Before publish:** remove or guard the debug `console.log`s, and keep secrets/PII out of
+   logs (the file is served to every shopper).
+
 #### Twilight JS SDK (for app snippets)
 
 The Twilight theme engine **auto-injects** the Twilight Storefront JS SDK (`window.salla`)

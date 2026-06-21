@@ -49,6 +49,23 @@ Image elements (`logo`, `screenshots`) reference an uploaded media id:
 
 Keep an existing image by leaving its stored `{ id, url }` in place when you `set`.
 
+## Generating missing listing images
+
+When the merchant has no logo, screenshots, or benefit images — or you're assembling the
+**first** publication — **and an image-generation tool is available to you**, generate
+images that fit the app's purpose and brand, then upload and set them:
+
+1. **Confirm the required dimensions/aspect first** from the builder catalog/field spec
+   (`action=catalog` / `action=show`, and [blocks-and-fields.md](references/blocks-and-fields.md))
+   — e.g. logo **1:1, ≥ 250×250**; screenshots/banner at the listing's required size — so
+   the upload isn't rejected.
+2. **Generate** the image at that size to match the app.
+3. **Upload** it with `salla_upload` → returns the image `id`.
+4. **Set** it via `app_page_builder` (`logo`, `screenshots`, or `benefits`).
+
+If **no image-generation tool is available**, ask the merchant to supply the assets — use
+real assets, not throwaway placeholders.
+
 ## Auto-fill: the default template
 
 A published app already has a listing page: the default template renders from publication data. `app_page_builder` writes into that **same draft**, so partial customization mixes with the default template.

@@ -47,7 +47,9 @@ Pass `section` plus only the fields you're setting:
    `search_terms[]`, `supported_countries[]`.
 2. **`features`** — `banner`, `embedded_image`. Author its `screenshots` and `benefits` via
    `app_page_builder` (**salla-app-ui-builder**); `features` readiness completes once that
-   builder content is set.
+   builder content is set. If the merchant lacks a `banner`/`embedded_image` (or it's the
+   first publication) and an image-generation tool is available, generate them, `salla_upload`,
+   and set them via this section — image-generation recipe → **salla-app-ui-builder**.
 3. **`pricing`** — `plan_type`, `plan_trial`, `one_time_price`, `plans[]`, `plan_features[]`,
    `addons[]`, `unsubscribe_reward`, `unsubscribe_email_reward`. Plan/addon modelling detail
    → **salla-app-billing**.

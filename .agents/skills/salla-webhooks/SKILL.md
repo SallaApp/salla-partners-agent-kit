@@ -35,8 +35,9 @@ Partners MCP** _performs actions_:
 | `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, secret, custom headers |
 | `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                            |
 
-> All new webhooks default to **version 2** and **Signature** security strategy.
-> Register endpoint (store-level, merchant token): `POST /admin/v2/webhooks/subscribe`.
+> New webhooks default to **version 2**; when no `security_strategy` is sent on a Partner
+> app's webhook Salla assigns **Signature** by default (421119). Store-level management base
+> URL (merchant token): `https://api.salla.dev/admin/v2`; register is `POST /webhooks/subscribe`.
 > Docs: https://docs.salla.dev/421119m0.md · Conditional: https://docs.salla.dev/421120m0.md ·
 > Node/Express repo: https://github.com/SallaApp/webhook-actions-js
 
@@ -47,7 +48,8 @@ Partners MCP** _performs actions_:
 1. **Which events** do you need? (lifecycle, orders, products, shipments…) — confirm exact
    names/payloads in the webhooks reference (https://docs.salla.dev/421119m0.md).
 2. **App-level or store-level?** App/lifecycle events → subscribe via the Partners MCP
-   (`salla_events`); store-level merchant webhooks → the Admin API `webhooks/subscribe`.
+   (`salla_events`); store-level merchant webhooks → the Admin API `POST /webhooks/subscribe`
+   with a merchant token (`webhooks.read_write` scope).
 3. **Stack?** Node/Express (`@salla.sa/webhooks-actions`) or Laravel/PHP (Salla CLI)?
 
 ---
@@ -166,6 +168,10 @@ action=subscribe`, `app_id`, `events: [...]`.
 
 ### Store-level webhooks (Admin API, merchant token)
 
+Base URL `https://api.salla.dev/admin/v2`; all five operations need the
+`webhooks.read_write` scope (reads accept `webhooks.read`). Register body
+([5394134](https://docs.salla.dev/5394134e0.md)):
+
 ```json
 {
   "name": "Order Created Handler",
@@ -173,30 +179,39 @@ action=subscribe`, `app_id`, `events: [...]`.
   "url": "https://your-app.com/webhooks",
   "version": 2,
   "rule": "total > 100",
-  "headers": [{ "key": "X-My-Token", "value": "your-secret-value" }]
+  "headers": [{ "key": "Authorization", "value": "your-secret-value" }]
 }
 ```
 
-| Field     | Type   | Notes                                    |
-| --------- | ------ | ---------------------------------------- |
-| `name`    | string | Human-readable label                     |
-| `event`   | string | From the events list — verify via MCP    |
-| `url`     | string | Must accept POST requests                |
-| `version` | number | Always `2` unless legacy requirement     |
-| `rule`    | string | Optional conditional filter — see Step 4 |
-| `headers` | array  | Custom headers sent with every delivery  |
-| `secret`  | string | Required for Signature strategy          |
+| Field     | Type   | Notes                                                       |
+| --------- | ------ | ----------------------------------------------------------- |
+| `event`   | string | **Required.** From `GET /webhooks/events` — verify the name |
+| `url`     | string | **Required.** Must accept POST; no `localhost`/`test.` URLs |
+| `name`    | string | Optional human-readable label                               |
+| `version` | number | `1` or `2`; defaults to `2` — pass `1` only for legacy      |
+| `rule`    | string | Optional conditional filter — see Step 4                    |
+| `headers` | array  | Optional `{key, value}[]` sent with every delivery          |
 
-| Action          | Method + Path                       |
-| --------------- | ----------------------------------- |
-| Register        | `POST /admin/v2/webhooks/subscribe` |
-| Update          | `PUT /admin/v2/webhooks/{id}`       |
-| List active     | `GET /admin/v2/webhooks`            |
-| List all events | `GET /admin/v2/webhooks/events`     |
-| Deactivate      | `DELETE /admin/v2/webhooks/{id}`    |
+`security_strategy` (`signature`\|`token`) and `secret` (required when
+`security_strategy=signature`) are **not** register-body fields — set them via
+`salla_apps action=connect` / the Portal, or on **Update** (which accepts both).
 
-Re-subscribing with the same URL **updates** the existing webhook (no duplicate). Default
-version `2`, default strategy `Signature`; pass `"version": 1` only for legacy.
+| Action          | Method + Path                  | Doc                                  |
+| --------------- | ------------------------------ | ------------------------------------ |
+| Register        | `POST /webhooks/subscribe`     | https://docs.salla.dev/5394134e0.md  |
+| Update          | `PUT /webhooks/{id}`           | https://docs.salla.dev/10312606e0.md |
+| List active     | `GET /webhooks`                | https://docs.salla.dev/5394135e0.md  |
+| List all events | `GET /webhooks/events`         | https://docs.salla.dev/5394136e0.md  |
+| Deactivate      | `DELETE /webhooks/unsubscribe` | https://docs.salla.dev/5394137e0.md  |
+
+- **Register** returns `200` with the created `{ id, name, event, type, url, version, rule, headers }`.
+  Re-subscribing with the **same URL updates events / restores** the existing webhook (no duplicate).
+- **Update** takes the `id` as a path segment; body may carry `name`, `url`, `version`,
+  `rule`, `headers`, `security_strategy`, `secret`.
+- **List active** returns the store's webhooks plus a `pagination` block (`webhooks.read`).
+- **List events** returns `{ id, label, event }[]` — the subscribable event names (`webhooks.read`).
+- **Deactivate** selects the target by **query param** `id` **and/or** `url` (one is
+  required); passing `url` **deletes every webhook registered to that URL**. Returns `202`.
 
 **Gate:** "Subscribed to the right events (`salla_events action=list` / `GET /webhooks`
 confirms), webhook URL registered?"
@@ -286,29 +301,41 @@ let the **Partners MCP validate** what's accepted — don't assume a custom char
 
 ## Step 4 — (Optional) Conditional Webhook Rules
 
-Rules filter payloads so your endpoint only receives matching events — less noise, less load.
+A **conditional webhook** carries a `rule` string ("Salla Rules"): Salla evaluates it against
+the event payload and **only delivers when the rule is true**, so your endpoint sees less
+noise and less load. Pass `rule` in the register/update body — it is filtering on the sender
+side, not in your handler. Rules require **version 2** (421120).
+
+A rule is one or more `attribute operator value` conditions, combined with `AND` / `OR`:
 
 ```text
-field = value           // equality          field != value   // inequality
-field > value           // greater than       field < value    // less than
-condition1 AND condition2                      condition1 OR condition2
+field = value      equality        field != value   inequality
+field > value      greater than    field < value    less than
+condition1 AND condition2          condition1 OR condition2
 ```
 
-Examples: `"total > 100"` · `"payment_method = mada OR price < 50"` ·
-`"status = \`active\` OR applied_to = \`first_order\`"`·`"sku = PROD-001"`·`"customer_group_id = 12345"`.
+Quote string/Arabic literals in **backticks**; numbers are bare. Use only the attributes
+listed for that event's category (below) — an unsupported attribute won't match.
 
-| Category      | Key Filterable Attributes                                   |
-| ------------- | ----------------------------------------------------------- |
-| Order         | `total`, `price`, `payment_method`, `status`, `coupon_code` |
-| Product       | `id`, `name`, `sku`, `status`, `quantity`                   |
-| Customer      | `id`, `email`, `customer_group_id`                          |
-| Special Offer | `status`, `applied_to`                                      |
-| Category      | `id`, `name`, `parent_id`, `status`, `sort_order`           |
-| Brand         | `id`, `name`, `status`                                      |
-| Cart          | `coupon_code`, `total`                                      |
-| Miscellaneous | `id`, `rating`                                              |
+Examples (from 421120): `"total > 100"` · `"payment_method = mada OR price < 50"` ·
+``"status = `active` OR applied_to = `first_order`"`` ·
+``"city = `الرياض` AND location != `حي اليرموك`"``.
 
-Full attribute reference: https://docs.salla.dev/421120m0.md
+Each category supports a fixed set of **events** and **attributes** — a rule may only use its
+category's attributes:
+
+| Category      | Filterable attributes (subset — full list in 421120)                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Order         | `id`, `reference_id`, `total`, `sub_total`, `payment_method`, `status_id`, `branch_id`, `coupon_code`, `shipment_company_id` |
+| Product       | `id`, `name`, `sku`, `type`, `price`, `quantity`, `status`, `is_available`, `brand_id`                                       |
+| Customer      | `id`, `first_name`, `last_name`, `email`, `mobile`, `gender`, `city`, `country`, `location`                                  |
+| Special Offer | `id`, `name`, `offer_type`, `status`, `expiry_date`                                                                          |
+| Category      | `id`, `name`, `parent_id`, `status`, `sort_order`                                                                            |
+| Brand         | `id`, `name`, `status`, `custom_url`                                                                                         |
+| Cart          | `id`, `subtotal`, `total`, `currency`, `coupon_code`, `customer_id`                                                          |
+| Miscellaneous | `parent_id`, `store_id`, `customer_id`, `product_id`, `order_id`, `rating`, `status` (event `review.added`)                  |
+
+Full event + attribute reference per category: https://docs.salla.dev/421120m0.md
 
 ---
 
@@ -335,14 +362,14 @@ confirm the exact envelope and per-event `data` shape via the Partners MCP
 
 `merchant` is your key to look up the right access/refresh tokens.
 
-Response & retry rules — **non-negotiable:**
+Response & retry rules — **non-negotiable** (421119):
 
-| Rule                         | Detail                                                                                                                                              |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Respond 200 immediately**  | Return `200 OK` within **3 seconds** — Salla won't wait longer                                                                                      |
-| **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after                                                                              |
-| **Retry behavior**           | Salla retries **3 times** (waits 30s, 15s, 10s) on non-2xx or timeout ([docs](https://docs.salla.dev/421119m0.md)) — see `references/operations.md` |
-| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                                                                       |
+| Rule                         | Detail                                                                                                                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Acknowledge fast**         | Salla waits **~30s** for the connection + HTTP response, then treats the delivery as failed — ack well before that                                                      |
+| **Never block on slow work** | Queue DB writes, emails, external calls — respond first, process after                                                                                                  |
+| **Retry behavior**           | On a non-success response/timeout Salla resends the event **3 times**, **~5 minutes** apart; a success stops further tries ([docs](https://docs.salla.dev/421119m0.md)) |
+| **Idempotency required**     | Webhooks can be delivered more than once — always deduplicate                                                                                                           |
 
 ```typescript
 // Fast response + async processing (Express).
@@ -357,7 +384,7 @@ app.post("/webhooks/salla", express.raw({ type: "*/*" }), async (req, res) => {
     process.env.SALLA_WEBHOOK_SECRET!,
   );
   if (!valid) return res.status(401).end();
-  res.status(200).end(); // respond immediately (within 3s)
+  res.status(200).end(); // respond immediately (well under Salla's ~30s wait)
   processWebhookAsync(JSON.parse(raw)).catch(console.error); // parse AFTER verifying
 });
 ```
@@ -381,7 +408,7 @@ async function handleWebhook(payload: WebhookPayload): Promise<void> {
 }
 ```
 
-**Gate:** "Endpoint verifies → 200s within 3s → processes async → dedupes with `subscription_id` or body hash (not resource id or `created_at`)?"
+**Gate:** "Endpoint verifies → 200s fast (well under ~30s) → processes async → dedupes with `subscription_id` or body hash (not resource id or `created_at`)?"
 
 ---
 
@@ -455,7 +482,7 @@ When webhooks aren't arriving:
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")
 - [ ] Subscribed to the correct event name (case-sensitive)
-- [ ] Endpoint returns `200` within 3 seconds and accepts POST (not just GET)
+- [ ] Endpoint returns `200`/`201` well under Salla's ~30s wait and accepts POST (not just GET)
 - [ ] No TLS/SSL issues on your server
 - [ ] Check the Salla Webhooks Log in the Portal for delivery attempts and response codes
 
@@ -475,6 +502,11 @@ attempt, HTTP code, and full payload — check here before debugging your server
 | --------------------------------------------------- | ---------------------------------------------- |
 | Webhooks docs                                       | https://docs.salla.dev/421119m0.md             |
 | Conditional webhooks                                | https://docs.salla.dev/421120m0.md             |
+| Register webhook (`POST /webhooks/subscribe`)       | https://docs.salla.dev/5394134e0.md            |
+| Update webhook (`PUT /webhooks/{id}`)               | https://docs.salla.dev/10312606e0.md           |
+| List active webhooks (`GET /webhooks`)              | https://docs.salla.dev/5394135e0.md            |
+| List events (`GET /webhooks/events`)                | https://docs.salla.dev/5394136e0.md            |
+| Deactivate (`DELETE /webhooks/unsubscribe`)         | https://docs.salla.dev/5394137e0.md            |
 | Node.js/Express repo                                | https://github.com/SallaApp/webhook-actions-js |
 | Operations (retries, custom headers, CLI local dev) | references/operations.md                       |
 | Partner Portal                                      | https://salla.partners                         |

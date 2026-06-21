@@ -10,19 +10,13 @@
 > before depending on them. For transport rules (signature, idempotency, fast 200) the
 > owner is the parent `SKILL.md`.
 
-## Retry / resend mechanism
+## Timeout, retry / resend mechanism
 
-Salla retries a delivery **at most 3 times** when it doesn't receive a success response,
-waiting these intervals between attempts (source:
-https://docs.salla.dev/421119m0.md):
+Salla waits **~30 seconds** for the connection to open and the HTTP response to come back;
+past that the delivery is treated as failed (source: https://docs.salla.dev/421119m0.md).
 
-| Attempt     | Wait before next try |
-| ----------- | -------------------- |
-| 1st         | 30s                  |
-| 2nd         | 15s                  |
-| 3rd (final) | 10s                  |
-
-A prompt success response stops further retries.
+When it doesn't get a success response, Salla resends the event **3 times**, with an interval
+of **~5 minutes** between attempts. A prompt success response stops further retries.
 
 ## The 200/201 rule
 
@@ -47,19 +41,15 @@ hash).
 > _before_ acknowledging — a failed verification must still return **401**, never a `200`.
 > Only acknowledge (then queue) requests you've authenticated.
 
-## Custom webhook headers
+## Custom webhook headers — Portal UI mechanics
 
-Salla sends predefined headers (e.g. `user-agent`); you can also define **custom webhook
-headers** to tag events for your app:
+The transport rules for custom headers (what they're for, validation, never trust them for
+auth) live in `SKILL.md` Step 3. This is just where to set them by hand:
 
 - Partner Portal → **My Apps** → your App → **Webhooks/Notifications** → **Custom Headers**
-  → **Add Custom Header** (or via `salla_apps action=connect` `webhook_headers`).
-- Use **standard header names** and let the **Partners MCP validate** what's accepted —
-  don't assume a custom allowed-character rule.
+  → **Add Custom Header** (or via `salla_apps action=connect` `webhook_headers`, or the
+  register/update API `headers: [{ key, value }]`).
 - Edit/delete from the row's ⋯ menu.
-
-Use these for routing/identification metadata only — verify authenticity with the
-`x-salla-signature` HMAC or the security token, not a custom header.
 
 ## Local development with the Salla CLI
 

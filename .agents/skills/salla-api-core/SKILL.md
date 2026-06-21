@@ -20,11 +20,17 @@ in order; complete each gate before moving on. This is runtime code against a **
 **Base URL:** `https://api.salla.dev/admin/v2` (all paths below are relative to it).
 Docs (Get Started): https://docs.salla.dev/421117m0.md
 
-Endpoints, payloads, and response shapes below are **illustrative** — confirm the exact
-path, fields, scopes, and envelope for a given resource against current docs (or the
-Partners MCP `salla_apps` / `salla_reference` for app and category lookups) before relying
-on them. Token storage, refresh, and the refresh mutex live in salla-app-auth — don't
-re-implement them here.
+**HTTPS only** — plain HTTP is rejected; every call carries
+`Authorization: Bearer <ACCESS_TOKEN>` (OAuth 2.0). TLS protects the data in transit
+(docs: https://docs.salla.dev/421121m0.md, https://docs.salla.dev/421118m0.md).
+
+The **cross-cutting rules** (base, auth, status codes, error/pagination shapes, rate
+limits, versioning, multi-language) are pinned from the official docs and authoritative.
+**Per-resource** paths, fields, scopes, and envelopes are **illustrative** — confirm them
+against the current resource doc (see `references/api-resources.md`) or the Partners MCP
+(`salla_apps` / `salla_reference`) before relying on them. Token mechanics — storage,
+refresh, the single-use refresh-token rule, and the refresh mutex — live in salla-app-auth;
+don't re-implement them here.
 
 ## Step 0 — Discover
 
@@ -54,27 +60,27 @@ Authorization: Bearer <access_token>
 `merchant.id` (top level — user/info has **no `data` envelope**) is the stable internal key —
 cache it rather than re-fetching per request.
 
+### The five official 401 cases
+
 Token / authorization failures return **401** with an `error` object carrying `code` and
-`message`. The one signal confirmed by the API reference is the missing-scope message —
-the request's token lacks a scope the endpoint requires
-(docs: https://docs.salla.dev/5394145e0.md):
+`message`. The Responses doc (https://docs.salla.dev/421123m0.md) pins exactly five cases:
 
-```json
-{
-  "status": 401,
-  "success": false,
-  "error": {
-    "code": "Unauthorized",
-    "message": "The access token should have access to one of those scopes: orders.read_write"
-  }
-}
-```
+| #   | Case                  | `error.message` (representative)                                                  | Action                                                                 |
+| --- | --------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 1   | Deleted user          | `The User is not exists.`                                                         | Merchant gone — stop calling; await re-install.                        |
+| 2   | Inactive user         | `حسابك غير مفعل` (account not active)                                             | Stop calling; await re-activation/re-install.                          |
+| 3   | Refresh token reused  | `error: "invalid_grant"` — **revokes both access + refresh tokens**               | Merchant must reinstall the app — handle via salla-app-auth.           |
+| 4   | Scope not allowed     | `The access token should have access to one of those scopes: products.read_write` | Add the scope to the app; token can't reach this endpoint.             |
+| 5   | Invalid/expired token | `The access token is invalid` (expired, app uninstalled, or bad value)            | Refresh the token (salla-app-auth); if it can't refresh, re-authorize. |
 
-Other 401 conditions (deleted/inactive user, expired or malformed token, reused refresh
-token) surface their own `error.message`; treat any 401 as "re-check the token, then
-re-authorize if it can't be refreshed" rather than matching on an exact string. Refresh,
-the single-use refresh-token rule, and the re-authorize flow live in salla-app-auth —
-don't re-implement them here.
+Case 3 is special: it returns the bare OAuth shape `{ "error": "invalid_grant", ... }`
+(not the `{ status, success, error }` envelope) and **invalidates the access token too** —
+reusing a single-use refresh token in parallel forces a full reinstall. The refresh mutex
+that prevents this, the single-use rule, and the re-authorize flow all live in
+salla-app-auth — don't re-implement them here.
+
+Practically: read `error.message` for logging, but **drive behavior off the case** — for
+1–3 stop and wait for re-install/re-activate; for 4 fix scopes; for 5 refresh then retry.
 
 **Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `merchant.id` (top level, not `data.merchant.id`)?"
 
@@ -82,13 +88,25 @@ don't re-implement them here.
 
 ## Step 2 — Make Requests
 
+**API is URI-versioned** — the `/admin/v2` in the base URL _is_ the version. Salla bumps it
+only on a **breaking change** (response-format change, type change, or removing part of the
+API); non-breaking additions ship in place (docs: https://docs.salla.dev/421126m0.md).
+
 Common resource endpoints:
 
 | Resource  | Method | Endpoint     | Docs                                |
 | --------- | ------ | ------------ | ----------------------------------- |
 | Orders    | GET    | `/orders`    | https://docs.salla.dev/5394146e0.md |
 | Products  | GET    | `/products`  | https://docs.salla.dev/5394168e0.md |
-| Customers | GET    | `/customers` | https://docs.salla.dev/5394121e0.md |
+| Customers | GET    | `/customers` | https://docs.salla.dev/841780f0.md  |
+
+For **every** resource group → its landing doc, see **`references/api-resources.md`** (the
+"find the right doc" map). Per-resource paths/fields/scopes live in those docs, not here.
+
+**Multi-language (optional):** some endpoints localize their response. Send
+`Accept-Language: <iso_code>` to express a preference (and `Content-Language` to declare the
+body's language). The `iso_code` values come from the **Languages** endpoint; the default is
+`ar` (docs: https://docs.salla.dev/421122m0.md).
 
 A 2xx response with a body wraps `data` (a 204 carries no body — see below):
 
@@ -146,12 +164,12 @@ async function sallaRequest<T>(
 
 ## Step 3 — Paginate Collections
 
-Collection endpoints accept:
+Collection endpoints accept (docs: https://docs.salla.dev/421124m0.md):
 
-| Parameter  | Default | Max | Notes                                         |
-| ---------- | ------- | --- | --------------------------------------------- |
-| `page`     | 1       | —   | 1-indexed                                     |
-| `per_page` | 15      | 60  | `count` alias also accepted on some endpoints |
+| Parameter  | Default | Max | Notes         |
+| ---------- | ------- | --- | ------------- |
+| `page`     | 1       | —   | 1-indexed     |
+| `per_page` | 15      | 60  | **max is 60** |
 
 ```http
 GET /orders?page=2&per_page=40
@@ -185,7 +203,8 @@ To iterate all pages: loop while `currentPage < totalPages`, incrementing `page`
 
 ## Step 4 — Handle Errors & Rate Limits
 
-Error envelope (single + multi-field share the same shape — `fields` is field → messages):
+Error envelope (single + multi-field share the same shape — `fields` is field → messages;
+docs: https://docs.salla.dev/421123m0.md):
 
 ```json
 {
@@ -198,6 +217,9 @@ Error envelope (single + multi-field share the same shape — `fields` is field 
   }
 }
 ```
+
+In any **4xx** validation error, each entry under `fields` is `field → [messages…]`; a
+multi-field failure just lists more keys. Read `error.fields` to surface per-field messages.
 
 | Status | Slug                  | Meaning                                  |
 | ------ | --------------------- | ---------------------------------------- |
@@ -213,13 +235,34 @@ Error envelope (single + multi-field share the same shape — `fields` is field 
 | 500    | `server_error`        | Internal server error — retry later      |
 | 503    | `service_unavailable` | Temporary overload or maintenance        |
 
-Rate limiting is applied per store and varies by plan; some resources (e.g. customer
-endpoints) may carry their own tighter caps. **Don't hardcode specific numbers** — they
-are not pinned by the API reference and can change. Verify current limits via the live
-`X-RateLimit-*` / `Retry-After` response headers and the API reference. Exceeding limits
-returns **429**; sustained abuse or unusual patterns may trigger a temporary **403**.
+### Rate limits (official — docs: https://docs.salla.dev/421125m0.md)
 
-Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After`.
+Limits are **per store, by the store's plan**, enforced with a **leaky-bucket** algorithm:
+
+| Plan        | Max requests | Window   | Overflow leak rate |
+| ----------- | ------------ | -------- | ------------------ |
+| **Plus**    | 120          | 1 minute | 1 request / second |
+| **Pro**     | 360          | 1 minute | 1 request / second |
+| **Special** | 720          | 1 minute | 1 request / second |
+
+Once the per-minute budget is spent you may still send **1 request/second** (the leak)
+until the window resets. **The Customers endpoint has its own tighter cap: 500 requests per
+10 minutes** — pace customer-heavy jobs accordingly.
+
+Exceeding limits returns **429 `too_many_requests`**; sustained abuse or unusual patterns
+may trigger temporary access restrictions (a **403**).
+
+Headers on every response:
+
+| Header                  | Meaning                                          |
+| ----------------------- | ------------------------------------------------ |
+| `X-RateLimit-Limit`     | Calls allowed per minute for this plan           |
+| `X-RateLimit-Remaining` | Calls left in the current window                 |
+| `Retry-After`           | Seconds to wait before retrying (present on 429) |
+| `X-RateLimit-Reset`     | UTC epoch seconds when the window resets         |
+
+Read the live headers rather than assuming — but the tier numbers above are the documented
+maximums to plan against.
 
 ```typescript
 if (response.status === 429) {
@@ -264,12 +307,15 @@ no API call needed there.
 
 ## Quick-Reference Docs Links
 
-| Topic                     | URL                                                     |
-| ------------------------- | ------------------------------------------------------- |
-| Get Started               | https://docs.salla.dev/421117m0.md                      |
-| Authorization (OAuth 2.0) | https://docs.salla.dev/421118m0.md                      |
-| Responses & Errors        | https://docs.salla.dev/421123m0.md                      |
-| Pagination                | https://docs.salla.dev/421124m0.md                      |
-| Rate Limiting             | https://docs.salla.dev/421125m0.md                      |
-| Versioning                | https://docs.salla.dev/421126m0.md                      |
-| App Settings guide        | `salla-app-settings` skill (references/form-builder.md) |
+| Topic                                   | URL                                                     |
+| --------------------------------------- | ------------------------------------------------------- |
+| Get Started                             | https://docs.salla.dev/421117m0.md                      |
+| Authorization (OAuth 2.0)               | https://docs.salla.dev/421118m0.md                      |
+| Security                                | https://docs.salla.dev/421121m0.md                      |
+| Responses & Errors                      | https://docs.salla.dev/421123m0.md                      |
+| Pagination                              | https://docs.salla.dev/421124m0.md                      |
+| Rate Limiting                           | https://docs.salla.dev/421125m0.md                      |
+| Versioning                              | https://docs.salla.dev/421126m0.md                      |
+| Multi-language                          | https://docs.salla.dev/421122m0.md                      |
+| **Resource index** (find the right doc) | `references/api-resources.md`                           |
+| App Settings guide                      | `salla-app-settings` skill (references/form-builder.md) |

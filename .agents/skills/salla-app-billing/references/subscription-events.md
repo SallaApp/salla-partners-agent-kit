@@ -5,6 +5,14 @@ family covers plans and addons; `item_type` distinguishes them. The payloads bel
 **illustrative**; confirm the exact shapes (and any new fields) via the Partners MCP
 (`salla_events action=list`) or the docs link above before coding.
 
+> These are the **webhook event** payloads. To **read** a merchant's current subscription
+> detail (plan state, entitlements, `subscription_balance`) the authoritative API is the
+> App Subscription Details endpoint `GET /apps/{app_id}/subscriptions`
+> (https://docs.salla.dev/5401098e0.md); to **write** the usage balance, the Update
+> Subscription Balance endpoint `POST /apps/balance`
+> (https://docs.salla.dev/5401099e0.md), both on `https://api.salla.dev/admin/v2`. See
+> salla-app-billing Steps 5 and 5b.
+
 > **Security — these are billing events.** A subscription/trial payload grants or revokes
 > paid access, so treat it as untrusted until proven authentic. **Verify the webhook
 > signature and enforce idempotency before mutating any entitlement** — transport security

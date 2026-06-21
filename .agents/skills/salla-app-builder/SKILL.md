@@ -20,6 +20,14 @@ Build a complete Salla app by **performing the actions**, not just describing th
 Each step calls a Salla Partners MCP tool to do the work. Follow the steps in order —
 complete each gate before moving to the next.
 
+**The arc:** **create → configure → publish.** Creating the app is only the first gate —
+a created app is **not** published; it still needs scopes, webhooks/events, any UI, then
+review before it reaches merchants ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
+The home for all of this is the **Salla Partners account** (verified) →
+[portal.salla.partners](https://portal.salla.partners) → **My Apps**
+([docs.salla.dev/421412m0.md](https://docs.salla.dev/421412m0.md)). The MCP tools below
+drive that same Portal, so prefer them when connected.
+
 ## Tools
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
@@ -45,6 +53,12 @@ Ask before starting:
 2. **App type:** General / Communication / Shipping
 3. **Visibility:** Public (App Store) or Private (invite-only)?
 
+These are **two independent choices** ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)):
+**Public** apps appear in the [Salla App Store](https://apps.salla.sa/en) for any merchant
+to browse, download, or purchase; **Private** apps are built for specific merchants and
+never surface in the store's listings or search. **Category** (General vs Shipping) is the
+separate axis — a Shipping app may be Public _or_ Private (Communication apps are Public).
+
 Use the answers to tailor Steps 1, 4–7.
 
 ---
@@ -62,7 +76,10 @@ Use the answers to tailor Steps 1, 4–7.
    must be a **square (1:1) image, ≥ 250×250 px** — ensure the source image satisfies
    that **before** uploading. The result returns only `{id, url}` (no dimensions are
    echoed), so use the returned `id`.
-3. **Create the app.** Call `salla_apps` with `action: "create"` and:
+3. **Create the app.** The basic info Salla requires at create is **icon, name, category,
+   description, app website, and support email**
+   ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)); via the MCP these
+   map to the fields below. Call `salla_apps` with `action: "create"` and:
 
 | Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                       |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -78,7 +95,10 @@ Use the answers to tailor Steps 1, 4–7.
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
 `https://portal.salla.partners/apps/{app_id}` (substitute the returned id). Surface this
-link to the user after every create.
+link to the user after every create. That **App Details** page is the hub for everything
+the next steps configure — App Keys (Client ID/Secret, OAuth mode), Scope, Webhooks,
+Trusted IPs, App Functions, Settings, Onboarding, Embedded Pages, Snippets, Custom Plans,
+Testing, and Publishing ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
 
 > **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
 > success — the Portal does not echo changed fields. Always follow up with
@@ -86,7 +106,9 @@ link to the user after every create.
 
 **Manual fallback:** Portal → **My Apps → Create App**.
 
-**Gate:** "App created — confirm the returned `app_id` (`salla_apps action=get`)."
+**Gate:** "App created — confirm the returned `app_id` (`salla_apps action=get`)." A
+created app is **not yet published** ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md));
+keep going through configure → publish.
 
 ---
 
@@ -311,8 +333,11 @@ Integrates a carrier or fulfillment provider:
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
    private-publish; optional `update_note`). Pass the listing payload in `publication`.
-   The example shapes below are **illustrative** — confirm exact field names/shapes via the
-   Partners MCP tool schema or docs before relying on them:
+   The Portal's publication flow covers **Basic Information, App Configurations, App
+   Features, Pricing, Contact Information, and Service Trial**
+   ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)) — the `publication`
+   payload spans the same ground. The example shapes below are **illustrative** — confirm
+   exact field names/shapes via the Partners MCP tool schema or docs before relying on them:
    - **`publish_action` is always required** (separate from the tool's `action: "publish"`):
      `"save"` drafts the publication, `"submit"` sends it for full-validation review.
    - **`save` is NOT fully lenient** — it still requires `name: {en, ar}` and
@@ -340,6 +365,8 @@ Testing guide: references/demo-store-testing.md
 
 | Topic                          | Link                               |
 | ------------------------------ | ---------------------------------- |
+| Get Started                    | https://docs.salla.dev/421412m0.md |
+| Create Your First App          | https://docs.salla.dev/421410m0.md |
 | Partners Portal                | https://portal.salla.partners/     |
 | Apps Marketplace               | https://apps.salla.sa/en           |
 | Webhooks guide + event list    | https://docs.salla.dev/421119m0.md |

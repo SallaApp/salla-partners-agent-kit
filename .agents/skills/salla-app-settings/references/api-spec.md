@@ -7,19 +7,33 @@ merchant tokens. Don't confuse it with defining the settings **form schema**, wh
 an MCP action (`salla_settings action=define_form`, Partner API).
 
 Base URL: `https://api.salla.dev/admin/v2`
-Auth: the **merchant's** Bearer token (OAuth2). `offline_access` is only needed when you
-must call this **in the background** (with a refresh token) outside an active merchant
-session — not for the call itself. Request the minimum scopes your app needs. Acquiring
-and refreshing the token → [salla-app-auth](../../salla-app-auth/SKILL.md).
+Auth: the **merchant's** Bearer token (OAuth2). The `offline_access` scope is only needed
+when you must call these endpoints **in the background** (with a refresh token) outside an
+active merchant session — not for the call itself. Request the minimum scopes your app
+needs. Acquiring and refreshing the token → [salla-app-auth](../../salla-app-auth/SKILL.md).
 
-> Field names in the payloads below come from each app's own settings schema, not a fixed
-> list. The **form schema** itself is defined and updated through the Partners MCP only
-> (`salla_settings action=define_form`) — that is the supported way to change fields,
-> formats, and defaults.
+## How these endpoints fit the settings model
 
-> **Secrets:** settings can hold API keys, passwords, and tokens. Never log a raw settings
-> object, store secret-typed values **encrypted**, and never return them to client-side
-> code.
+There are three moving parts, each with one owner — these endpoints are the **read/write
+of per-merchant values**, not a replacement for the other two:
+
+| Concern                                                      | Owner                                                                                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Form definition** (fields, types, defaults)                | Partners MCP `salla_settings action=define_form` (Partner API) — the only supported way to add/change fields |
+| **Storage / source of truth** for the values merchants enter | the `app.settings.updated` webhook ([docs](https://docs.salla.dev/421413m0.md)) — persist what it delivers   |
+| **Reading / writing those values via API**                   | the GET / POST endpoints below                                                                               |
+
+So: you define the form once via the MCP; merchants fill it in and Salla pushes the
+authoritative values to your `app.settings.updated` webhook; and these GET/POST endpoints
+let your backend **read** the current values or **write** them programmatically. The field
+names in every payload below come from **your app's own form definition**, not a fixed
+list. The **Validation URL** that Salla calls before saving is public (no signature) — see
+[form-builder.md](./form-builder.md).
+
+> **Secrets:** settings can hold API keys, passwords, and tokens. Mark secret fields with
+> the `password` format and `public: false` in the form definition. Never log a raw
+> settings object, store secret-typed values **encrypted**, and never return them to
+> client-side code.
 
 ---
 
@@ -27,9 +41,15 @@ and refreshing the token → [salla-app-auth](../../salla-app-auth/SKILL.md).
 
 Fetch the current settings values for a specific merchant's store.
 
-**Path parameter:** `app_id` (integer) — found in Salla Partners → My Apps → Your App.
+Source: [App Setting Details](https://docs.salla.dev/5401096e0.md)
+(`get-apps-app_id-settings`).
 
-### Response 200
+**Path parameter:** `app_id` (integer) — found in Salla Partners → My Apps → Your App
+(example: `513499943`).
+
+**Security:** `oauth21` with `offline_access` (background reads).
+
+### Response 200 (`AppSettingsBodyResponse`)
 
 ```json
 {
@@ -48,7 +68,18 @@ Fetch the current settings values for a specific merchant's store.
 }
 ```
 
-### Response 403 / 404
+| Field           | Type    | Description                                             |
+| --------------- | ------- | ------------------------------------------------------- |
+| `status`        | number  | Response status code                                    |
+| `success`       | boolean | Whether the response succeeded                          |
+| `data.app_id`   | string  | Salla App ID, provided by Salla                         |
+| `data.app_slug` | string  | Salla App Slug, provided by Salla                       |
+| `data.settings` | object  | The merchant's values, keyed by your form's field names |
+
+The keys inside `data.settings` (`email`, `password`, `contact_no`, `fast_delivery` above)
+are illustrative of one app's form — yours will differ.
+
+### Response 403 / 404 (`NotFoundResponse`)
 
 ```json
 {
@@ -72,11 +103,18 @@ not yet activated it via the settings form).
 
 Update settings for a specific merchant's store.
 
-> **Critical:** You **must** pass ALL settings keys on every update — even if only one value changed. Omitting a key sets it to `null`.
+Source: [Update App Settings](https://docs.salla.dev/5401097e0.md)
+(`post-apps-app_id-settings`).
+
+> **Critical:** You **must** pass ALL settings keys on every update — even if only one
+> value changed. Passing only the key you need to update will cause the other values to
+> become `null` (data loss).
 
 **Path parameter:** `app_id` (integer)
 
-### Request body
+**Security:** `oauth21` with `offline_access` (background writes).
+
+### Request body (`UpdateAppSettingsBodyRequest`)
 
 ```json
 {
@@ -87,21 +125,24 @@ Update settings for a specific merchant's store.
 }
 ```
 
-| Field           | Type    | Description              |
-| --------------- | ------- | ------------------------ |
-| `email`         | string  | Custom setting parameter |
-| `password`      | string  | Custom setting parameter |
-| `fast_delivery` | boolean | Custom setting parameter |
-| `contact_no`    | number  | Custom setting parameter |
+| Field           | Type    | Description                  |
+| --------------- | ------- | ---------------------------- |
+| `email`         | string  | Custom app setting parameter |
+| `password`      | string  | Custom app setting parameter |
+| `fast_delivery` | boolean | Custom app setting parameter |
+| `contact_no`    | number  | Custom app setting parameter |
+
+These keys are illustrative of one app's form — send **your** form's full field set.
 
 ### Response 200
 
-The **response body doesn't matter** — don't parse or depend on what it echoes. Treat a
-2xx as accepted, then confirm the write with a follow-up `GET` (or via the
-`app.settings.updated` webhook, which is the storage source of truth —
+The docs return the same `UpdateAppSettingsBodyRequest` shape as a 200, but the **response
+body doesn't matter** — don't parse or depend on what it echoes. Treat a 2xx as accepted,
+then confirm the write with a follow-up `GET` (or rely on the `app.settings.updated`
+webhook, which is the storage source of truth —
 [docs](https://docs.salla.dev/421413m0.md)).
 
-### Response 403
+### Response 403 (`NotFoundResponse`)
 
 ```json
 {
@@ -119,13 +160,15 @@ The **response body doesn't matter** — don't parse or depend on what it echoes
 | ------------------------------ | ------------------------------------- |
 | `AppSettingsBodyResponse`      | GET 200 response                      |
 | `UpdateAppSettingsBodyRequest` | POST request body + POST 200 response |
-| `NotFoundResponse`             | GET/POST 403 and 404 responses        |
+| `NotFoundResponse`             | GET 403/404 and POST 403 responses    |
 
 ---
 
 ## Resources
 
-| Topic                             | Link                               |
-| --------------------------------- | ---------------------------------- |
-| How to build an App Settings form | form-builder.md                    |
-| Salla Admin API reference         | https://docs.salla.dev/421117m0.md |
+| Topic                             | Link                                |
+| --------------------------------- | ----------------------------------- |
+| How to build an App Settings form | form-builder.md                     |
+| App Setting Details (GET)         | https://docs.salla.dev/5401096e0.md |
+| Update App Settings (POST)        | https://docs.salla.dev/5401097e0.md |
+| Salla Admin API reference         | https://docs.salla.dev/421117m0.md  |

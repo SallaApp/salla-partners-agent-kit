@@ -39,12 +39,12 @@ live demo store or the docs first.
 
 ## App types
 
-| Type          | Delta                                                                                                                            |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| General       | Needs `sub_category_id`; use `type: "app"` in `salla_reference` → [salla-app-builder](../salla-app-builder/SKILL.md)             |
-| Private       | Same flow as General (`type: "app"` category tree, needs `sub_category_id`) → [salla-app-builder](../salla-app-builder/SKILL.md) |
-| Shipping      | Shipping sub-category, 4 default shipment webhooks, Salla-set Company ID → [salla-shipping-app](../salla-shipping-app/SKILL.md)  |
-| Communication | No sub-category; must declare channels before publish → [salla-communication-app](../salla-communication-app/SKILL.md)           |
+| Type          | Delta                                                                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| General       | Needs `sub_category_id`; use `type: "app"` in `salla_reference` → [salla-app-builder](../salla-app-builder/SKILL.md)                                                 |
+| Private       | Same flow as General (`type: "app"` category tree, needs `sub_category_id`) → [salla-app-builder](../salla-app-builder/SKILL.md)                                     |
+| Shipping      | Shipping sub-category; `shipment.creating`/`shipment.cancelling` are sync App Functions; Salla-set Company ID → [salla-shipping-app](../salla-shipping-app/SKILL.md) |
+| Communication | No sub-category; must declare channels before publish → [salla-communication-app](../salla-communication-app/SKILL.md)                                               |
 
 ## Choosing the surface (the hookable rule)
 
@@ -52,7 +52,7 @@ Every behavior attaches at exactly one surface. Decide in this order:
 
 1. **Runs in the shopper's browser / storefront?** → snippet → [salla-snippets](../salla-snippets/SKILL.md)
 2. **An App Function trigger exists for the event?** → App Function (**preferred** — runs inside Salla, no server) → [salla-app-functions](../salla-app-functions/SKILL.md)
-3. **Otherwise** → webhook to your server → [salla-webhooks](../salla-webhooks/SKILL.md)
+3. **Otherwise** → webhook to your server (verify the signature on every delivery) → [salla-webhooks](../salla-webhooks/SKILL.md)
 
 Check available triggers via salla-app-functions' event reference
 before reaching for a webhook.
@@ -68,11 +68,11 @@ before reaching for a webhook.
 | Serverless handlers on Salla triggers                                                              | [salla-app-functions](../salla-app-functions/SKILL.md)                     |
 | Storefront JS / e-commerce events                                                                  | [salla-snippets](../salla-snippets/SKILL.md)                               |
 | Iframe UI inside the merchant dashboard                                                            | [salla-embedded-app](../salla-embedded-app/SKILL.md)                       |
-| Public App-Store view — builder blocks (add/edit/reorder)                                          | [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md)                   |
+| App-Store presentation page (auto-fills from publication; manual builder)                          | [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md)                   |
 | Per-merchant settings schema & values                                                              | [salla-app-settings](../salla-app-settings/SKILL.md)                       |
 | Plans, addons, trials, entitlement gating, usage balance, plan/subscription state & reconciliation | [salla-app-billing](../salla-app-billing/SKILL.md)                         |
 | Post-install setup / onboarding steps                                                              | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
-| Addon billing lifecycle (activation, renewal, entitlement, gating)                                 | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
+| Addon billing lifecycle (activation, renewal, entitlement)                                         | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
 | In-app addon purchase UX (embedded flow)                                                           | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | SMS / WhatsApp / email channel apps                                                                | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
@@ -87,20 +87,20 @@ before reaching for a webhook.
 When the **Salla Partners MCP** server is connected, do the work with these tools instead
 of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `action`:
 
-| Capability                            | Tool · actions                                                                                                                                                                                              |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Create / configure / publish apps     | `salla_apps` · `list` `get` `create` `update` `connect` (OAuth+webhooks) `set_status` `publish`                                                                                                             |
-| Events / webhooks                     | `salla_events` · `list` `subscribe`                                                                                                                                                                         |
-| Storefront snippets                   | `salla_snippets` · `list` `parameters` `create` `update` `delete`                                                                                                                                           |
-| Embedded pages                        | `salla_embedded_pages` · `list` `create` `update` `delete`                                                                                                                                                  |
-| Onboarding steps                      | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                                                                                                                                         |
-| App settings & features               | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`                                                                                                                        |
-| Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                                                                                                                                   |
-| App Functions                         | `salla_functions` · `list_triggers` / `get` / `save` (upsert) / `delete` — save is live on demo stores, publish for production; operator-gated — see [salla-app-functions](../salla-app-functions/SKILL.md) |
-| File upload (logos)                   | `salla_upload`                                                                                                                                                                                              |
-| OAuth scopes                          | `salla_scopes` · `get` / `set`                                                                                                                                                                              |
-| App-Store view (App Builder blocks)   | images → `salla_upload`; block list/read/mutate **not yet in MCP** (direct Partners API; planned `salla_app_builder`) — see [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md)                        |
-| Lookups (categories/countries/cities) | `salla_reference`                                                                                                                                                                                           |
+| Capability                            | Tool · actions                                                                                                                                                                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create / configure / publish apps     | `salla_apps` · `list` `get` `create` `update` `connect` (OAuth+webhooks) `set_status` `publish`                                                                                                                                                   |
+| Events / webhooks                     | `salla_events` · `list` `subscribe`                                                                                                                                                                                                               |
+| Storefront snippets                   | `salla_snippets` · `list` `parameters` `create` `update` `delete`                                                                                                                                                                                 |
+| Embedded pages                        | `salla_embedded_pages` · `list` `create` `update` `delete`                                                                                                                                                                                        |
+| Onboarding steps                      | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                                                                                                                                                                               |
+| App settings & features               | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`                                                                                                                                                              |
+| Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                                                                                                                                                                         |
+| App Functions                         | `salla_functions` · `list_triggers` / `get` / `save` (upsert) / `delete` — save is live on demo stores, publish for production; operator-gated — see [salla-app-functions](../salla-app-functions/SKILL.md)                                       |
+| File upload (logos)                   | `salla_upload`                                                                                                                                                                                                                                    |
+| OAuth scopes                          | `salla_scopes` · `get` / `set` — request only the minimum scopes the app needs                                                                                                                                                                    |
+| App-Store presentation page           | images → `salla_upload`; page auto-fills from publication data; block customization is **manual in the Portal** for now (no MCP tool / no direct API; planned `salla_app_builder`) — see [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md) |
+| Lookups (categories/countries/cities) | `salla_reference`                                                                                                                                                                                                                                 |
 
 The routed skills drive these tools step by step — follow the skill, not the raw API.
 

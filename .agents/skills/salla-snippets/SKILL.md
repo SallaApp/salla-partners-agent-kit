@@ -32,7 +32,9 @@ in an App Function. Follow the steps in order — complete each gate before movi
 Ask before starting:
 
 1. **Which storefront event do you want to handle?**
-   (e.g. `cart.add`, `product.view`, `checkout.complete`, `search.query`)
+   (e.g. `cart::item.added`, `cart::updated`, `product::price.updated` — Twilight events
+   are `::`-namespaced; confirm names in the catalogue in
+   [`references/device-mode.md`](references/device-mode.md))
 2. **What should happen when the event fires?**
    (track analytics, sync data, trigger automation, personalize content)
 
@@ -68,9 +70,10 @@ then **inject it as a storefront snippet** with the tool:
 1. Write the snippet body — listen with the Twilight SDK and process the payload:
 
    ```js
-   salla.event.on("cart.add", (event) => {
-     // event.data contains product, quantity, price, etc.
-     analytics.track("Add to Cart", event.data);
+   // Event names are ::-namespaced — there is no `cart.add`. See the catalogue.
+   salla.event.on("cart::item.added", (e) => {
+     // e.data carries product_id + cart; there is NO top-level item price.
+     analytics.track("Add to Cart", e.data);
    });
    ```
 
@@ -86,15 +89,41 @@ then **inject it as a storefront snippet** with the tool:
    `{"snippet":{}}` (empty object) on success — call `action=list` to verify the
    change.
 
-   **Raw Partner-API deltas** (only if bypassing the tool): both create AND update send
-   the code in the obfuscated field **`c8fbt33yM0`** (update is not a plain `content`
-   field) — the `salla_snippets` tool maps `content` to it for you, but a raw `content`
-   field gets a 422; GET returns `content` plus a CDN `url` rather than guaranteed inline
-   code; DELETE responds **202**; placement `place` accepts only `"before"`, paired with
-   `tag` ("head"/"body").
+   > **MCP-only — no direct Partner API.** Snippets are managed exclusively through the
+   > Salla Partners MCP `salla_snippets` tool; there is no hand-written Partner API call
+   > here. The tool owns field mapping and validation (it maps `content` to the underlying
+   > field for you). If an operation isn't covered by an `action`, it must be done via the
+   > MCP — do not reach for a raw Partner API endpoint. Constraints to know: `place`
+   > accepts only `"before"`, paired with `tag` ("head" | "body").
 
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)
+
+#### Twilight JS SDK (for app snippets)
+
+The Twilight theme engine **auto-injects** the Twilight Storefront JS SDK (`window.salla`)
+on every storefront page (the `body:end` hook). Your app snippet runs in that same page,
+so it can call the same runtime API — auth, cart, wishlist, product, order, rating,
+currency, loyalty, comment, profile, booking, `salla.api.component.*`, `salla.config`,
+`salla.event`, `salla.storage`, `salla.notify`, `salla.lang`, `salla.helpers`, metadata.
+
+**Method catalogue (signatures, per-module doc links, theme-vs-snippet boundary) →
+[`references/twilight-js-sdk.md`](references/twilight-js-sdk.md).** Events (the `::`
+catalogue, the `product::fetch.succeeded` trap, price encodings) stay in
+[`references/device-mode.md`](references/device-mode.md).
+
+Snippet rules that differ from themes: **do NOT call `salla.init()`** (the theme already
+initialized the SDK; `init()` is for standalone HTML only); gate on `salla.onReady` and
+register `salla.event.*` listeners at module top level; you **canNOT** define Twig
+`{% hook %}`s, ship `<salla-*>` web components, or use theme settings / `twilight.json` /
+the Twilight CLI — those are theme-development constructs, out of scope.
+
+**Glue:** this skill = the **shopper's browser** (customer-side actions/events via
+snippets). For a **server reaction** to the same activity, the hookable rule applies — a
+server event with an App Function trigger → **App Function**
+([salla-app-functions](../salla-app-functions/SKILL.md), server-side V8 isolate,
+preferred); else → **webhook** ([salla-webhooks](../salla-webhooks/SKILL.md)). Native
+visible UI → [salla-ui-compliance](../salla-ui-compliance/SKILL.md).
 
 #### Storefront UI compliance (when the snippet renders visible UI)
 

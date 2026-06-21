@@ -18,8 +18,13 @@ Two things to configure:
 ## Field Schema (`type` + `format`)
 
 Salla's form-builder renders from `type` **+** `format` — not a single loose `type`. Bare
-aliases (`toggle`, `text`, `number`, `select`, `url`, `textarea`) are **NOT Portal-safe**:
-they can render as broken form-builder output and silently fail to save. Use:
+aliases (`toggle`, `text`, `number`, `select`) **save fine but fail to render**: the
+merchant gets broken or empty form output. Always use a real `type`+`format` pair.
+
+The table below is the supported, simple, documentable set (it matches the
+`salla_settings action=define_form` MCP schema). The form-builder source carries a few
+extra string/number formats and a `collection` type, but they are either complex or have a
+simpler equivalent — prefer the pairs here:
 
 | Control                  | `type`    | `format`        | Extra props          |
 | ------------------------ | --------- | --------------- | -------------------- |
@@ -27,6 +32,7 @@ they can render as broken form-builder output and silently fail to save. Use:
 | Checkbox                 | `boolean` | `checkbox`      | `value`              |
 | Text                     | `string`  | `text`          | `placeholder`        |
 | Email                    | `string`  | `email`         |                      |
+| URL                      | `string`  | `url`           | `placeholder`        |
 | Password / secret        | `string`  | `password`      |                      |
 | Integer                  | `number`  | `integer`       | `minimum`, `maximum` |
 | Float                    | `number`  | `float`         | `minimum`, `maximum` |
@@ -46,9 +52,12 @@ client-side (storefront); secrets stay `public: false`.
 
 ## Form Schema Example
 
+Pass these field objects as the **`settings`** array to `salla_settings action=define_form`
+(the MCP param is `settings`, not `fields`).
+
 ```json
 {
-  "fields": [
+  "settings": [
     {
       "id": "api_key",
       "type": "string",
@@ -96,16 +105,20 @@ Function only).
 
 ---
 
-## Validation URL Contract
+## Validation URL Contract (public validation ONLY)
 
-If you set a Validation URL, Salla will POST to it before saving the merchant's settings.
+If you set a Validation URL, Salla POSTs the proposed values to it **before saving** so you
+can accept or reject them. It is **public validation only** — there is **NO signature** on
+the request, and it is **not** a storage hook. Don't expect an `Authorization` header and
+don't use this endpoint to persist anything. To **store** settings, use the
+`app.settings.updated` webhook ([docs](https://docs.salla.dev/421413m0.md)) — that is the
+source of truth.
 
 **Request from Salla:**
 
 ```http
 POST https://your-app.com/settings/validate
 Content-Type: application/json
-Authorization: Bearer <hex-hmac-sha256>
 
 {
   "merchant_id": 12345,
@@ -136,7 +149,8 @@ Authorization: Bearer <hex-hmac-sha256>
 }
 ```
 
-Always verify the `Authorization: Bearer` signature (HMAC-SHA256, Web Crypto `subtle.verify`) before processing. See [settings-patterns.md](settings-patterns.md) for the verification implementation.
+This endpoint is public — there is no signature to verify. Validate the submitted values
+and respond; never treat a validation call as a save.
 
 ---
 
@@ -144,8 +158,11 @@ Always verify the `Authorization: Bearer` signature (HMAC-SHA256, Web Crypto `su
 
 1. **Always send ALL keys on POST** — partial updates set omitted keys to `null`
 2. **Labels are plain strings** — set `multilanguage: true` on a field to translate its text (no inline `{en, ar}` objects)
-3. **Never store sensitive values client-side** — always read from `context.settings` in App Functions
-4. **Validate on your server** — don't trust values without server-side validation
+3. **Never mark secrets `public: true`** — API keys, passwords, and tokens stay `public: false` and must never reach storefront / client code; read them only server-side or from `context.settings` in App Functions. Don't log raw settings; store secret values encrypted.
+4. **Validate, don't store, at the Validation URL** — it is a public, signature-free
+   validate-only endpoint; persist settings from the `app.settings.updated` webhook
+5. **Loose aliases render-break, not save-break** — `toggle`/bare `text` save but show
+   broken form output; always use a real `type`+`format` pair from the table above
 
 ---
 

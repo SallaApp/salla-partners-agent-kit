@@ -1,243 +1,85 @@
-# App Builder API Spec
+# App Presentation Builder — data shapes (manual, Portal builder)
 
-Base URL: `https://api.salla.dev/partners/v1`
-Auth: **partners** access token, `Authorization: Bearer {token}`
-Header: `Accept-Language: ar` or `en` — controls the language of `label`, `placeholder`, and option labels returned in schema responses. It does **not** translate stored content (lingual fields always carry both `ar` and `en`).
+The App Presentation Builder is a **manual tool in the Partners Portal**. There is **no MCP tool and no public/Partners API** for its block/element operations today, and there is **no token to handle**. This file documents the **shapes** the builder works with — block definitions and their field schemas — so you can describe _what_ the partner fills in and _what shape_ each value takes. Treat every shape here as **illustrative** (placeholder ids/URLs), confirm it against what the live Portal builder presents, and remember these are **content shapes, not request bodies**.
 
-> This is the **Partners** API, not the merchant Admin API. The token is the partner's portal token, not a merchant OAuth token.
+> **Current state (for now).** Block/element customization is done **by hand in the Portal builder**, after the partner completes the publish details. The only MCP tool that applies is **`salla_upload`**, and only to upload **media for the publish/publication details** (`source_url` → integer image `id`); that media then auto-fills the default presentation template. This file will be revisited when a `salla_app_builder` MCP tool ships.
 
-> **Prefer the MCP where a tool exists.** When the Salla Partners MCP is connected you do **not** handle the token for `salla_upload` — call it and the MCP attaches it. The App Builder **block** endpoints have **no MCP tool**, so the auth/token instructions in this file apply to all of them (reads and mutations) via the direct Partners API.
+The language of `label`, `placeholder`, and option labels follows the Portal locale (`ar` / `en`). Locale does **not** translate stored content — lingual fields always carry both `ar` and `en`.
 
 ---
 
-## Authentication & app id
+## Auto-fill vs. manual customization
 
-- **MCP (for `salla_upload`)** — no token handling; `salla_upload` runs with the MCP-managed partner token; reconnect (re-run the login) if it reports "Salla session expired".
-- **Fallback token — direct API only** — for the direct calls below you need a partners access token yourself. In the Partners Portal it lives in `localStorage["partners-token"]` as `{ "access_token": "…", … }`; the axios interceptor at `ui-partners-portal-apps/src/services/http/portal-apps-instance.ts` reads it and attaches `Authorization: Bearer {access_token}`. Tokens are short-lived (hours) — always use a fresh one. To grab the current token from a logged-in portal tab:
-
-  ```js
-  JSON.parse(localStorage.getItem("partners-token")).access_token;
-  ```
-
-- **`appId`** — the numeric app id. Visible in the portal URL (`portal.salla.partners/apps/{appId}/…`) and under My Apps.
+- **Auto-fill (default):** if the partner never opens the builder, the publication-provided images, screenshots, and description populate the **default template** — the page exists and renders without any manual work.
+- **Manual (builder):** to go beyond the default template, the partner edits the blocks below by hand in the Portal builder. Partial customization can mix with publication data.
 
 ---
 
-## Response envelope
+## What the builder presents (no API)
 
-Every response wraps data in a standard envelope:
+| Capability                            | How it's done today                            |
+| ------------------------------------- | ---------------------------------------------- |
+| See the block catalog                 | In the Portal builder (manual)                 |
+| See the app's added blocks            | In the Portal builder (manual)                 |
+| See a block's fields + current values | In the Portal builder (manual)                 |
+| Add / edit / reorder / delete a block | In the Portal builder (manual)                 |
+| Have required blocks present          | Seeded automatically; not a partner action     |
+| Upload media for publication details  | **`salla_upload`** (pass a `source_url`) — MCP |
 
-```json
-{ "status": 200, "success": true, "data": … }
-```
-
-- Read endpoints return data in `data` (and sometimes `meta`).
-- Mutations (POST/PUT/DELETE) return `"data": null` on success.
-- Validation failures return **422** with field-keyed errors (see [422 errors](#422-validation-errors)).
-
----
-
-## Endpoints
-
-All App Builder block endpoints have **no MCP tool** — call them directly. They are planned as a dedicated `salla_app_builder` tool.
-
-| Purpose                             | Method + path                                       | MCP coverage                                             |
-| ----------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| List block catalog                  | `GET /api/apps/builder/blocks`                      | none — direct (planned `salla_app_builder list_blocks`)  |
-| List app's added blocks             | `GET /api/apps/{appId}/builder/blocks`              | none — direct (planned `salla_app_builder list_blocks`)  |
-| Get a block's field schema + values | `GET /api/apps/{appId}/builder/blocks/{blockId}`    | none — direct (planned `salla_app_builder get_block`)    |
-| Add a block to the app              | `POST /api/apps/{appId}/builder/blocks/{blockId}`   | none — direct (planned `salla_app_builder add_block`)    |
-| Edit a block's content              | `PUT /api/apps/{appId}/builder/blocks/{blockId}`    | none — direct (planned `salla_app_builder edit_block`)   |
-| Reorder blocks                      | `PUT /api/apps/{appId}/builder/blocks/sort`         | none — direct (planned `salla_app_builder sort_blocks`)  |
-| Delete a block                      | `DELETE /api/apps/{appId}/builder/blocks/{blockId}` | none — direct (planned `salla_app_builder delete_block`) |
-| Initialize required blocks          | `POST /api/apps/{appId}/builder/blocks/init`        | none — direct (planned `salla_app_builder init_blocks`)  |
-| Reset (remove all blocks)           | `DELETE /api/apps/{appId}/builder/blocks`           | none — direct (planned `salla_app_builder reset_blocks`) |
-| Upload a block image                | `POST /api/upload/image`                            | **`salla_upload`** (preferred — returns `id`/`url`)      |
+There is no programmatic path for the rows marked "Portal builder (manual)" — do not invent MCP tools or direct API calls for them.
 
 ---
 
-### List block catalog
+## Block definition shape
 
-```http
-GET /api/apps/builder/blocks
-Authorization: Bearer {token}
-```
-
-Returns every available block definition. `data` is an array of `BlockSchema`:
+Each block in the catalog is a `BlockSchema`. A definition looks like:
 
 ```json
 {
-  "status": 200,
-  "success": true,
-  "data": [
-    {
-      "id": 745999872,
-      "slug": "app-information",
-      "label": "معلومات التطبيق",
-      "icon": "sicon-info-circle",
-      "order": 1,
-      "has_form": true,
-      "is_visible": true,
-      "is_required": true,
-      "editable": true,
-      "preview": "https://…png"
-    },
-    {
-      "id": 2038173539,
-      "slug": "app-features",
-      "label": "ميزات التطبيق",
-      "icon": "sicon-star",
-      "order": 2,
-      "has_form": true,
-      "is_visible": true,
-      "is_required": false,
-      "editable": true,
-      "preview": "https://…png"
-    }
-  ]
+  "id": 745999872,
+  "slug": "app-information",
+  "label": "معلومات التطبيق",
+  "icon": "sicon-info-circle",
+  "order": 1,
+  "has_form": true,
+  "is_visible": true,
+  "is_required": true,
+  "editable": true,
+  "preview": "https://…png"
 }
 ```
 
-See [blocks-and-fields.md](blocks-and-fields.md) for the full block list and field meanings.
+The app's added blocks use the same `BlockSchema` shape, in display `order`. See [blocks-and-fields.md](blocks-and-fields.md) for every field's meaning.
 
 ---
 
-### List the app's added blocks
+## Block field-schema shape (with current values)
 
-```http
-GET /api/apps/{appId}/builder/blocks
-Authorization: Bearer {token}
+A block with a form exposes its editable fields as an array of element schemas, with the **current saved values merged in** (`value`, or `items` for images). Only blocks where `has_form: true` and `editable: true` have a form:
+
+```jsonc
+[
+  { "id": "title", "type": "string", "format": "string", "lingual": true,
+    "required": true, "value": { "en": "", "ar": "" }, "maxLength": null },
+  { "id": "features", "type": "collection", "format": "collection",
+    "required": false, "value": [], "itemLabel": "ميزه",
+    "minLength": 3, "maxLength": 3, "fields": [ … ] }
+]
 ```
 
-Same `BlockSchema` array — but only the blocks added to this app, in display `order`. Also returns a `meta.preview_token` (a PASETO used to render the live preview):
-
-```json
-{
-  "status": 200,
-  "success": true,
-  "data": [ { "id": 745999872, "slug": "app-information", "order": 1, … }, … ],
-  "meta": { "preview_token": "v4.public.eyJ…" }
-}
-```
+Field shapes (string/color/image/richtext/dropdown-list/collection/telinput/…) are documented in [blocks-and-fields.md](blocks-and-fields.md). How a populated value is shaped is in [payloads.md](payloads.md).
 
 ---
 
-### Get a block's field schema (with current values)
+## Content shape notes
 
-```http
-GET /api/apps/{appId}/builder/blocks/{blockId}
-Authorization: Bearer {token}
-```
-
-Returns the block's editable fields as an array of element schemas, with the **current saved values merged in** (`value`, or `items` for images). Only call this for blocks where `has_form: true` and `editable: true`.
-
-```json
-{
-  "status": 200,
-  "success": true,
-  "data": [
-    { "id": "title", "type": "string", "format": "string", "lingual": true,
-      "required": true, "value": { "en": "", "ar": "" }, "maxLength": null },
-    { "id": "features", "type": "collection", "format": "collection",
-      "required": false, "value": [], "itemLabel": "ميزه",
-      "minLength": 3, "maxLength": 3, "fields": [ … ] }
-  ]
-}
-```
-
-Field shapes (string/color/image/richtext/dropdown-list/collection/telinput/…) are documented in [blocks-and-fields.md](blocks-and-fields.md).
+- An app's presentation is an ordered set of blocks; **App Information stays first** and **App Plans** has no editable form (pricing renders automatically).
+- When editing a block in the builder, carry over every value you aren't changing — especially `required` fields — and keep already-stored images by leaving their `{ id, url }` in place.
+- Required blocks (App Information, App Plans) are always present and can't be deleted.
+- Lingual fields carry both `ar` and `en`; collection items use prefixed child ids (`features.title`).
 
 ---
 
-### Add a block
+## Validation feedback
 
-```http
-POST /api/apps/{appId}/builder/blocks/{blockId}
-Authorization: Bearer {token}
-Content-Type: application/json
-
-null
-```
-
-`{blockId}` is the **catalog** definition id. Body is `null` to add with defaults, or a full payload (same shape as PUT) to add pre-filled. Returns `{ "success": true, "data": null }`. After adding, re-`GET` the app's blocks to confirm placement.
-
----
-
-### Edit a block
-
-```http
-PUT /api/apps/{appId}/builder/blocks/{blockId}
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{ "title": { "ar": "مميزاتنا", "en": "Our Features" }, "view_section": "images", … }
-```
-
-Send the whole block payload built from its field schema. Shapes must match the backend's expectations — see [payloads.md](payloads.md). Returns `{ "success": true, "data": null }`, or **422** on validation failure.
-
----
-
-### Reorder blocks
-
-```http
-PUT /api/apps/{appId}/builder/blocks/sort
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{ "blocks": [745999872, 2038173539, 625478135] }
-```
-
-`blocks` is the full list of the app's block ids in the desired order. Keep `app-information` first — the portal UI pins it to the top via slug validation (a frontend rule, not enforced by `is_required`). Other blocks can be freely reordered.
-
----
-
-### Delete a block
-
-```http
-DELETE /api/apps/{appId}/builder/blocks/{blockId}
-Authorization: Bearer {token}
-```
-
-Removes a block from the app's view. Blocks with `is_required: true` cannot be deleted.
-
----
-
-### Initialize required blocks
-
-```http
-POST /api/apps/{appId}/builder/blocks/init
-Authorization: Bearer {token}
-Content-Length: 0
-```
-
-**Call this first when customizing an app's view for the first time.** A fresh app's builder is empty (`GET …/blocks` → `data: []`); `init` seeds the required blocks (`app-information`, `app-pricing`) so they exist and become GET/PUT-able by id. Until you init, `GET …/blocks/{blockId}` for a required block returns **404**. Safe to call again — it ensures the required blocks are present.
-
----
-
-### Reset the builder
-
-```http
-DELETE /api/apps/{appId}/builder/blocks
-Authorization: Bearer {token}
-```
-
-Removes all blocks from the app's view. Destructive — confirm with the user before calling.
-
----
-
-## 422 validation errors
-
-A failed PUT returns HTTP 422 with errors keyed by dotted field paths. Collection items use a numeric index; lingual fields end in `.ar`/`.en`:
-
-```json
-{
-  "success": false,
-  "status": 422,
-  "fields": {
-    "title.en": ["The title (en) field is required."],
-    "features.0.title.ar": ["The title field is required."]
-  }
-}
-```
-
-Map each key back to a field id (and collection index) to fix the payload. See [payloads.md](payloads.md#validation-errors).
+The builder surfaces field-level validation when a value is missing or malformed — for example a lingual field missing its `en` value, or a collection holding the wrong number of items. The cues map back to a field id (and, for collections, an item index and language). See [payloads.md](payloads.md#validation-feedback) for how to read them.

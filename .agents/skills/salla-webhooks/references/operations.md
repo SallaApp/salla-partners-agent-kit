@@ -1,23 +1,27 @@
 # Webhook Operations — Reliability, Custom Headers, Local Dev
 
-Distilled from Salla Developers articles (the salla.dev/blog is a JS-rendered SPA that
-can't be fetched directly; content captured here). Source slugs:
-`best-practices-to-handle-webhooks-for-salla-applications`,
-`custom-webhook-header-is-now-available`, `salla-cli-webhook-server-laravel`.
+> **Provenance.** The retry policy and 200/201 rule below are confirmed against the
+> webhooks docs (https://docs.salla.dev/421119m0.md). The CLI / local-dev details were
+> distilled from Salla Developers blog articles (the salla.dev/blog is a JS-rendered SPA
+> that can't be fetched directly, so the text was captured by hand) — slugs
+> `best-practices-to-handle-webhooks-for-salla-applications`,
+> `custom-webhook-header-is-now-available`, `salla-cli-webhook-server-laravel`; confirm
+> those defaults against the live Portal or the Partners MCP (`salla_events action=list`)
+> before depending on them. For transport rules (signature, idempotency, fast 200) the
+> owner is the parent `SKILL.md`.
 
-## Retry / resend mechanism
+## Timeout, retry / resend mechanism
 
-Salla retries a delivery **at most 3 times** when it doesn't receive a success response,
-waiting these intervals between attempts:
+Salla waits **~30 seconds** for the connection to open and the HTTP response to come back;
+past that the delivery is treated as failed (source: https://docs.salla.dev/421119m0.md).
 
-| Attempt     | Wait before next try |
-| ----------- | -------------------- |
-| 1st         | 30s                  |
-| 2nd         | 15s                  |
-| 3rd (final) | 10s                  |
+When it doesn't get a success response, Salla resends the event **3 times**, with an interval
+of **~5 minutes** between attempts. A prompt success response stops further retries.
 
-A prompt success response stops further retries. (Salla's best-practices article states
-these intervals; older material quoted "~5 minutes" — treat 30/15/10s as current.)
+> An earlier observation recorded the retry intervals as **30s / 15s / 10s**. The doc value
+> (~5 minutes apart) is primary; treat 30s/15s/10s as possibly-stale and confirm on a live
+> store if exact timing matters. Don't build logic that depends on the precise interval —
+> ack fast and dedupe.
 
 ## The 200/201 rule
 
@@ -38,18 +42,19 @@ This keeps responses fast (avoids retries) and isolates processing failures from
 Pairs with the idempotency guidance in `SKILL.md` (dedupe by `subscription_id` or body
 hash).
 
-## Custom webhook headers
+> **The 2xx ack applies only to authenticated deliveries.** Verify the signature/token
+> _before_ acknowledging — a failed verification must still return **401**, never a `200`.
+> Only acknowledge (then queue) requests you've authenticated.
 
-Salla sends predefined headers (e.g. `user-agent`); you can also define **custom webhook
-headers** to tag events for your app:
+## Custom webhook headers — Portal UI mechanics
+
+The transport rules for custom headers (what they're for, validation, never trust them for
+auth) live in `SKILL.md` Step 3. This is just where to set them by hand:
 
 - Partner Portal → **My Apps** → your App → **Webhooks/Notifications** → **Custom Headers**
-  → **Add Custom Header**.
-- Key and value accept **letters, numbers, and dash only**.
+  → **Add Custom Header** (or via `salla_apps action=connect` `webhook_headers`, or the
+  register/update API `headers: [{ key, value }]`).
 - Edit/delete from the row's ⋯ menu.
-
-Use these for routing/identification metadata only — verify authenticity with the
-`x-salla-signature` HMAC or the security token, not a custom header.
 
 ## Local development with the Salla CLI
 
@@ -64,8 +69,13 @@ Use these for routing/identification metadata only — verify authenticity with 
   Salla delivers events) and syncs credentials into `.env`:
   `SALLA_OAUTH_CLIENT_ID`, `SALLA_OAUTH_CLIENT_SECRET`, `SALLA_OAUTH_CLIENT_REDIRECT_URI`,
   `SALLA_WEBHOOK_SECRET`, `SALLA_AUTHORIZATION_MODE` (easy|custom), `SALLA_APP_ID`.
+  > **Never commit `.env` or log these values.** The client secret and
+  > `SALLA_WEBHOOK_SECRET` are credentials — keep `.env` git-ignored and never print the
+  > webhook secret in logs or error output.
 - Portal setup to receive events: App Keys → OAuth mode; App Scope → enable **Webhooks
-  Read/Write**; Notifications/Webhooks → security strategy **Token** (default); set the
+  Read/Write**; Notifications/Webhooks → security strategy (the CLI starter scaffolds for
+  the **Token** strategy; the platform/MCP default for new webhooks is **Signature** —
+  match whichever your handler verifies); set the
   webhook URL (append your framework's route prefix, e.g. `/api/webhook`); subscribe the
   **Store Events** you need; then install on a demo store
   (see `salla-app-builder/references/demo-store-testing.md`).

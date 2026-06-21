@@ -1,13 +1,13 @@
 ---
 name: salla-app-billing
 description: >
-  Salla app monetization: plans and addons are defined inside the publish payload (no
-  pricing endpoint) and billed by Salla. Track merchant plan state from
-  app.subscription.* / app.trial.* events (one payload family — item_type distinguishes
-  plan vs addon), gate features by the merchant's combined plan + addon entitlements
-  (features[]), reconcile via salla_apps action=subscriptions, and meter
-  usage-based billing against the subscription balance. In-app addon purchase UI →
-  salla-addon-purchase; event wiring → salla-app-lifecycle.
+  Salla app monetization: plans and addons live in the publish payload (no pricing
+  endpoint), billed by Salla. Track plan state from app.subscription.* / app.trial.* events
+  (one family — item_type splits plan vs addon), gate features by combined plan + addon
+  entitlements, reconcile via salla_apps action=subscriptions, meter usage against the
+  balance. Verify event signatures first → salla-webhooks; tokens → salla-app-auth; event
+  wiring → salla-app-lifecycle; in-app addon purchase UI → salla-addon-purchase /
+  salla-addon-purchase-embedded.
 ---
 
 # Salla App Billing Flow
@@ -28,14 +28,21 @@ _performs actions_:
 | -------------- | -------------------- | ------------------------------------------------------------------ |
 | `salla_apps`   | `publish`            | Submit the app for publishing (pricing is set in the publish flow) |
 | `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`                  |
-| `salla_apps`   | `subscriptions`      | Read-only: ALL the company's app subscriptions (reconciliation)    |
+| `salla_apps`   | `subscriptions`      | Read-only: the app's subscription details (reconciliation)         |
 
-> There is **no Merchant-API endpoint** for a store's own subscription. Plan state is
-> **event-driven** (`app.subscription.*` / `app.trial.*`) and reconcilable from the
-> **Partners API** — a **company-scoped** `GET /subscriptions/apps` that returns ALL your
-> company's app subscriptions (filter by `app_id` and merchant client-side). Treat events
-> as the source of truth, the endpoint as reconciliation. Docs:
-> https://docs.salla.dev/421412m0.md (Apps API) ·
+> Plan state is **event-driven** (`app.subscription.*` / `app.trial.*`) and reconcilable +
+> read from the **Admin (Merchant) API** on `https://api.salla.dev/admin/v2` (OAuth,
+> `offline_access`). Two real endpoints back this skill:
+>
+> - **`GET /apps/{app_id}/subscriptions`** — App Subscription Details (read plan state,
+>   entitlements, `subscription_balance`).
+> - **`POST /apps/balance`** — Update Subscription Balance (adjust the Pay-As-You-Go
+>   usage balance).
+>
+> Treat events as the source of truth, the GET endpoint as reconciliation, and the POST
+> endpoint as the way to write back the usage balance. Docs:
+> https://docs.salla.dev/5401098e0.md (App Subscription Details, GET) ·
+> https://docs.salla.dev/5401099e0.md (Update Subscription Balance, POST) ·
 > https://docs.salla.dev/421413m0.md (App Events). Related: salla-app-lifecycle (event
 > wiring) · salla-addon-purchase (in-app purchase UI).
 
@@ -112,6 +119,15 @@ be set — see salla-app-lifecycle Step 1):
 
 ## Step 3 — Track Plan State from Events
 
+> **Security — events grant paid access.** These webhooks drive entitlements, so a forged
+> or replayed one can hand out (or revoke) paid features. **Verify the webhook signature
+> and enforce idempotency before mutating plan/entitlement state** — that transport layer
+> (signature verification, replay protection, fast 2xx) is owned by **salla-webhooks**;
+> token/OAuth by **salla-app-auth**. Treat entitlement changes as authoritative only from a
+> verified server event (or the reconciled Partners API, Step 5) — **never** from a
+> client-reported plan. Keep entitlement-state reads/writes behind your own authenticated
+> admin path, and keep signing secrets and tokens out of logs.
+
 Wire the events via salla-app-lifecycle. The deltas that matter here:
 
 - **Branch on `item_type`** — `"plan"` updates plan state; `"addon"` updates addon
@@ -150,42 +166,106 @@ missed events.
 
 ---
 
-## Step 5 — Reconcile via the Partners API
+## Step 5 — Reconcile via the App Subscription Details API
 
-After downtime (a missed webhook), reconcile with `salla_apps action=subscriptions` — the
-read-only subscriptions lookup (`GET /subscriptions/apps`).
+After downtime (a missed webhook), reconcile with `salla_apps action=subscriptions`, which
+calls the real **App Subscription Details** endpoint:
 
-This endpoint is **company-scoped**: it returns subscriptions across **all of your
-company's apps and all their merchants**, not a single app. Always filter the response by
-`app_id` **and** merchant ID before updating any stored state — applying another app's or
-merchant's subscription data silently corrupts plan gating.
+```
+GET https://api.salla.dev/admin/v2/apps/{app_id}/subscriptions
+Authorization: Bearer <access_token>   # OAuth, offline_access
+```
+
+`{app_id}` is your Salla Application ID (Salla Partners → My Apps → Your App). The call is
+made with the merchant's access token, so the `data[]` is **that merchant's** subscriptions
+for the app — one entry per active plan/addon. Doc:
+https://docs.salla.dev/5401098e0.md.
+
+**Response (`200`)** — `{ status, success, data: [...] }`, each item a Subscription Detail
+(this is where you read plan state, entitlements, and the usage balance):
 
 ```json
 {
-  "id": "657032372",
-  "merchant": 1234509876,
-  "item_type": "plan",
-  "plan_type": "recurring",
-  "plan_name": "Yearly",
-  "price": 20,
-  "start_date": "2022-05-23",
-  "end_date": "2023-05-23",
-  "quantity": 1
+  "status": 200,
+  "success": true,
+  "data": [
+    {
+      "id": "657032372",
+      "app_name": "BitoShip",
+      "description": "BitoShip Description",
+      "app_type": "app",
+      "categories": ["Others"],
+      "item_type": "plan",
+      "item_slug": null,
+      "plan_type": "recurring",
+      "plan_name": "Yearly",
+      "plan_period": "12",
+      "start_date": "2022-05-23",
+      "end_date": "2023-05-23",
+      "initialization_cost": 15,
+      "price_before_discount": 6,
+      "price": 20,
+      "tax": 3,
+      "tax_value": 3,
+      "total": 23,
+      "subscription_balance": 50,
+      "coupon": null,
+      "features": [{ "key": "Feature1", "quantity": 1 }],
+      "quantity": 1
+    }
+  ]
 }
 ```
 
-| Field                               | Notes                                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `merchant`                          | **Filter on this** (plus `app_id`) before updating stored state                                   |
-| `item_type`                         | `"plan"` \| `"addon"` — filter to `plan` for plan state                                           |
-| `plan_type`                         | `free` \| `once` \| `recurring` \| `on_demand` (same values in the publish payload and in events) |
-| `plan_name`                         | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)              |
-| `price` / `start_date` / `end_date` | nullable                                                                                          |
-| `quantity`                          | seats/units                                                                                       |
+| Field                                                  | Notes                                                                                                                 |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `id`                                                   | Subscription identifier (string)                                                                                      |
+| `item_type`                                            | `"plan"` \| `"addon"` — filter to `plan` for plan state (required field)                                              |
+| `item_slug`                                            | `null` for plans; addon identifier for addons                                                                         |
+| `plan_type`                                            | `free` \| `once` \| `recurring` \| `on_demand` (same values in the publish payload and in events)                     |
+| `plan_name`                                            | free string, e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)                     |
+| `plan_period`                                          | plan period in months as a string, e.g. `"12"`; nullable                                                              |
+| `start_date` / `end_date`                              | dates; nullable (e.g. null on Free/one-time)                                                                          |
+| `initialization_cost`                                  | one-time setup fee; nullable                                                                                          |
+| `price_before_discount` / `price`                      | amounts; nullable (null on Trial samples)                                                                             |
+| `tax` / `tax_value` / `total`                          | tax %, tax amount, total (tax included); nullable                                                                     |
+| `subscription_balance`                                 | **usage balance** the merchant owes for the app's service; number, nullable (null on Free/Trial). Written via Step 5b |
+| `coupon`                                               | applied coupon `{ name, amount }`, or `null`                                                                          |
+| `features[]`                                           | `{ key, quantity }` — entitlements granted (may be empty `[]`)                                                        |
+| `quantity`                                             | seats/units purchased (required field)                                                                                |
+| `app_name` / `description` / `app_type` / `categories` | app metadata echoed back (`app_type`: `app` \| `shipping`)                                                            |
 
-Use this to reconcile — not as your hot path.
+A `403` (`{ status: 403, success: false, error: { code, message } }`) means the caller
+lacks permission for this app. Use this to reconcile — not as your hot path.
 
-**Gate:** "Reconciliation returns the merchant's current plan and matches your stored state?"
+**Gate:** "Reconciliation returns the merchant's current plan + balance and matches your stored state?"
+
+---
+
+## Step 5b — Update the Usage Balance (Pay As You Go)
+
+For `on_demand` (Pay As You Go) plans, write the merchant's usage balance back to Salla
+with the real **Update Subscription Balance** endpoint:
+
+```
+POST https://api.salla.dev/admin/v2/apps/balance
+Authorization: Bearer <access_token>   # OAuth, offline_access
+Content-Type: application/json
+
+{ "balance": 2399 }
+```
+
+`balance` (integer) is **required**. Doc: https://docs.salla.dev/5401099e0.md.
+
+**Response (`201`)** — `{ status, success, data: { message, code } }`.
+**Validation error (`422`)** — `{ status: 422, success: false, error: { code, message, fields: { balance: ["..."] } } }`.
+
+> **Security — never trust a client-reported balance or plan.** Compute the balance
+> server-side from verified usage and only `POST` it behind your own authenticated admin
+> path. Read it back with `GET /apps/{app_id}/subscriptions` (Step 5) to confirm. Verify
+> webhook signatures before mutating entitlements (Step 3).
+
+**Gate:** "Balance written via `POST /apps/balance` and confirmed by re-reading the subscription?"
 
 ---
 
@@ -206,10 +286,13 @@ stored entitlement set, never the raw event).
 
 ## Usage Balance (Pay As You Go)
 
-For `on_demand` plans, meter each billable action against the merchant's **subscription
-balance**: check the remaining balance before performing the action, decrement as usage
-occurs, and block (or warn) when exhausted. Reconcile balances and subscription state via
-`salla_apps action=subscriptions` (Step 5).
+For `on_demand` plans, meter each billable action against the merchant's
+**`subscription_balance`** (the amount the merchant owes for the app's service): check the
+remaining balance before performing the action, decrement as usage occurs, and block (or
+warn) when exhausted. **Read** the current balance with
+`GET /apps/{app_id}/subscriptions` (Step 5) and **write** the new balance with
+`POST /apps/balance` (Step 5b) — those are the two real endpoints; never trust a
+client-reported balance.
 
 ---
 
@@ -238,11 +321,13 @@ addon features merged into one set). Full payloads:
 
 ## Key Resources
 
-| Resource           | URL                                 |
-| ------------------ | ----------------------------------- |
-| Apps API           | https://docs.salla.dev/421412m0.md  |
-| App Events         | https://docs.salla.dev/421413m0.md  |
-| Lifecycle wiring   | salla-app-lifecycle skill           |
-| Feature gating     | this skill — see Entitlement Gating |
-| Partners Portal    | https://salla.partners              |
-| Telegram community | https://t.me/salladev               |
+| Resource                           | URL                                 |
+| ---------------------------------- | ----------------------------------- |
+| App Subscription Details (GET)     | https://docs.salla.dev/5401098e0.md |
+| Update Subscription Balance (POST) | https://docs.salla.dev/5401099e0.md |
+| Apps API                           | https://docs.salla.dev/421412m0.md  |
+| App Events                         | https://docs.salla.dev/421413m0.md  |
+| Lifecycle wiring                   | salla-app-lifecycle skill           |
+| Feature gating                     | this skill — see Entitlement Gating |
+| Partners Portal                    | https://salla.partners              |
+| Telegram community                 | https://t.me/salladev               |

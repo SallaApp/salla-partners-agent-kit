@@ -4,10 +4,16 @@ Device Mode captures e-commerce events directly in the browser via the **Twiligh
 your `tracker.js` script embedded in the storefront.
 
 > **The events below are `::`-namespaced** (`cart::item.added`), NOT dotted names like
-> `cart.add`. They are cross-referenced with the **Twilight JS SDK Events** doc (Resources —
-> must read). Never invent an event, DOM selector, or payload path — confirm against that doc
-> and a real demo store (`salla_apps action=demo_stores`; log `salla.event` / `emittedEvents`)
-> before relying on it.
+> `cart.add`. The **Twilight JS SDK** is the source of truth (Overview —
+> https://docs.salla.dev/422610m0.md, Resources — must read). Never invent an event, DOM
+> selector, or payload path — confirm against the SDK docs and a real demo store
+> (`salla_apps action=demo_stores`; log `salla.event` / `emittedEvents`) before relying on
+> it.
+>
+> **Events here, methods elsewhere:** this file covers the `::` event catalogue and
+> payloads. The SDK **methods** an app snippet can call (`salla.cart.addItem`,
+> `salla.auth.login`, `salla.api.component.getReviews`, …) and the theme-vs-snippet
+> boundary live in [`twilight-js-sdk.md`](twilight-js-sdk.md).
 
 ---
 
@@ -24,6 +30,9 @@ active.
 > **Deploy guard:** never ship a literal `https://YOUR_APP_URL` / placeholder. Templatize it
 > at build/deploy and fail the build if the placeholder survives — a shipped placeholder
 > silently breaks every event POST.
+>
+> **No secrets in `tracker.js`:** it is served to every shopper — keep it free of app
+> secrets, tokens, and keys (full trust-boundary note under _Sending data to your backend_).
 
 ---
 
@@ -53,11 +62,11 @@ Subscribe/unsubscribe: `salla.event.on(name, cb)` / `salla.event.off(name, cb)`.
 
 ## Event Catalogue
 
-Twilight events are `::`-namespaced. **The single source of truth is the Twilight JS SDK
-Events doc — https://docs.salla.dev/422611m0.md (the complete, authoritative list). Use ONLY
-events it lists; anything not below must be checked there.** The names below are confirmed
-examples (a subset). `cart.add`, `product.view`, `order.success`, and `checkout.complete` do
-NOT exist — do not use them.
+Twilight events are `::`-namespaced. **The Twilight JS SDK is the source of truth — Overview:
+https://docs.salla.dev/422610m0.md; the per-event listing is the Twilight JS SDK Events
+reference: https://docs.salla.dev/422611m0.md. Use ONLY events the SDK documents; anything not
+below must be checked there.** The names below are confirmed examples (a subset). `cart.add`,
+`product.view`, `order.success`, and `checkout.complete` do NOT exist — do not use them.
 
 ### Cart
 
@@ -183,6 +192,7 @@ from the Twilight SDK's documented product events and the product web components
 > **Must read before implementing — these are the authoritative sources; do not infer event
 > names, payload paths, or component props:**
 >
+> - Twilight JS SDK Overview (source of truth) — https://docs.salla.dev/422610m0.md
 > - Twilight JS SDK Events — https://docs.salla.dev/422611m0.md
 > - Themes Single Product Page — https://docs.salla.dev/422561m0.md
 > - Twilight JS Web Components — https://docs.salla.dev/422688m0.md
@@ -244,6 +254,18 @@ salla.event.on("cart::item.added", async (e) => {
 > **Same deploy guard as the snippet URL:** `https://your-app.com/track` is a placeholder —
 > templatize it and fail the build if it survives, or every event POST silently goes nowhere.
 
+> **Trust boundary (snippet code runs in the shopper's untrusted browser):**
+>
+> - **Never embed secrets in snippet/tracker.js** — no app secret, OAuth/merchant access
+>   token, API key, or signing secret. Anything in storefront JS is fully public. Token and
+>   OAuth handling belong on your server → **salla-app-auth**.
+> - **Treat every POST as untrusted.** A shopper can forge, replay, or tamper with the body
+>   (`store_id`, `product_id`, prices). Re-validate server-side; never trust client-supplied
+>   prices/totals — re-derive them from the Admin API.
+> - **Authenticate and validate the tracking endpoint** — don't accept anonymous writes.
+>   Verify the request (e.g. origin/session check) and validate the payload schema before
+>   acting; rate-limit it.
+
 ---
 
 ## UI compliance (storefront)
@@ -272,6 +294,7 @@ When debugging on a live store, these appear in every console — don't chase th
 | Topic                              | Link                                |
 | ---------------------------------- | ----------------------------------- |
 | Device Mode Usage Guide            | https://docs.salla.dev/1724504m0.md |
+| Twilight JS SDK Overview (source)  | https://docs.salla.dev/422610m0.md  |
 | Twilight JS SDK Events (must read) | https://docs.salla.dev/422611m0.md  |
 | Themes Single Product Page         | https://docs.salla.dev/422561m0.md  |
 | Twilight JS Web Components         | https://docs.salla.dev/422688m0.md  |

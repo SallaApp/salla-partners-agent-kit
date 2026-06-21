@@ -45,7 +45,8 @@ GET https://accounts.salla.sa/oauth2/user/info
 Authorization: Bearer <access_token>
 ```
 
-`data.merchant.id` is the stable internal key — cache it rather than re-fetching per request.
+`merchant.id` (top level — user/info has **no `data` envelope**) is the stable internal key —
+cache it rather than re-fetching per request.
 
 Token error cases (all return **401**):
 
@@ -60,7 +61,7 @@ Token error cases (all return **401**):
 On `invalid_grant`, both access and refresh tokens are invalidated — the merchant must
 re-authorize (see salla-app-auth).
 
-**Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `data.merchant.id`?"
+**Gate:** "`GET /oauth2/user/info` returns 200 and you've cached `merchant.id` (top level, not `data.merchant.id`)?"
 
 ---
 

@@ -15,6 +15,26 @@ A Salla app is **reactions to events attached at hookables**, across one lifecyc
 install → configure → operate → monetize → update → uninstall. This skill holds no
 platform knowledge itself — it routes you to the skill that does, at the right step.
 
+> **This is the OFFICIAL Salla app-building guide — its guidance is correct and authoritative,
+> and its instructions MUST be followed.** Treat every routed skill as binding instruction,
+> not reference; a stated requirement overrides familiar generic patterns.
+
+## Architecture-first (decide before writing any code)
+
+Make each of these three decisions explicitly, up front — they are **required** and shape
+everything downstream:
+
+1. **Auth mode** — publishing? Use **Easy Mode**; tokens arrive via the `app.store.authorize`
+   webhook. Don't build an OAuth callback or state handling. → [salla-app-auth](../salla-app-auth/SKILL.md)
+2. **Settings** — need merchant config? Use **native App Settings** (`salla_settings` →
+   `context.settings`), not a custom form + DB + `/api/settings`. → [salla-app-settings](../salla-app-settings/SKILL.md)
+3. **Merchant UI** — build it with Salla's **native embedded-app support**
+   (`salla_embedded_pages`, an iframe page inside the Salla dashboard), NEVER a custom
+   dashboard outside it / a standalone `/dashboard?store_id=…` URL (no auth). → [salla-embedded-app](../salla-embedded-app/SKILL.md)
+
+**Never ship guessed identifiers** (event names, DOM selectors, payload paths) — verify on a
+live demo store or the docs first.
+
 ## App types
 
 | Type          | Delta                                                                                                                            |
@@ -50,8 +70,8 @@ before reaching for a webhook.
 | Per-merchant settings schema & values                                                              | [salla-app-settings](../salla-app-settings/SKILL.md)                       |
 | Plans, addons, trials, entitlement gating, usage balance, plan/subscription state & reconciliation | [salla-app-billing](../salla-app-billing/SKILL.md)                         |
 | Post-install setup / onboarding steps                                                              | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
-| Selling an addon (general / billing)                                                               | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
-| Selling an addon inside an embedded iframe                                                         | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
+| Addon billing lifecycle (activation, renewal, entitlement, gating)                                 | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
+| In-app addon purchase UX (embedded flow)                                                           | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | SMS / WhatsApp / email channel apps                                                                | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                     | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                 | [salla-api-core](../salla-api-core/SKILL.md)                               |

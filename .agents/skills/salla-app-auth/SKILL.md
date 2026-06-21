@@ -326,9 +326,11 @@ has no `data` envelope (unlike webhooks/API responses). Extract defensively:
 
 ```typescript
 // ✅ user/info shape: { id, name, email, merchant: { id, ... } }
-const storeId = String(info?.merchant?.id ?? "");
-if (!storeId) throw new Error("user/info: missing merchant.id");
-// ❌ info.data.merchant.id → undefined → the string "undefined" → DB/upsert errors
+const merchantId = info?.merchant?.id; // number, top level — NOT info.data.merchant.id
+if (!merchantId) throw new Error("user/info: missing merchant.id"); // guard BEFORE stringify
+const storeId = String(merchantId);
+// ❌ String(info?.merchant?.id ?? "") — turns a missing id into "" / a 0 id into "0", both
+//    truthy after String(), so the guard silently passes and a bad value reaches the DB
 ```
 
 **Gate:** "Merchant id + store details are stored alongside the tokens?"

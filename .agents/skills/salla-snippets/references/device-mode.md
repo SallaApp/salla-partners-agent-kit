@@ -241,6 +241,9 @@ salla.event.on("cart::item.added", async (e) => {
 });
 ```
 
+> **Same deploy guard as the snippet URL:** `https://your-app.com/track` is a placeholder —
+> templatize it and fail the build if it survives, or every event POST silently goes nowhere.
+
 ---
 
 ## UI compliance (storefront)

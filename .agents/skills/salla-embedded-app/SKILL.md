@@ -79,11 +79,29 @@ verify the change. Use `update` / `delete` to change or remove a page.
 
 **Manual fallback:** Portal → **App Details → Embedded Pages → Add page**.
 
-> Add the **Embedded App Banner** (`1420×520 px`) in your App Card before publishing
-> (My Apps → App → App Details → Start publishing → App Features → Embedded App Banner).
-
 **Gate:** "`salla_embedded_pages action=list` returns the page — can you see it in the
 merchant dashboard sidebar?"
+
+### Embedded app images (set at publish)
+
+An embeddable app carries two App-Store images, both written through the publication, not the
+SDK. Set them while publishing (Step 6 → **salla-publication-consistency**):
+
+| Image                                      | Where set                                             | Dimensions / limit                                                              | Shows                                          |
+| ------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Embedded App Banner** (`embedded_image`) | `app_publish` features section                        | min 710×260 px (recommended 1420×520), max 512 KB                               | the app's embedded/iframe presentation         |
+| **Salla promotional image**                | `app_publish` features section (promotional/featured) | confirm dimensions via `app_publish` readiness / `salla-docs` before generating | Salla's promotional / featured (build) section |
+
+The Salla promotional image is a **second** image (in addition to the Embedded App Banner) used
+in Salla's promotional/featured section — supply it whenever the app is featured there.
+
+**Image-generation enrichment** applies to both: when either is missing (or it's the first
+publication) and an image-generation tool is available → confirm the dimensions above, generate,
+`salla_upload`, then set via `app_publish` features section; otherwise ask the merchant for a real
+asset. Don't duplicate the steps — the canonical recipe (and every other listing image field)
+lives in
+[salla-app-ui-builder](../salla-app-ui-builder/SKILL.md#generating-missing-listing-images-canonical-recipe).
+Manual fallback: My Apps → App → App Details → Start publishing → App Features.
 
 ---
 

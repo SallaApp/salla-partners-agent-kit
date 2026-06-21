@@ -46,15 +46,16 @@ What `action=list` / `action=catalog` / `action=show` return for a block.
 
 Editing block elements writes these **shared listing fields** into the draft publication. They are the fields this tool owns:
 
-| Field         | Typical element / block | Value shape (confirm via `show`)         |
-| ------------- | ----------------------- | ---------------------------------------- |
-| `name`        | App Information         | lingual `{ ar, en }`                     |
-| `description` | App Information         | lingual richtext `{ ar, en }`            |
-| `logo`        | App Information         | image `[{ id, url }]` (upload first)     |
-| `screenshots` | App Information         | image `[{ id, url }, …]` (multiple)      |
-| `benefits`    | App Features            | collection (array of prefixed-key items) |
+| Field         | Typical element / block | Value shape (confirm via `show`)         | Dimensions / required                           |
+| ------------- | ----------------------- | ---------------------------------------- | ----------------------------------------------- |
+| `name`        | App Information         | lingual `{ ar, en }`                     | required                                        |
+| `description` | App Information         | lingual richtext `{ ar, en }`            | —                                               |
+| `logo`        | App Information         | image `[{ id, url }]` (upload first)     | 1:1, ≥ 250×250 px (JPG/JPEG/PNG); required      |
+| `screenshots` | App Information         | image `[{ id, url }, …]` (multiple)      | 263×350 px each; required, **≥ 3**              |
+| `benefits`    | App Features            | collection (array of prefixed-key items) | benefit image per `benefits.image`; **3** items |
 
 > `short_description` belongs to the publication `basic_information` section, not here → salla-publication-consistency.
+> `banner` / `embedded_image` are publication media (not builder fields) → salla-publication-consistency. The image-generation recipe for ALL these fields lives in [SKILL.md](../SKILL.md#generating-missing-listing-images-canonical-recipe).
 
 ---
 

@@ -45,11 +45,16 @@ Pass `section` plus only the fields you're setting:
 1. **`basic_information`** — `short_description{ar,en}` (50–200 chars), `main_category_id`,
    `categories[]` (sub-categories of the main category), `video_url`, `demo_url`,
    `search_terms[]`, `supported_countries[]`.
-2. **`features`** — `banner`, `embedded_image`. Author its `screenshots` and `benefits` via
-   `app_page_builder` (**salla-app-ui-builder**); `features` readiness completes once that
-   builder content is set. If the merchant lacks a `banner`/`embedded_image` (or it's the
-   first publication) and an image-generation tool is available, generate them, `salla_upload`,
-   and set them via this section — image-generation recipe → **salla-app-ui-builder**.
+2. **`features`** — `banner` (image file; no enforced dimensions), `embedded_image` (the
+   Embedded App Banner — min **710×260 px**, recommended 1420×520, **max 512 KB**; accepted
+   only when the app has an iframe page → **salla-embedded-app**). Author its `screenshots`
+   (≥ 3) and `benefits` (3, with images) via `app_page_builder` (**salla-app-ui-builder**);
+   `features` readiness completes once that builder content is set. If the merchant lacks a
+   `banner`/`embedded_image` (or it's the first publication) and an image-generation tool is
+   available, generate them at the dimensions above, `salla_upload`, and set them via this
+   section — full canonical image-generation recipe → **salla-app-ui-builder**. Embedded apps
+   also carry a **second Salla-promotional image** for the featured/build section →
+   **salla-embedded-app** owns both embedded images and their dimensions.
 3. **`pricing`** — `plan_type`, `plan_trial`, `one_time_price`, `plans[]`, `plan_features[]`,
    `addons[]`, `unsubscribe_reward`, `unsubscribe_email_reward`. Plan/addon modelling detail
    → **salla-app-billing**.

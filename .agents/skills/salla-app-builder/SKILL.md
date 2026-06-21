@@ -77,7 +77,8 @@ Use the answers to tailor Steps 1, 4–7.
    that **before** uploading. The result returns only `{id, url}` (no dimensions are
    echoed), so use the returned `id`. If there's no logo at creation and an
    image-generation tool is available, generate one (**1:1, ≥ 250×250**) and upload it —
-   full recipe → **salla-app-ui-builder**.
+   full canonical recipe (and every other listing/publication image field + its dimensions)
+   → [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md#generating-missing-listing-images-canonical-recipe).
 3. **Create the app.** The basic info Salla requires at create is **icon, name, category,
    description, app website, and support email**
    ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)); via the MCP these

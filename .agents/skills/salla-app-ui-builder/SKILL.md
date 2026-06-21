@@ -49,19 +49,36 @@ Image elements (`logo`, `screenshots`) reference an uploaded media id:
 
 Keep an existing image by leaving its stored `{ id, url }` in place when you `set`.
 
-## Generating missing listing images
+## Generating missing listing images (canonical recipe)
 
-When the merchant has no logo, screenshots, or benefit images — or you're assembling the
-**first** publication — **and an image-generation tool is available to you**, generate
-images that fit the app's purpose and brand, then upload and set them:
+This is the shared recipe every listing/publication image field points to. It covers **all**
+the App-Store image fields across the builder, the publication, and the embedded app:
 
-1. **Confirm the required dimensions/aspect first** from the builder catalog/field spec
-   (`action=catalog` / `action=show`, and [blocks-and-fields.md](references/blocks-and-fields.md))
-   — e.g. logo **1:1, ≥ 250×250**; screenshots/banner at the listing's required size — so
-   the upload isn't rejected.
+| Image field      | Set via                            | Required?               | Dimensions / limit                                  |
+| ---------------- | ---------------------------------- | ----------------------- | --------------------------------------------------- |
+| `logo` (icon)    | `app_page_builder` App Information | Required                | 1:1, ≥ 250×250 px; JPG/JPEG/PNG                     |
+| `screenshots`    | `app_page_builder` App Information | Required, **≥ 3**       | 263×350 px each; multiple                           |
+| benefit images   | `app_page_builder` App Features    | Required, **exactly 3** | per the `benefits.image` field (confirm via `show`) |
+| `banner`         | `app_publish` features section     | Optional                | image file (no enforced dimensions)                 |
+| `embedded_image` | `app_publish` features section     | Embedded apps only      | min 710×260 px (recommended 1420×520), max 512 KB   |
+
+> `banner` and `embedded_image` are **publication** fields, not builder fields — set them via
+> `app_publish` (**salla-publication-consistency**); `embedded_image` is the Embedded App
+> Banner and applies only when the app has an iframe page (**salla-embedded-app**, which also
+> owns the second Salla-promotional image). `logo` is also set at app creation
+> (**salla-app-builder** Step 1).
+
+When any of these is missing — or you're assembling the **first** publication — **and an
+image-generation tool is available to you**, generate an image that fits the app's purpose and
+brand, then upload and set it:
+
+1. **Confirm the required dimensions/aspect first** for that field from the table above (and
+   `action=catalog` / `action=show` / [blocks-and-fields.md](references/blocks-and-fields.md)
+   for builder fields) — so the upload isn't rejected.
 2. **Generate** the image at that size to match the app.
 3. **Upload** it with `salla_upload` → returns the image `id`.
-4. **Set** it via `app_page_builder` (`logo`, `screenshots`, or `benefits`).
+4. **Set** it via the field's tool: builder fields (`logo`, `screenshots`, benefit images) via
+   `app_page_builder`; `banner` / `embedded_image` via `app_publish` features section.
 
 If **no image-generation tool is available**, ask the merchant to supply the assets — use
 real assets, not throwaway placeholders.

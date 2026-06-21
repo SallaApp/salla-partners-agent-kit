@@ -41,14 +41,11 @@ But snippets are NOT themes — some SDK affordances are theme-development const
   interpolation do **not** run. They ship verbatim to the browser as literal text, breaking
   the script. There is no server-side render pass. Get dynamic values at **runtime** from the
   SDK instead: `salla.config.get(...)`, event payloads, `salla.lang.get(...)`.
-- **A snippet is a pure-JS CDN file (going-forward) vs the legacy inline branch.** Your JS is
-  stored verbatim and served from a CDN as a real `.js` file via `<script src>`, so write
-  pure JS — no `<script>` wrapper, no HTML. You write plain JS and Salla serves and runs it
-  for you — nothing to wrap or scope yourself; just use `salla` directly. Only on the legacy
-  inline path (store not on `live-js`, or snippet not yet migrated) is `content` injected as
-  HTML, where raw JS needs a `<script>…</script>` wrapper or it silently does nothing. Check
-  `salla_snippets action=list`: a `url` means CDN/pure-JS, inline `content` means legacy.
-  Snippets render **before `</body>`** (`place: "before"`, `tag: "body"`). See device-mode.md.
+- **A snippet is a pure-JS CDN file.** Your JS is stored verbatim and served from a CDN as a
+  real `.js` file via `<script src>`, so write the body as plain JavaScript — no `<script>`
+  wrapper, no HTML. You write plain JS and Salla serves and runs it for you — nothing to wrap
+  or scope yourself; just use `salla` directly. Snippets render **before `</body>`**
+  (`place: "before"`, `tag: "body"`). See device-mode.md.
 
 **Availability key per method below:**
 

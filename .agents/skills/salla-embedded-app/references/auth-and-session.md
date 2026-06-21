@@ -153,24 +153,14 @@ app.post("/api/auth/session", async (req, res) => {
 
   const payload = await introspect.json();
 
-  // Log the OUTCOME for diagnosability — status + success + identity only.
-  // NEVER log the token itself (it is a credential) or any secret.
-  console.info("[salla-introspect]", {
-    httpStatus: introspect.status,
-    success: payload?.success,
-    merchantId: payload?.data?.merchant_id,
-    userId: payload?.data?.user_id,
-    error: payload?.error?.message, // present on failure
-  });
-
   if (!introspect.ok || !payload.success) {
     return res.status(401).json({ ok: false });
   }
 
-  // Claims are nested under `data` — NOT top-level.
+  // Claims are nested under `data` — read them from `payload.data`, not the top level.
   const { merchant_id, user_id, exp } = payload.data;
 
-  // `exp` is an ISO-8601 STRING — parse as a date; do NOT multiply by 1000.
+  // `data.exp` is an ISO-8601 datetime STRING — parse it as a date with new Date(exp).
   const expiresAt = new Date(exp); // e.g. "2026-01-19T12:00:00Z" → Date
 
   // Mint YOUR session (short-lived Salla token is now done its job).

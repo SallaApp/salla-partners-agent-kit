@@ -19,10 +19,10 @@ your `tracker.js` script embedded in the storefront.
 
 ## A snippet is a pure-JS CDN file
 
-Author plain, valid JavaScript and send it as `content` via `salla_snippets`. On save Salla
-stores it verbatim and serves it from a CDN as a real `.js` file, loaded into every
-storefront page via `<script src>` (cacheable / edge-cached). So write clean JS — **no
-`<script>` wrapper, no HTML, no Twig, and no `{}` interpolation of any kind**.
+A snippet is a **pure-JavaScript file served from the CDN.** Write the body as plain
+JavaScript — **no `<script>` tags, no HTML, no Twig.** Send it as `content` via
+`salla_snippets`; on save Salla stores it verbatim and serves it from a CDN as a real `.js`
+file, loaded into every storefront page via `<script src>` (cacheable / edge-cached).
 
 ```js
 (function () {
@@ -37,24 +37,12 @@ storefront page via `<script src>` (cacheable / edge-cached). So write clean JS 
 > `salla.config.get(...)` directly.
 >
 > **If you need an external script** (e.g. a third-party tracker), load it from your JS at
-> runtime (`document.createElement('script')` / dynamic `import`), not as an HTML `<script>`
-> tag. (The HTML→JS auto-converter `SnippetToPureJSAction` and the `app:snippets-to-pure-js`
-> command are deprecated — write clean JS yourself, don't rely on auto-conversion.)
+> runtime (`document.createElement('script')` / dynamic `import`).
 >
-> **Legacy inline branch (store NOT on `live-js`, or snippet not yet migrated).** There the
-> `content` is dropped into the page as **inline HTML**, not run as a script — inline JS with
-> **no** `<script>…</script>` wrapper renders as inert text and **silently does nothing** (no
-> error). For a legacy store, wrap the body (and any external loader) in `<script>` tags.
->
-> **Tell the branches apart with `salla_snippets action=list`:** a returned **`url`** =
-> CDN / `live-js` (pure JS, served as a `.js` file, no inline content); inline **`content`** =
-> legacy (needs `<script>` wrapping). `live-js` rolls out per store (a snippet migrates on
-> its next save once the flag is on), so confirm the store's mode rather than assuming.
->
-> **No Twig / no `{}` in snippet JS (both branches).** A snippet is browser JS, not a theme
-> template — `{{ … }}` / `{% … %}` and any `{}` interpolation do not run; they ship as
-> literal text and break the script. Pull dynamic values at runtime from the SDK
-> (`salla.config.get(...)`, events) — see _Store context & language_ below.
+> **No Twig / no `{}` in snippet JS.** A snippet is browser JS, not a theme template —
+> `{{ … }}` / `{% … %}` and any `{}` interpolation do not run; they ship as literal text and
+> break the script. Pull dynamic values at runtime from the SDK (`salla.config.get(...)`,
+> events) — see _Store context & language_ below.
 >
 > **Deploy guard:** never ship a literal `https://YOUR_APP_URL` / placeholder. Templatize it
 > at build/deploy and fail the build if the placeholder survives — a shipped placeholder

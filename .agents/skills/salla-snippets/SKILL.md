@@ -68,61 +68,59 @@ If still unclear, ask: _"Should this run in the browser or on your server?"_
 The snippet body runs in the storefront browser via the Twilight SDK. Write the listener,
 then **inject it as a storefront snippet** with the tool:
 
-1. Write the snippet body — listen with the Twilight SDK and process the payload.
-   **A snippet is a pure-JS file served from the CDN.** Author plain, valid JavaScript —
-   **no `<script>` tags, no HTML, and no `{}` / Twig interpolation of any kind** (it must
-   be valid JS that runs as a `.js` file):
+1. Write the snippet body. **A snippet is a pure-JavaScript file served from the CDN.**
+   Write the body as plain JavaScript — **no `<script>` tags, no HTML, no Twig** (`{{ … }}` /
+   `{% … %}` and any `{}` interpolation never run; pull every dynamic value at runtime from
+   `salla.config.get(...)` / events). Salla stores your JS verbatim and serves it from a CDN
+   as a real `.js` file, loaded into every storefront page via `<script src>`. Use `salla`,
+   `salla.onReady`, `salla.event`, and `salla.config.get(...)` directly — there is nothing to
+   wrap or scope yourself.
+
+   A snippet does two distinct, common jobs — **listen to storefront events** and **read the
+   app's settings**. They are separate things; keep them separate.
+
+   **Listen to storefront events** with the Twilight SDK. Events are `::`-namespaced and the
+   payload arrives in `e.data`:
 
    ```js
-   (function () {
-     salla.onReady(function () {
-       var rewardsOn = salla.config.get("app.rewards_enabled"); // your app's settings (app.*)
-       var pointValue = salla.config.get("app.point_value_halalah");
-       var customerEmail = salla.config.get("customer.email"); // store/session config
-       // build your storefront UI here
-     });
-   })();
+   // Register event listeners at module top level (init-time events fire before onReady).
+   salla.event.on("cart::item.added", (e) => {
+     // payload is in e.data
+     var productId = e.data.product_id;
+     // your handler here
+   });
    ```
 
-   > **You just write plain JS — Salla serves and runs it for you.** There is nothing to wrap
-   > or scope yourself; author plain, valid JavaScript and Salla stores it verbatim and serves
-   > it from a CDN as a real `.js` file. Use `salla`, `salla.onReady`, `salla.config.get(...)`
-   > directly.
+   Full event catalogue and payload shapes →
+   [`references/device-mode.md`](references/device-mode.md).
+
+   **Read the app's settings** with `salla.config.get("app.<key>")` — the one and only way to
+   read a merchant's App Settings from a storefront snippet. Read defensively (gate on
+   `salla.onReady`, null-check, use a fallback for load-bearing values):
+
+   ```js
+   salla.onReady(function () {
+     var rewardsOn = salla.config.get("app.rewards_enabled") || false;
+     var pointValue = salla.config.get("app.point_value_halalah") || 0;
+     // build your storefront UI here
+   });
+   ```
+
+   > **App events are separate from app settings.** Events tell you what the shopper is doing
+   > (`salla.event.on`); settings tell you how the merchant configured the app
+   > (`salla.config.get("app.*")`). Don't conflate them.
    >
-   > **No `<script>`, no HTML, no Twig, no `{}`.** The file is loaded as a real `.js` via
-   > `<script src>` — a `<script>` wrapper or stray HTML is a syntax error, and Twig
-   > (`{{ … }}` / `{% … %}`) or any `{}` interpolation never runs (there is no server-side
-   > render pass) — it ships as literal text and breaks the script. Get every dynamic value
-   > at **runtime** from `salla.config.get(...)` / events instead (see below).
+   > **Only `public: true` settings are accessible in a storefront snippet** — private
+   > settings (`public: false`) stay server-side and never appear in the snippet. Define the
+   > keys (and which are `public`) in [salla-app-settings](../salla-app-settings/SKILL.md).
    >
-   > **Settings bridge — read app settings ONLY with `salla.config.get("app.<key>")`.** This
-   > is the one and only way to read a merchant's App Settings in a storefront snippet — e.g.
-   > `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`.
-   > **Hard rule:** only settings marked **`public: true`** are accessible in a storefront
-   > snippet; **private settings (`public: false`) are NOT accessible on the storefront** —
-   > they stay server-side and never appear in the snippet. This is how a merchant's **App
-   > Settings** drive the storefront — define the keys (and which are `public`) in
-   > [salla-app-settings](../salla-app-settings/SKILL.md).
-   >
-   > **Store / session config:** `salla.config.get("user.id")`,
-   > `salla.config.get("store.username")`, `salla.config.get("customer.email")`, or whole
-   > objects via `salla.config.get('user')` / `salla.config.get('store')`. Read defensively —
-   > null-check every read and use a fallback chain for load-bearing values (see
+   > **Store / session config** uses the same `salla.config.get`:
+   > `salla.config.get("user.id")`, `salla.config.get("store.username")`,
+   > `salla.config.get("customer.email")`, or whole objects via `salla.config.get('user')` /
+   > `salla.config.get('store')`. Read defensively too — null-check every read and use a
+   > fallback chain for load-bearing values (see
    > [`twilight-js-sdk.md`](references/twilight-js-sdk.md) and the _Store context_ note in
    > [`device-mode.md`](references/device-mode.md)).
-   >
-   > **Legacy inline branch (store NOT on `live-js`, or the snippet hasn't migrated yet).**
-   > There the `content` is injected as **inline HTML**, not run as a script, so a body that
-   > is just JavaScript with no `<script>` tag renders as inert text and **silently does
-   > nothing** — no error, no execution. For a legacy store, wrap the body in
-   > `<script>…</script>`. Tell the branches apart with `salla_snippets action=list`: a
-   > returned **`url`** = CDN / `live-js` (pure JS, served as a file, no inline `content`); a
-   > returned inline **`content`** = legacy. `live-js` rolls out **per store** (a snippet
-   > migrates to the CDN on its **next save** once the flag is on), so **confirm the store's
-   > mode rather than assuming**. Either way you send the same JS as `content` on
-   > `create`/`update`; only `list` differs. (The old HTML→JS auto-converter
-   > `SnippetToPureJSAction` / `app:snippets-to-pure-js` command are deprecated — write clean
-   > JS yourself.)
 
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.
@@ -131,11 +129,10 @@ then **inject it as a storefront snippet** with the tool:
    `</body>`**), `content` (your pure JS). **Dedup first:** call `salla_snippets action=list` and
    `update`/`delete` any existing snippet for this app before creating — stacked duplicates
    double-render the UI and double-fire events. Read back with `salla_snippets action=list` /
-   `get`: on `live-js` it returns the snippet **metadata** with a **`url`** (the CDN `.js`
-   file) and `path` and **no inline content**; inline **`content`** means the legacy path.
-   `update` revalidates the **full** snippet — resend `name`, `place`, `tag`, and `content`
-   together (it is not a partial patch). `action=update` returns `{"snippet":{}}` (empty
-   object) on success — call `action=list` to verify the change.
+   `get`: it returns the snippet **metadata** with the CDN **`url`** (the `.js` file) and
+   `path`. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`, and
+   `content` together (it is not a partial patch). `action=update` returns `{"snippet":{}}`
+   (empty object) on success — call `action=list` to verify the change.
 
    > **MCP-only — no direct Partner API.** Snippets are managed exclusively through the
    > Salla Partners MCP `salla_snippets` tool; there is no hand-written Partner API call

@@ -112,10 +112,17 @@ below must be checked there.** The names below are confirmed examples (a subset)
 `document::request.failed`, `currency::fetched`,
 `advertisement::advertisement.fetched`.
 
-### Not for app logic
+### `::` event bus vs the Pixels analytics catalogue
 
-Capitalized names (`"Product Viewed"`, `"Product Added"`, `"Cart Updated"`) are the
-analytics/GTM tracking layer — don't build feature logic on them.
+Two distinct event surfaces coexist — keep them separate:
+
+- **`::`-namespaced events** (`cart::item.added`, `product::price.updated`) are the
+  **Twilight SDK event bus**. Subscribe with `salla.event.on(...)`; build feature logic on
+  these.
+- **Capitalized names** (`"Product Added"`, `"Product Viewed"`, `"Cart Updated"`,
+  `"Signed In"`) are the **Pixels analytics catalogue** (also the GTM tracking layer),
+  consumed through the analytics module — not via `salla.event.on`. Use them for analytics
+  /attribution, not for feature logic. Full Pixels model → [_Pixels_](#pixels) below.
 
 ### No event for these — detect another way
 
@@ -312,6 +319,66 @@ Injected UI must follow [salla-ui-compliance](../../salla-ui-compliance/SKILL.md
 theme tokens, use Salla icons, match the surrounding page (full checklist in SKILL.md). The
 theme's single-product insertion points are `product:single.form.start` /
 `product:single.form.end`; target near those when placing UI on the product page.
+
+---
+
+## Pixels
+
+**Pixels** are Salla's analytics-integration product — how an app receives e-commerce
+events for analytics, attribution, and personalization. A Pixel delivers events in one of
+two modes; only one is a snippet:
+
+| Mode            | Where it runs                                                           | In a snippet?                                                                                      |
+| --------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Device Mode** | Shopper's browser (client-side JS)                                      | **Yes** — this is the snippet (`tracker.js`)                                                       |
+| **Cloud Mode**  | Salla servers → your backend, server-to-server, via an **App Function** | **No** — server-side, no client script ([salla-app-functions](../../salla-app-functions/SKILL.md)) |
+
+So: **Device Mode (+ custom events) belongs in a snippet; Cloud Mode does not** — it is an
+App Function delivering events server-to-server, independent of any storefront script.
+
+### Device Mode (in the snippet)
+
+Device Mode is exactly the snippet model already in this file: a pure-JS CDN file (your
+`tracker.js`) injected via `salla_snippets`, listening in the shopper's browser. The Pixels
+event catalogue uses the **Capitalized** names (the analytics layer above), grouped:
+
+| Group           | Events                                                                                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cart & Checkout | `Product Added`, `Product Removed`, `Cart Viewed`, `Cart Updated`, `Checkout Started`, `Checkout Step Viewed`, `Checkout Step Completed`, `Payment Info Entered`, `Order Completed` |
+| Product         | `Products Searched`, `Product List Viewed`, `Product List Filtered`, `Product List Sorted`, `Product Viewed`, `Product Clicked`, `Product Shared`, `Product Reviewed`               |
+| Account         | `Signed In`, `Signed Up`, `Signed Out`, `Profile Updated`                                                                                                                           |
+
+These differ from the `::` SDK bus (see _`::` event bus vs the Pixels analytics catalogue_)
+and from the Cart/Product `::` catalogues above — confirm exact names/payloads in the docs
+below before relying on one.
+
+### Custom events
+
+For anything beyond the standard catalogue (widget interactions, bespoke journeys), fire a
+custom event with the analytics module. Gate on `salla.onReady` so analytics is initialized:
+
+```js
+salla.onReady(() => {
+  Salla.analytics.track("Event Name", {
+    property_key: "value",
+  });
+});
+```
+
+Custom events can be fired from app snippets, themes, or GTM. The app-settings bridge and
+deploy/trust-boundary rules in this file apply unchanged.
+
+### Pixels docs
+
+| Topic                         | Link                                |
+| ----------------------------- | ----------------------------------- |
+| Pixels Overview               | https://docs.salla.dev/1724365m0.md |
+| Device Mode                   | https://docs.salla.dev/1724504m0.md |
+| Cloud Mode (App Function)     | https://docs.salla.dev/1724667m0.md |
+| Custom Events                 | https://docs.salla.dev/2007114m0.md |
+| Device Mode — Cart & Checkout | https://docs.salla.dev/1804461m0.md |
+| Device Mode — Product         | https://docs.salla.dev/1804467m0.md |
+| Device Mode — Account         | https://docs.salla.dev/1804481m0.md |
 
 ---
 

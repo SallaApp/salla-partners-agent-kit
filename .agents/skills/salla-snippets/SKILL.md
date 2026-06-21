@@ -203,23 +203,48 @@ visible UI → [salla-ui-compliance](../salla-ui-compliance/SKILL.md).
 
 #### Storefront UI compliance (when the snippet renders visible UI)
 
-A snippet that **draws on the page** must look native to the store's Twilight theme — not
-a standalone SaaS badge. Before shipping visible UI:
+When a snippet **draws on the page**, build the UI from Salla's native **UI Components**
+(Twilight `<salla-*>` web components) driven by the Storefront JS SDK — not hand-rolled
+HTML. Native components inherit the theme's tokens, RTL, and locale for free, so they read
+as part of the store rather than a standalone SaaS badge.
 
-- **Inherit theme tokens** — use Twilight CSS variables (`--color-primary`, `--color-text`,
-  `--font-main`, spacing/radius vars). Don't hardcode fonts, colors, borders, or shadows
-  (fallbacks only).
-- **Use Salla Icons** (`sicon-*` classes) — not custom glyphs/emoji/dots.
-- **Match the product page** — adopt the surrounding spacing/density and insert near the
-  relevant product element, not as a floating card.
-- **RTL + locale** — most storefronts are Arabic/RTL; honor `dir`/`lang` and mirror layout.
+- **Render with `<salla-*>` components.** Insert the documented tag and set its attributes
+  /properties — e.g. `<salla-button>`, `<salla-modal>`, `<salla-rating-stars>`,
+  `<salla-quantity-input>`, `<salla-products-slider>`. Confirm the exact tag and props in
+  the UI Components catalogue (component families below). Themes register these components
+  on every storefront page; if a component is missing on a target store, load the loader at
+  runtime from the CDN (`@salla.sa/twilight-components` ESM loader) before using it.
+- **Wire behaviour through the SDK** — read state with `salla.config.get(...)`, react with
+  `salla.event.on(...)`, call `salla.cart.*` / `salla.product.*` etc. (method catalogue →
+  [`references/twilight-js-sdk.md`](references/twilight-js-sdk.md)).
+- **For any custom markup you still write**, inherit Twilight CSS variables
+  (`--color-primary`, `--color-text`, `--font-main`, spacing/radius), use Salla Icons
+  (`sicon-*` classes), match surrounding spacing/density, and honor `dir`/`lang` (Arabic/RTL
+  first). Hardcoded fonts/colors/borders/shadows are fallbacks only.
 - **Verify live** — open an **installed demo store** (`salla_apps action=demo_stores` →
   `url`) and screenshot the product page. UI that "runs" in code is not proof it looks
   right.
 
-Full guidance → [salla-ui-compliance](../salla-ui-compliance/SKILL.md). Docs: theme
-https://docs.salla.dev/421877m0.md · CSS variables https://docs.salla.dev/421945m0.md · Salla
-Icons https://docs.salla.dev/422550m0.md · single product page https://docs.salla.dev/422561m0.md.
+`salla-ui-compliance` owns the "use native components + native look-and-feel" rule (and the
+live-verification gate) — follow it for full guidance:
+[salla-ui-compliance](../salla-ui-compliance/SKILL.md).
+
+**UI Component families** (all `<salla-*>`; full catalogue in the docs):
+
+| Family            | Examples                                                                  |
+| ----------------- | ------------------------------------------------------------------------- |
+| Product           | `salla-product-card`, `salla-products-slider`, `salla-add-product-button` |
+| Shopping / cart   | `salla-quantity-input`, `salla-quick-buy`, `salla-cart-summary`           |
+| User / auth       | `salla-login-modal`, `salla-userprofile`, `salla-verify`                  |
+| Forms / input     | `salla-tel-input`, `salla-datetime-picker`, `salla-file-upload`           |
+| Elements / layout | `salla-button`, `salla-modal`, `salla-rating-stars`, `salla-tabs`         |
+
+Docs: UI Components Overview https://docs.salla.dev/422688m0.md · Usage
+https://docs.salla.dev/422689m0.md · Customization https://docs.salla.dev/422690m0.md ·
+Storefront JS SDK https://docs.salla.dev/422610m0.md · theme
+https://docs.salla.dev/421877m0.md · CSS variables https://docs.salla.dev/421945m0.md ·
+Salla Icons https://docs.salla.dev/422550m0.md · single product page
+https://docs.salla.dev/422561m0.md.
 
 ### Cloud Mode
 

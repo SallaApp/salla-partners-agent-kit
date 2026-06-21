@@ -10,13 +10,15 @@ Prerequisite and standard sequence: [SKILL.md](../SKILL.md#prerequisite-open-a-d
 
 What `action=list` / `action=catalog` / `action=show` return for a block.
 
-| Field      | Type    | Meaning                                                                                     |
-| ---------- | ------- | ------------------------------------------------------------------------------------------- |
-| `id`       | number  | Block id — used in `action=show`, `action=remove`, and the ordered list for `action=sort`.  |
-| `slug`     | string  | Stable machine name (`app-information`, `app-features`, `app-faq`, …).                      |
-| `order`    | number  | Position in the listing page. Change it with `action=sort` (pass the full ordered id list). |
-| `required` | boolean | `true` → cannot be removed (e.g. App Information, App Plans).                               |
-| `label`    | string? | Display name; language follows the request locale.                                          |
+| Field         | Type    | Meaning                                                                                     |
+| ------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `id`          | number  | Block id — used in `action=show`, `action=remove`, and the ordered list for `action=sort`.  |
+| `slug`        | string  | Stable machine name (`app-information`, `app-features`, `app-faq`, …).                      |
+| `order`       | number  | Position in the listing page. Change it with `action=sort` (pass the full ordered id list). |
+| `is_required` | boolean | `true` → cannot be removed (e.g. `app-information`).                                        |
+| `editable`    | boolean | `true` → has an editable element form. `false` → display-only (no element keys to `set`).   |
+| `is_visible`  | boolean | `true` → rendered on the listing page.                                                      |
+| `label`       | string? | Display name; language follows the request locale.                                          |
 
 `action=show` additionally returns the block's **element keys** — the keys `action=set` accepts. Always read `show` before `set`.
 
@@ -26,19 +28,18 @@ What `action=list` / `action=catalog` / `action=show` return for a block.
 
 `action=catalog` returns the block types you can `add`. The known set (slugs are stable; confirm ids with `catalog`):
 
-| Slug              | Label (EN)      | required | editable | Notes                                        |
-| ----------------- | --------------- | -------- | -------- | -------------------------------------------- |
-| `app-information` | App Information | ✅       | ✅       | Seeded by `init`; stays first; can't remove. |
-| `app-features`    | App Features    | —        | ✅       | The `features`/`benefits` collection.        |
-| `app-pricing`     | App Plans       | ✅       | ❌       | No form — pricing renders automatically.     |
-| `app-reviews`     | App Reviews     | —        | ✅       |                                              |
-| `app-brands`      | App Brands      | —        | ✅       |                                              |
-| `app-faq`         | App FAQ         | —        | ✅       |                                              |
-| `app-stats`       | App Statistics  | —        | ✅       |                                              |
+| Slug              | Label (EN)      | is_required | editable | Notes                                        |
+| ----------------- | --------------- | ----------- | -------- | -------------------------------------------- |
+| `app-information` | App Information | ✅          | ✅       | Seeded by `init`; stays first; can't remove. |
+| `app-features`    | App Features    | —           | ✅       | The `features`/`benefits` collection.        |
+| `app-reviews`     | App Reviews     | —           | ✅       |                                              |
+| `app-brands`      | App Brands      | —           | ✅       |                                              |
+| `app-faq`         | App FAQ         | —           | ✅       |                                              |
+| `app-stats`       | App Statistics  | —           | ✅       |                                              |
 
 > Contact details live in the publication's **`contact_information`** section (salla-publication-consistency). Some support/contact channels may surface on `app-information` as flat `support_*` elements — confirm with `action=show`.
 >
-> `app-information` and `app-pricing` are **required**: `init` seeds them and `remove` rejects them. `app-pricing` is required **and** non-editable (no element keys to `set`).
+> `app-information` is the one pinned block: `init` seeds it and `remove` rejects it (`is_required: true`). The other required/optional blocks are revealed dynamically by `init` / `catalog` — confirm the live set and each block's `is_required` / `editable` / `is_visible` at call time. **Pricing/plans are not a builder block** — they live in the publish flow's pricing step (salla-publication-consistency).
 
 ---
 
@@ -46,7 +47,7 @@ What `action=list` / `action=catalog` / `action=show` return for a block.
 
 Editing block elements writes these **shared listing fields** into the draft publication. They are the fields this tool owns:
 
-| Field         | Typical element / block | Value shape (confirm via `show`)         | Dimensions / required                           |
+| Field         | Typical element / block | Value shape (confirm via `show`)         | Dimensions / count (server-enforced)            |
 | ------------- | ----------------------- | ---------------------------------------- | ----------------------------------------------- |
 | `name`        | App Information         | lingual `{ ar, en }`                     | required                                        |
 | `description` | App Information         | lingual richtext `{ ar, en }`            | —                                               |
@@ -54,6 +55,7 @@ Editing block elements writes these **shared listing fields** into the draft pub
 | `screenshots` | App Information         | image `[{ id, url }, …]` (multiple)      | 263×350 px each; required, **≥ 3**              |
 | `benefits`    | App Features            | collection (array of prefixed-key items) | benefit image per `benefits.image`; **3** items |
 
+> The dimensions/counts column is **enforced server-side on save** — `action=set` returns `error.fields` when a value is off. Confirm the live requirement per field via `action=show`; treat the numbers above as the expected values, not builder-FE guarantees.
 > `short_description` belongs to the publication `basic_information` section, not here → salla-publication-consistency.
 > `banner` / `embedded_image` are publication media (not builder fields) → salla-publication-consistency. The image-generation recipe for ALL these fields lives in [SKILL.md](../SKILL.md#generating-missing-listing-images-canonical-recipe).
 
@@ -80,7 +82,7 @@ Editing block elements writes these **shared listing fields** into the draft pub
 | `minLength`/`maxLength`               | String length **or** collection item-count bounds.                                                                                   |
 | `min`/`max`                           | Numeric bounds.                                                                                                                      |
 | `multiple`                            | For `image`: allow multiple files.                                                                                                   |
-| `conditions`                          | Conditional visibility: `[{ id, operation, value }]` — shown only when another element matches.                                      |
+| `conditions`                          | Conditional visibility: `[{ key, operation, value }]` — shown only when the element named by `key` matches.                          |
 
 ### `type` / `format` combinations
 
@@ -198,7 +200,9 @@ The block that carries `name`, `description`, `logo`, `screenshots` (labels in `
     "id": "image_orientation",
     "type": "items",
     "format": "dropdown-list",
-    "conditions": [{ "id": "view_section", "operation": "=", "value": "grid" }],
+    "conditions": [
+      { "key": "view_section", "operation": "=", "value": "grid" },
+    ],
     "options": [
       { "value": "start", "label": "Left" },
       { "value": "end", "label": "Right" },

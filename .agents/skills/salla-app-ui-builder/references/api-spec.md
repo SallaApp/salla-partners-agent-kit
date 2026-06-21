@@ -41,13 +41,13 @@ Every call takes `action=` plus the action's parameters. The MCP already knows w
 
 ## Block / element shapes
 
-A block returned by `list`/`catalog`/`show` carries `id`, `slug`, `order`, `required` (full field meanings in [blocks-and-fields.md](blocks-and-fields.md)). `action=show` adds the block's **element keys** — the keys `action=set` accepts. The element schema (`type`/`format`/`lingual`/…) and the per-format `set` value shapes are in [blocks-and-fields.md](blocks-and-fields.md) and [payloads.md](payloads.md).
+A block returned by `list`/`catalog`/`show` carries `id`, `slug`, `order`, `is_required`, `editable`, `is_visible` (full field meanings in [blocks-and-fields.md](blocks-and-fields.md)). `action=show` adds the block's **element keys** — the keys `action=set` accepts. The element schema (`type`/`format`/`lingual`/…) and the per-format `set` value shapes are in [blocks-and-fields.md](blocks-and-fields.md) and [payloads.md](payloads.md).
 
 ---
 
 ## Errors
 
 - **404 / disabled** — no draft yet. Run `app_publish action=open` first (salla-publication-consistency).
-- **Required-block rejection** — `action=remove` on App Information / App Plans is refused.
+- **Required-block rejection** — `action=remove` on a pinned block (`app-information`) is refused.
 - **Validation** — a missing/malformed element value (e.g. a lingual field missing `en`, or a collection with the wrong item count) is flagged per element key. See [payloads.md](payloads.md#validation-feedback).
 - **401 / session expired** — the partner must reconnect (re-run the MCP login).

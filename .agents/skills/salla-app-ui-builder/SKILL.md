@@ -16,7 +16,7 @@ metadata:
 
 # Salla App Store Listing Page (`app_page_builder`)
 
-The **listing page** is the app's **home/landing page** shown to merchants on the App Store and when they install it. It is an **ordered list of blocks** (App Information, Features, Plans, Reviews, Brands, FAQ, Stats), authored entirely through the **`app_page_builder`** MCP tool — there is no REST endpoint or token to handle. Drive listing-page work through `app_page_builder` and `salla_upload`.
+The **listing page** is the app's **home/landing page** shown to merchants on the App Store and when they install it. It is an **ordered list of blocks** (App Information, Features, Reviews, Brands, FAQ, Stats — revealed dynamically by `init` / `catalog`), authored entirely through the **`app_page_builder`** MCP tool — there is no REST endpoint or token to handle. Drive listing-page work through `app_page_builder` and `salla_upload`.
 
 Editing a block's element values **writes the shared listing content directly into the app's draft publication**. The fields this tool owns: **`name`, `description`, `logo`, `screenshots`, `benefits`** (value shapes in [blocks-and-fields.md](references/blocks-and-fields.md#the-shared-listing-fields)).
 
@@ -62,6 +62,11 @@ the App-Store image fields across the builder, the publication, and the embedded
 | `banner`         | `app_publish` features section     | Optional                | image file (no enforced dimensions)                 |
 | `embedded_image` | `app_publish` features section     | Embedded apps only      | min 710×260 px (recommended 1420×520), max 512 KB   |
 
+> Dimensions and counts above (logo 1:1 ≥250×250, ≥3 screenshots, exactly 3 benefits) are
+> **enforced server-side on save** — `action=set` returns `error.fields` if they're off. Confirm
+> the live requirement for a builder field via `app_page_builder action=show` rather than treating
+> these numbers as builder-FE guarantees.
+>
 > `banner` and `embedded_image` are **publication** fields, not builder fields — set them via
 > `app_publish` (**salla-publication-consistency**); `embedded_image` is the Embedded App
 > Banner and applies only when the app has an iframe page (**salla-embedded-app**, which also
@@ -91,8 +96,8 @@ A published app already has a listing page: the default template renders from pu
 
 - An **app's listing** = the ordered array of blocks returned by `action=list`.
 - The **catalog** (`action=catalog`) is the full set of block types you can `add`.
-- A block has `id`, `slug`, `order`, and a `required` flag; its editable inputs are **elements** (key → value), discovered via `action=show`.
-- Required blocks (App Information, App Plans) are seeded by `init` and **can't be removed**.
+- A block carries `id`, `slug`, `order`, and the flags `is_required`, `editable`, `is_visible`; its editable inputs are **elements** (key → value), discovered via `action=show`.
+- `app-information` is the one pinned block — `init` seeds it and `remove` rejects it. The remaining required/optional blocks are revealed dynamically by `init` / `catalog`; confirm the live set at call time.
 
 See [Blocks and Fields](references/blocks-and-fields.md) for the block/element model and how to discover types and element keys, [API spec](references/api-spec.md) for the action contract, and [Payloads](references/payloads.md) for `set` value shapes. Example block ids and element keys are **illustrative** — confirm them with `action=catalog` / `action=show`.
 
@@ -100,7 +105,7 @@ See [Blocks and Fields](references/blocks-and-fields.md) for the block/element m
 
 > - **Run `init` first** on a fresh draft — it seeds the required blocks and returns the current page.
 > - **Confirm ids and keys at call time** with `action=catalog` (block types) and `action=show` (element keys); example ids/keys in this skill are illustrative.
-> - **App Information & App Plans are required** — always present, can't be removed. App Information stays first; App Plans has no editable form (pricing renders automatically).
+> - **App Information is the one pinned block** — always present, stays first, can't be removed. The rest of the required/optional blocks are revealed by `init` / `catalog` (slugs illustrative — confirm at call time). Pricing/plans are **not** a builder block; they live in the publish flow's pricing step → salla-publication-consistency.
 > - **Contact details** live in the publication's **`contact_information`** section → salla-publication-consistency. Some support/contact channels may also surface on App Information as flat `support_*` elements — confirm with `action=show`.
 > - **Lingual elements** carry both Arabic and English (`{ "ar": "…", "en": "…" }`).
 > - **Collection** element children are keyed with the collection id as a prefix (`features.title`). See [payloads.md](references/payloads.md).

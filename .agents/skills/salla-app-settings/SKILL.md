@@ -56,7 +56,10 @@ render** — the merchant sees broken or empty form-builder output. Always use a
   can fail.
 - **Arabic-first labels.** Most Salla merchants are Arabic — write `label` / `description`
   in Arabic; set `multilanguage: true` to also provide English. Never leave Arabic blank.
-- `public: true` marks a value safe to read client-side (storefront / snippet).
+- `public: true` marks a value safe to read client-side (storefront / snippet). A
+  storefront **snippet reads a public setting via `salla.config.get('app.<key>')`**;
+  private (`public: false`) settings are **never** exposed on the storefront. →
+  [salla-snippets](../salla-snippets/SKILL.md).
 - **Secrets stay private and protected.** API keys, passwords, and tokens use
   `format: "password"` and MUST keep `public: false` — never expose them to storefront /
   client code. At runtime, store secret-typed values **encrypted**, and never log raw

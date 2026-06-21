@@ -331,28 +331,25 @@ Integrates a carrier or fulfillment provider:
    `https://portal.salla.partners/apps/{app_id}`.
 
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
-3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
-   private-publish; optional `update_note`). Pass the listing payload in `publication`.
-   The Portal's publication flow covers **Basic Information, App Configurations, App
-   Features, Pricing, Contact Information, and Service Trial**
-   ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)) — the `publication`
-   payload spans the same ground. The example shapes below are **illustrative** — confirm
-   exact field names/shapes via the Partners MCP tool schema or docs before relying on them:
-   - **`publish_action` is always required** (separate from the tool's `action: "publish"`):
-     `"save"` drafts the publication, `"submit"` sends it for full-validation review.
-   - **`save` is NOT fully lenient** — it still requires `name: {en, ar}` and
-     `short_description: {en, ar}` (bilingual nested objects). Heavier fields (logo id,
-     screenshots, plans, etc.) are only required at `submit`.
-   - `name`, `short_description`, and other user-facing text are bilingual nested objects:
-     `{en: "…", ar: "…"}` — not flat strings.
-   - Upload media first via `salla_upload` → integer image IDs: `logo` and
-     `screenshots` as `[{image: id}]`.
-   - `categories` and `main_category_id` are **main** categories (`type=app` from
-     `salla_reference`), distinct from the `sub_category_id` used at create time.
-   - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
-     `plans`, `addons`) — there is no separate pricing endpoint. In the Portal's
-     publication flow, **addons appear under Pricing**. → **`salla-app-billing`**.
-   - `support_email` is required when `contact_method = "email"`.
+3. **Publish — the guided, stepwise `app_publish` flow** (preferred). Don't hand-build one
+   giant payload; drive the server's readiness checklist instead:
+
+   **`open` → (set `<section>` → `readiness`)\* → `submit`** — `open` creates the draft (and
+   unlocks `app_page_builder` for the listing page), then for each of the 5 sections
+   (`basic_information`, `features`, `pricing`, `contact_information`, `service_trial`) call
+   `set` and re-check `readiness`, fixing one section at a time off the returned `missing`
+   list, until every section reads `complete`; then `submit` (the server-side gate returns
+   **422** with still-missing sections if it isn't ready). Use `withdraw` to pull a pending
+   submission back. **Section fields, the readiness gate, and ordering are owned by
+   [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** — follow it
+   for the mechanics; listing content (name/description/logo/screenshots/benefits) is written
+   via `app_page_builder` → [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md), and
+   plan/addon pricing → [salla-app-billing](../salla-app-billing/SKILL.md).
+
+   **One-shot alternative.** The bulk `salla_apps action=publish` (`app_id`, `publication`
+   payload, `publish_action: "save" | "submit"`, optional `private`/`update_note`) still
+   works as a single call when you already have the full listing payload assembled.
+
 4. Once approved the app is live on https://apps.salla.sa/en.
 
 Testing guide: references/demo-store-testing.md

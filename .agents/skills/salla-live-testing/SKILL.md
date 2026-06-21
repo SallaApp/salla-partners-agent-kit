@@ -21,13 +21,34 @@ as a merchant on a real demo store.
 > If you point config at a temporary receiver for a test, restore the real `webhook_url`,
 > redirect URLs, and secrets afterward.
 
+## Step 0 — Confirm the deployed domain matches the configured URLs
+
+Before installing, check the app's **deployed** domain against what it's configured with —
+the `webhook_url`, OAuth redirect/callback, and embedded-page URL (`salla_apps
+action=get`). A mismatch (configured URL ≠ where the app actually runs) **fails silently**:
+OAuth redirects nowhere, webhooks 404 at the old host, the iframe won't load — with no
+obvious error. Fix the URLs (or the deployment) so they point at the same place _before_
+generating install links.
+
 ## Step 1 — Install on a demo store
 
 Call `salla_apps action=demo_stores` with your `app_id`, then pick a store from the
-result. `connected: true` means it's already installed; otherwise open `install_url`
-(browser) to install. Use `dashboard_url` to auto-login to the store admin and `url` for
-the storefront. (Field names are from the tool's own contract — confirm the live shape
-from the actual response.)
+result. **The install link is time-limited (~1 hour).** Generate it immediately before you
+test and use it right away — don't save or reuse an old `install_url`. An expired link
+**fails silently or redirects to login** rather than installing, so if install seems to do
+nothing, re-run `salla_apps action=demo_stores` for a fresh link first.
+
+**Three distinct URLs, three purposes — don't conflate them:**
+
+| Field           | Points at          | Use it to                                                          |
+| --------------- | ------------------ | ------------------------------------------------------------------ |
+| `install_url`   | OAuth + install    | Trigger the install flow (consent → `app.store.authorize`)         |
+| `url`           | the **storefront** | Test the **snippet** on a product/cart page (Storefront check)     |
+| `dashboard_url` | the merchant admin | Test the **embedded app** + settings in the dashboard (auto-login) |
+
+`connected: true` means it's already installed; otherwise open a **fresh** `install_url`
+(browser) to install. (Field names are from the tool's own contract — confirm the live
+shape from the actual response.)
 
 ## Step 2 — Run the checks
 

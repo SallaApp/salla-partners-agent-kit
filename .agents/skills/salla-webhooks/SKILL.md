@@ -166,9 +166,12 @@ if (!verifySignature($payload, $signature, getenv('SALLA_WEBHOOK_SECRET'))) {
    `webhook_security_strategy: "signature"`, `generate_secret: true` (optional
    `webhook_headers`).
 
-   > **Secret-sync gate:** `generate_secret` mints a NEW secret. Copy the returned value into
-   > your runtime env (`SALLA_WEBHOOK_SECRET`) and confirm **deployed env == Portal secret**
-   > before testing — a mismatch fails verification and returns **401 on every delivery**.
+   > **Secret-sync gate:** `generate_secret` mints a NEW secret. After **any**
+   > `generate_secret` call or Portal secret reset, immediately re-read the current value
+   > with `salla_apps action=get` (the `webhook_secret` field) — never assume your
+   > local/env value still matches Salla's — and update **every** deployment environment
+   > (prod, staging, preview) with it. Confirm **deployed env == Portal secret** before
+   > testing; a mismatch fails verification and returns **401 on every delivery**.
 
 2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events
 action=subscribe`, `app_id`, `events: [...]`.

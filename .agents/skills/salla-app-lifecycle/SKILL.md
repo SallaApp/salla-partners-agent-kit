@@ -98,6 +98,12 @@ your endpoint returns 200?"
 On first install Salla fires **`app.installed`** and **`app.store.authorize`**. Don't
 assume an order — make each handler independent and idempotent.
 
+> **Lifecycle events can arrive before `app.store.authorize`.** Ordering is not
+> guaranteed: `app.trial.started` (or another lifecycle event) can land **before** the
+> authorize event, so the token row may not exist yet when it does. Handle every event
+> **idempotently** and **upsert** the per-`merchant` record (create-or-update) instead of
+> assuming a row is already there — never `UPDATE` a token/state row you expect to exist.
+
 ```typescript
 if (payload.event === "app.installed") {
   // Provision: create the merchant row, seed defaults, queue a welcome step.
@@ -134,6 +140,11 @@ if (payload.event === "app.store.authorize") {
   });
 }
 ```
+
+> **Use real migrations for token/state storage.** `CREATE TABLE IF NOT EXISTS` is **not**
+> a migration — once the table exists it silently skips, so added/changed columns never
+> apply and your schema drifts out of sync with the code. Manage the merchant/token tables
+> with a real migration tool (versioned `ALTER TABLE`s), not an idempotent create-on-boot.
 
 **Gate:** "Install of a demo store creates the merchant row and persists tokens, in any
 arrival order?"

@@ -27,6 +27,17 @@ active.
 <script src="https://your-app.com/tracker.js"></script>
 ```
 
+> **Snippet content is injected HTML — wrap JS in `<script>`.** Whatever you register as the
+> snippet `content` is dropped into the page as **markup**, not run as a script. Inline JS
+> with **no** `<script>…</script>` wrapper renders as inert text and **silently does
+> nothing** (no error). Both the external loader above and any inline logic must live inside
+> `<script>` tags.
+>
+> **No Twig in snippet JS.** A snippet is browser JS, not a theme template — `{{ … }}` /
+> `{% … %}` do not interpolate; they ship as literal text and break the script. Pull dynamic
+> values at runtime from the SDK (`salla.config.get(...)`, events) — see _Store context &
+> language_ below.
+>
 > **Deploy guard:** never ship a literal `https://YOUR_APP_URL` / placeholder. Templatize it
 > at build/deploy and fail the build if the placeholder survives — a shipped placeholder
 > silently breaks every event POST.
@@ -224,7 +235,20 @@ salla.config.get("store.currency"); // 'SAR'
 salla.config.get("store.lang"); // ⚠️ may be null — use a fallback chain
 ```
 
-Language fallback (don't trust `store.lang` alone):
+> **`salla.config.get()` is not reliable on its own — treat every read defensively.** A
+> nested read like `salla.config.get('store.lang')` can return `null`/`undefined`, and the
+> call itself can be **disrupted** — Cloudflare rocket-loader wrapping (see _console noise_)
+> or reading **before init** (a top-level read that runs before Twilight finishes init). Safe
+> patterns:
+>
+> - **Gate reads on `salla.onReady(cb)`** — config is only guaranteed populated once the
+>   store is loaded. Don't read store-loaded config at module top level (only event listeners
+>   belong there — see _Bootstrap & event-timing_).
+> - **Null-check every `config.get`** — never assume a path resolved. Don't chain logic on a
+>   single unchecked read.
+> - **Use a fallback chain** for anything load-bearing (the lang fallback below is the model).
+
+Language fallback (don't trust `store.lang` alone — the pattern for any config read):
 
 ```js
 const lang =

@@ -111,6 +111,16 @@ token is used **only** to bootstrap that session, never stored as a long-lived c
 }
 ```
 
+> **Read the claims from `data`, never the top level.** `merchant_id`, `user_id`, and `exp`
+> are nested under `data` — use `response.data.merchant_id` / `data.user_id` / `data.exp`.
+> Reading top-level `merchant_id` returns `undefined`.
+>
+> **`data.exp` is an ISO-8601 datetime STRING** (e.g. `"2026-01-19T12:00:00Z"`), **not** a
+> Unix timestamp. Parse it as a date — `new Date(data.exp)` — and **do not** multiply by 1000
+> or treat it as epoch seconds. (Contrast: the OAuth `app.store.authorize` `expires` field IS
+> a Unix timestamp in seconds — `new Date(expires * 1000)`. The two are different formats;
+> don't conflate them. See `salla-app-auth`.)
+
 **Failure (`401`):**
 
 ```json
@@ -142,15 +152,31 @@ app.post("/api/auth/session", async (req, res) => {
   );
 
   const payload = await introspect.json();
+
+  // Log the OUTCOME for diagnosability — status + success + identity only.
+  // NEVER log the token itself (it is a credential) or any secret.
+  console.info("[salla-introspect]", {
+    httpStatus: introspect.status,
+    success: payload?.success,
+    merchantId: payload?.data?.merchant_id,
+    userId: payload?.data?.user_id,
+    error: payload?.error?.message, // present on failure
+  });
+
   if (!introspect.ok || !payload.success) {
     return res.status(401).json({ ok: false });
   }
 
-  const { merchant_id, user_id } = payload.data;
+  // Claims are nested under `data` — NOT top-level.
+  const { merchant_id, user_id, exp } = payload.data;
+
+  // `exp` is an ISO-8601 STRING — parse as a date; do NOT multiply by 1000.
+  const expiresAt = new Date(exp); // e.g. "2026-01-19T12:00:00Z" → Date
 
   // Mint YOUR session (short-lived Salla token is now done its job).
   req.session.merchantId = merchant_id;
   req.session.userId = user_id;
+  req.session.sallaTokenExpiresAt = expiresAt;
 
   return res.json({ ok: true, merchant_id });
 });

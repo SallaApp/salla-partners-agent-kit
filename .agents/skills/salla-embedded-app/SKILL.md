@@ -32,8 +32,10 @@ The frontend is a courier — it never makes authorization decisions.
   make authz decisions on the frontend, and do **not** trust the token unverified.
 - **Verify on the BACKEND via Salla's Introspection API.**
   `POST https://api.salla.dev/exchange-authority/v1/introspect`, header `S-Source: <YOUR_APP_ID>`,
-  body `{ "token": "em_tok_..." }`. A success response returns `{ merchant_id, user_id, exp }`.
-  Your backend then mints its own session (JWT / secure cookie) and authorizes every request
+  body `{ "token": "em_tok_..." }`. A success response nests the claims under `data` —
+  read `data.merchant_id` / `data.user_id` / `data.exp` (NOT top-level). `data.exp` is an
+  **ISO-8601 datetime string** (e.g. `"2026-01-19T12:00:00Z"`), not a Unix timestamp. Your
+  backend then mints its own session (JWT / secure cookie) and authorizes every request
   against that.
 - **Validate the `S-Source` header** (your own App ID) on the introspect call — this prevents
   another app from verifying tokens against your identity.
@@ -154,8 +156,10 @@ The flow, in order:
 3. **Send the token to YOUR backend.** The frontend is a courier — do **not** make authz
    decisions here.
 4. **Backend verifies** via `POST https://api.salla.dev/exchange-authority/v1/introspect`,
-   header `S-Source: <YOUR_APP_ID>`, body `{ "token": "..." }` → success returns
-   `{ merchant_id, user_id, exp }`. Backend mints its own session (JWT / secure cookie).
+   header `S-Source: <YOUR_APP_ID>`, body `{ "token": "..." }` → success nests the claims
+   under `data`: read `data.merchant_id` / `data.user_id` / `data.exp` (`data.exp` is an
+   ISO-8601 datetime string, not a Unix timestamp). Backend mints its own session
+   (JWT / secure cookie).
 5. **`embedded.ready()`** — call **only** after the backend confirms **and** your data is
    loaded. The dashboard shows a loading overlay until you do.
 6. **On failure** — call `embedded.destroy()` to exit gracefully rather than leaving the

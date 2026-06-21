@@ -36,6 +36,12 @@ But snippets are NOT themes — some SDK affordances are theme-development const
 - You **canNOT** define Twig `{% hook %}`s, ship `<salla-*>` web components, use theme
   settings / `twilight.json`, or the Twilight CLI — those are **THEME-development**
   constructs, out of scope for snippets.
+- **No Twig in snippet JS.** Because a snippet is injected browser JS (not a theme template),
+  Twig interpolation — `{{ store.lang }}`, `{% if … %}` — does **not** run. It ships verbatim
+  to the browser as literal text, breaking the script. There is no server-side render pass.
+  Get dynamic values at **runtime** from the SDK instead: `salla.config.get(...)`, event
+  payloads, `salla.lang.get(...)`. (Snippet `content` is also injected as HTML — wrap JS in
+  `<script>…</script>` or it silently does nothing; see device-mode.md.)
 
 **Availability key per method below:**
 
@@ -88,6 +94,11 @@ App snippet ✅ (read). `set` is mainly for standalone init.
 - `salla.config.get(path)` — dot-path read, e.g. `salla.config.get('user.id')`,
   `salla.config.get('store.id')`, `salla.config.get('currencies.SAR.code')`,
   `salla.config.get('page.slug')`. (Store-context paths: see device-mode.md.)
+  ⚠️ **Read defensively** — a nested read (e.g. `store.lang`) can return `null`/`undefined`,
+  and the call can be mangled by rocket-loader wrapping or by running **before init**. Gate
+  on `salla.onReady`, null-check every read, and use a fallback chain for load-bearing
+  values. Don't chain assumptions on one unchecked `config.get` — see device-mode.md (_Store
+  context & language_).
 - `salla.config.set(key, value)` / `salla.config.set({...})` — set config (standalone/init
   use; the theme already configured the SDK).
 - `salla.config.currencies()` → Promise — full currencies list.

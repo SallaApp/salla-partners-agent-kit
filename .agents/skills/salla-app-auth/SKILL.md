@@ -140,6 +140,11 @@ Portal registration, and `scope` must always include `offline_access`.
 
 > **Custom Mode callback rules — all are required:**
 >
+> - **Deploy the callback route BEFORE registering `redirect_url` — verify it is not a 404.**
+>   The `redirect_url` you register must point to a callback route your app actually implements
+>   and serves. If it 404s (route not deployed, wrong path, typo), the merchant's install/OAuth
+>   flow breaks — blank page, lost install, no tokens. Implement and deploy the callback, hit
+>   the exact registered URL and confirm it responds (not 404), and only then register it.
 > - **Salla-initiated install ≠ app-initiated OAuth.** When the merchant installs from the App
 >   Store, Salla redirects **straight to your callback** with **its own `state`** — your app
 >   never ran the authorize step and never set a `state` cookie. Do NOT reject the request for

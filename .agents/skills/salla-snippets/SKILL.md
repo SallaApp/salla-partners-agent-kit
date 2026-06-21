@@ -69,13 +69,27 @@ then **inject it as a storefront snippet** with the tool:
 
 1. Write the snippet body — listen with the Twilight SDK and process the payload:
 
-   ```js
-   // Event names are ::-namespaced — there is no `cart.add`. See the catalogue.
-   salla.event.on("cart::item.added", (e) => {
-     // e.data carries product_id + cart; there is NO top-level item price.
-     analytics.track("Add to Cart", e.data);
-   });
+   ```html
+   <!-- Snippet content is injected HTML — raw JS MUST be wrapped in <script>. -->
+   <script>
+     // Event names are ::-namespaced — there is no `cart.add`. See the catalogue.
+     salla.event.on("cart::item.added", (e) => {
+       // e.data carries product_id + cart; there is NO top-level item price.
+       analytics.track("Add to Cart", e.data);
+     });
+   </script>
    ```
+
+   > **Wrap JS in `<script>…</script>`.** Snippet `content` is injected as **HTML**, not
+   > evaluated as a script. A `content` that is just JavaScript with no `<script>` tag is
+   > rendered as inert text and **silently does nothing** — no error, no execution. Always
+   > wrap the snippet body in `<script>…</script>` (and any visible markup in its own HTML).
+   >
+   > **No Twig in snippet JS.** App snippets are injected JS running in the **shopper's
+   > browser** — they are NOT theme templates. Twig interpolation (`{{ … }}`, `{% … %}`) does
+   > **not** work here; it ships as literal text and breaks the script. Get dynamic values at
+   > **runtime** from the Twilight SDK instead — `salla.config.get(...)`, events, etc. (See
+   > the theme-vs-snippet boundary in [`twilight-js-sdk.md`](references/twilight-js-sdk.md).)
 
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.

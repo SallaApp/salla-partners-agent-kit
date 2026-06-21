@@ -48,6 +48,52 @@ plugin system."_
   installer reuses the Claude plugin cache (`~/.claude/plugins`), so Cursor is served by
   `.claude-plugin/` above. That's why there is no `.cursor-plugin/` file.
 
+## `gemini-extension.json` — Gemini CLI
+
+**Source:** Gemini CLI _Extensions_ and _MCP servers_ docs —
+https://github.com/google-gemini/gemini-cli/blob/main/docs/extensions/index.md and
+https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md
+
+- `name`, `version` — the two documented core fields (Shopify's
+  `gemini-extension.json` ships only these). `version` matches `package.json`.
+- `"contextFileName": "AGENTS.md"` — the docs define `contextFileName` as _"the name
+  of the file that contains the context for the extension."_ Pointing it at the
+  repo's `AGENTS.md` loads the ambient master router (the "invoke
+  `salla-app-expert` first" routing) at session start, replacing the per-host
+  SessionStart hook used by Claude/Codex/Cursor.
+- `"mcpServers"` — the docs state _"all MCP server configuration options are
+  supported except for `trust`."_ For a remote streamable-HTTP server Gemini uses
+  the `httpUrl` field (`url` is reserved for SSE), so `.mcp.json`'s
+  `{ "type": "http", "url": "https://partners.mcp.salla.dev" }` maps to
+  `{ "httpUrl": "https://partners.mcp.salla.dev" }`. Gemini extensions inline the
+  server config rather than referencing a file.
+- **Skills:** Gemini auto-discovers the canonical `.agents/skills/` tree, so no
+  skills field is needed in the extension.
+
+## `.hermes-plugin/` — Hermes
+
+**Source:** modelled on Shopify's working Hermes plugin
+(`Shopify/shopify-ai-toolkit/.hermes-plugin/`): `plugin.yaml` + `install.sh` +
+`__init__.py`.
+
+- **`plugin.yaml`** — `name`, `version` (matches `package.json`), `description`,
+  `author`, `license`, `homepage`, and `provides_skills:` listing all 25 skill
+  names. Hermes loads them on demand via
+  `skill_view("salla-partners:<skill-name>")`. We omit Shopify's
+  `provides_cli_commands:` (they forward `hermes shopify …` to `@shopify/cli`):
+  a Salla Partner acts through the remote Salla Partners MCP, not a local CLI.
+  `mcp_servers:` mirrors `.mcp.json` (`transport: http`,
+  `url: https://partners.mcp.salla.dev`).
+- **`install.sh`** — POSIX bash installer adapted from Shopify's: clones/pulls the
+  repo into `~/.hermes/repos/salla-partners-agent-kit` and symlinks
+  `.hermes-plugin/` into `~/.hermes/plugins/salla-partners/`, so the manifest sits
+  next to the shared `.agents/skills/` tree. The symlink is created at install
+  time **in the user's home**, never tracked in the repo (CI
+  `scripts/check-no-symlinks.sh` forbids tracked symlinks).
+- **`__init__.py`** — Hermes `register(ctx)` entry point: discovers every
+  `<skill>/SKILL.md` under `../.agents/skills/` (resolves the symlink before
+  walking up) and registers it. No CLI passthrough.
+
 ## `.mcp.json` — shared MCP server
 
 **Source:** Claude Code MCP config (`.mcp.json` in the plugin root) —

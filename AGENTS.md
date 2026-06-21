@@ -61,11 +61,20 @@ agent). One routing brain, three surfaces — keep them in sync.
   install — so there's no committed `.codex-plugin/` or `.cursor-plugin/`.
 - `.mcp.json` — the Salla Partners MCP server (`https://partners.mcp.salla.dev`), shared by
   all hosts (Claude/Codex auto-load it from the plugin root).
+- `gemini-extension.json` — **Gemini CLI** manifest: `contextFileName: "AGENTS.md"` loads
+  this router at session start, and `mcpServers` inlines the Salla MCP (Gemini's `httpUrl`
+  field). Skills come from the auto-discovered `.agents/skills/` tree.
+- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 25
+  skills + MCP wiring), `install.sh` (clones the repo and symlinks `.hermes-plugin/` next
+  to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
+  canonical skill tree). No CLI passthrough — partners act through the MCP.
 - `agents/`, `commands/` — the master agent + audit command (Claude Code plugin components).
 - `hooks/` — a **SessionStart hook** (Claude Code auto-discovers `hooks/hooks.json`;
   `hooks-codex.json` / `hooks-cursor.json` cover the other hosts via the polyglot
   `run-hook.cmd`). It injects the routing rule in `hooks/session-start-context.md` so any
   Salla app task starts with `salla-app-expert` before generic brainstorming/planning.
+  Gemini has no SessionStart hook — it primes the router via `contextFileName: AGENTS.md`
+  (this file); Hermes loads skills on demand, with this router carried in each `SKILL.md`.
 - **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
   Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
   `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.

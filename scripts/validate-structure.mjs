@@ -197,7 +197,9 @@ let hermesVersion = null;
 let hermesSkills = [];
 if (hermesYaml) {
   const vMatch = hermesYaml.match(/^version:\s*(\S+)/m);
-  hermesVersion = vMatch?.[1] ?? null;
+  // Strip surrounding quotes — `version: "1.0.2"` is valid YAML but would not
+  // string-equal the unquoted package.json version.
+  hermesVersion = vMatch?.[1]?.replace(/^["']|["']$/g, "") ?? null;
   check(
     /^name:\s*\S+/m.test(hermesYaml),
     '.hermes-plugin/plugin.yaml: missing "name"',
@@ -219,6 +221,14 @@ if (hermesYaml) {
     check(
       hermesSkills.includes(name),
       `.hermes-plugin/plugin.yaml: provides_skills missing "${name}"`,
+    );
+  }
+  // MCP URL must be production — same dev/staging-worker guard as the other manifests
+  // (plugin.yaml is otherwise parsed only for provides_skills, so the URL was unchecked).
+  for (const m of hermesYaml.matchAll(/https?:\/\/[^\s"']+/g)) {
+    warn(
+      !m[0].includes("workers.dev"),
+      ".hermes-plugin/plugin.yaml: MCP URL points at a dev/staging worker, not production",
     );
   }
 }

@@ -16,8 +16,9 @@ npx plugins add SallaApp/salla-partners-agent-kit
 # Gemini CLI (loads skills, AGENTS.md routing, and the MCP from gemini-extension.json)
 gemini extensions install https://github.com/SallaApp/salla-partners-agent-kit
 
-# Hermes (clones + links .hermes-plugin/ into ~/.hermes; re-run to update)
-curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/master/.hermes-plugin/install.sh | bash
+# Hermes — download, review, then run (clones + links .hermes-plugin/ into ~/.hermes)
+curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/master/.hermes-plugin/install.sh -o salla-hermes-install.sh
+bash salla-hermes-install.sh   # review the script first; re-run to update
 ```
 
 For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/getting-started.md)**.

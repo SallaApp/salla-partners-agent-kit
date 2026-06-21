@@ -45,13 +45,15 @@ Gemini. Manage it later with `gemini extensions list` / `gemini extensions updat
 **Hermes:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/master/.hermes-plugin/install.sh | bash
+# Download, review, then run — avoid piping a remote script straight into a shell
+curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/master/.hermes-plugin/install.sh -o salla-hermes-install.sh
+bash salla-hermes-install.sh   # review the script first
 ```
 
 This clones the repo to `~/.hermes/repos/` and symlinks `.hermes-plugin/` into
 `~/.hermes/plugins/` next to the shared `.agents/skills/` tree; the MCP is wired by
-`plugin.yaml` (no separate setup). Re-run the same command to update; launch `hermes` and
-run `/plugins` to verify `✓ salla-partners (25 skills)`.
+`plugin.yaml` (no separate setup). Re-run `bash salla-hermes-install.sh` to update; launch
+`hermes` and run `/plugins` to verify `✓ salla-partners`.
 
 **Manual** — the skills are one real tree at `.agents/skills/` (no symlinks). Point your
 agent at that directory (GitHub Copilot discovers `.agents/skills/` natively; Claude Code

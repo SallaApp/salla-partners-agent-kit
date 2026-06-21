@@ -75,8 +75,6 @@ agent). One routing brain, three surfaces — keep them in sync.
   Salla app task starts with `salla-app-expert` before generic brainstorming/planning.
   Gemini has no SessionStart hook — it primes the router via `contextFileName: AGENTS.md`
   (this file); Hermes loads skills on demand, with this router carried in each `SKILL.md`.
-  App/tool usage is recorded server-side by the Partners MCP on each tool call (enabled by
-  default) — no client hook or URL.
 - **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
   Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
   `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.

@@ -2,12 +2,13 @@
 name: salla-embedded-app
 description: >
   Build an iframe page inside the Salla Merchant Dashboard: register it via
-  salla_embedded_pages, init @salla.sa/embedded-sdk (its client-side auto-login is trusted UX
-  only — never introspect the token on the FE; validate/authorize on the BACKEND via your OWN
-  OAuth session), sync theme/locale/RTL from init's layout, and use native Page/Nav/UI modules
-  (No-Chrome rule).
-  Use for embedded pages, dashboard UI, SDK modules, iframe embeddability (CSP
-  frame-ancestors), or token/401 issues. Selling addons in-app → salla-addon-purchase-embedded; publish flow → salla-app-builder.
+  salla_embedded_pages, install @salla.sa/embedded-sdk, await embedded.init() (postMessage bridge
+  → layout: theme/locale/dir), then authenticate with the Trust-but-Verify model — FE
+  embedded.auth.getToken() sends the short-lived token to YOUR backend, which verifies it via
+  POST /exchange-authority/v1/introspect (header S-Source = your App ID) and mints its own
+  session; call embedded.ready() only after that. Use native Page/Nav/UI modules (No-Chrome
+  rule), sync theme/RTL from layout. Selling addons in-app → salla-addon-purchase-embedded;
+  publish flow → salla-app-builder.
 ---
 
 # Salla Embedded App Flow
@@ -16,27 +17,33 @@ Integrate a custom page inside the Salla Merchant Dashboard. Step 1 **performs**
 page registration with the Salla Partners MCP; the SDK steps are code you write into the
 app. Follow the steps in order — complete each gate before moving to the next.
 
+The official Salla model is **Trust-but-Verify**: Salla passes a short-lived token in the
+iframe URL; your frontend captures it with `embedded.auth.getToken()` and hands it to **your
+backend**, which **verifies it with Salla's Introspection API** and then mints its own session.
+The frontend is a courier — it never makes authorization decisions.
+
 ## Security guidelines (binding — no exceptions)
 
-- **Every merchant dashboard interface MUST be authenticated — there are no unauthenticated
-  pages.** Authorization is your app's **own OAuth session** decided on the backend, not the
-  SDK token and never the frontend.
-- **The SDK auto-login is client-side and UX only** (Step 3): the SDK verifies the short-lived
-  (5 min) token in the iframe and **auto-logs-in** the user so they land in your page. You do
-  **not** build this, and it is **not** an authorization signal. Do **not** introspect/validate
-  the SDK token on the frontend — the frontend is never trusted for authz.
-- **Validation and authorization happen on the BACKEND.** Run your **own OAuth** and maintain
-  your own authenticated user session inside the iframe (cookie / server session / localStorage),
-  exactly like any web app. That backend session is what validates the user and authorizes every
-  API call. Do **not** send the SDK token to your backend to "verify" it.
+- **Every merchant dashboard interface MUST be authenticated.** Authorization happens on the
+  **backend**, after it verifies the Salla token and mints its own session — never on the
+  frontend.
+- **The token is short-lived and arrives in the iframe URL.** Read it with
+  `embedded.auth.getToken()`. The frontend's only job is to send it to your backend; do **not**
+  make authz decisions on the frontend, and do **not** trust the token unverified.
+- **Verify on the BACKEND via Salla's Introspection API.**
+  `POST https://api.salla.dev/exchange-authority/v1/introspect`, header `S-Source: <YOUR_APP_ID>`,
+  body `{ "token": "em_tok_..." }`. A success response returns `{ merchant_id, user_id, exp }`.
+  Your backend then mints its own session (JWT / secure cookie) and authorizes every request
+  against that.
+- **Validate the `S-Source` header** (your own App ID) on the introspect call — this prevents
+  another app from verifying tokens against your identity.
+- **`embedded.auth.introspect()` (Client Introspect) is dev/debug ONLY.** The docs are explicit:
+  it "should not be used as a primary authentication method." Never use it for production authz.
 - **Never expose a merchant page outside Salla's native embedded-app support** — no standalone
   `/dashboard?store_id=…` URL, and no page that trusts a query param or referer for identity.
-  Someone who guesses a `store_id` must NOT be able to reach merchant data.
-- **Protect every route, not just the page.** Each API the page calls (settings, data,
-  actions) must require the same app session, and every request must be authorized against the
-  authenticated merchant — never derive the merchant from client-supplied input.
-- **Token handling:** the SDK token is short-lived (5 min) bootstrap only; keep secrets
-  server-side and scope every query to your authenticated session merchant id.
+- **Protect every route, not just the page.** Each API the page calls must require the session
+  your backend minted, scoped to the `merchant_id` introspection returned — never derive the
+  merchant from client-supplied input.
 
 ## Tools
 
@@ -55,9 +62,9 @@ Ask before starting:
 
 1. **What does this page do?** (settings UI, analytics dashboard, addon purchase, etc.)
 2. **Which SDK modules will you need?**
-   - `auth` — token + refresh
-   - `page` — title, navigation, redirect
-   - `nav` — action buttons, navbar tabs
+   - `auth` — `getToken`, `refresh`, `introspect` (dev-only), plus core `init`/`ready`/`destroy`
+   - `page` — `setTitle`, `navigate`, `redirect`, `navTo`
+   - `nav` — action buttons (`setAction`/`onActionClick`/`clearAction`) and sub-nav items
    - `ui` — toasts, confirm dialogs, loading, breadcrumbs
    - `checkout` — addon purchase
 3. **Does the page need to sell addons?** (activates the Checkout module)
@@ -69,15 +76,20 @@ Ask before starting:
 Register the iframe page by calling `salla_embedded_pages` with `action: "create"`,
 the `app_id`, and:
 
-- `route` — kebab path segment for the page (≥ 3 chars)
-- `iframe_url` — the URL Salla loads in the iframe
-- `default` — optional; mark this as the app's default page
+- `route` — kebab path segment for the page (≥ 3 chars). Appears as
+  `https://s.salla.sa/embedded/app/{appId}/{route}`.
+- `iframe_url` — the full URL Salla loads in the iframe (e.g.
+  `https://dashboard.myapp.net/salla/embedded`). Salla appends `token`, `theme`, `lang`.
+- `default` — optional; mark this as the app's default landing page.
 
 Both `create` and `update` return `{"page": {}}` (empty object) on success — this is
 normal, not a failure. Call `salla_embedded_pages action=list` to get the page id and
 verify the change. Use `update` / `delete` to change or remove a page.
 
 **Manual fallback:** Portal → **App Details → Embedded Pages → Add page**.
+
+> Add the **Embedded App Banner** (`1420×520 px`) in your App Card before publishing
+> (My Apps → App → App Details → Start publishing → App Features → Embedded App Banner).
 
 **Gate:** "`salla_embedded_pages action=list` returns the page — can you see it in the
 merchant dashboard sidebar?"
@@ -88,23 +100,32 @@ merchant dashboard sidebar?"
 
 **Install the npm package — do NOT rely on a CDN global.** Import `embedded` from the
 package so TypeScript validates the method names; the CDN build's global name/shape can
-differ and silently break boot (don't assume `window.SallaEmbedded`).
+differ and silently break boot.
 
 ```bash
 npm install @salla.sa/embedded-sdk
 ```
 
-Initialize on every page load:
-
 ```ts
 import { embedded } from "@salla.sa/embedded-sdk";
-
-const { layout } = await embedded.init({ debug: false });
 ```
 
-> Verify the **current** method surface against the package types / docs before calling a
-> module — the SDK evolves and guessed method names fail at runtime. Use the CDN only as a
-> last resort for non-bundled pages, and confirm its exported global name first.
+CDN fallback (vanilla / non-bundled pages only — confirm the global first):
+
+```html
+<script src="https://unpkg.com/@salla.sa/embedded-sdk/dist/umd/index.js"></script>
+<script>
+  const embedded = Salla.embedded; // or SallaEmbeddedSDK.embedded
+</script>
+```
+
+Initialize on every page load — `init()` establishes the postMessage bridge and resolves
+with the dashboard `layout`:
+
+```ts
+const { layout } = await embedded.init({ debug: false });
+// layout carries theme ("light"|"dark"), locale ("ar"|"en"), dir ("rtl"|"ltr"), …
+```
 
 **Two things block a first embedded app even when the SDK calls are correct:**
 
@@ -123,56 +144,62 @@ Module guide → [`references/sdk-modules-guide.md`](references/sdk-modules-guid
 
 ---
 
-## Step 3 — Authenticate the Session
+## Step 3 — Authenticate the Session (Trust-but-Verify)
 
-Two independent sessions — don't conflate them:
+The flow, in order:
 
-1. **SDK token** — short-lived (**5 min**). The SDK verifies it **client-side** during
-   `embedded.init()` and **auto-logs-in** the user in the iframe (trusted UX only — you don't
-   build it). It is **not** an authorization signal: do **not** introspect/validate it on the
-   frontend, and do **not** send it to your backend to "verify" it.
-2. **Your app's own session** — your backend runs its **own OAuth** and maintains its own
-   authenticated user session (cookie / server session / localStorage), like any web app. This
-   is where validation happens and what authorizes your API calls — authorization is always a
-   backend decision.
-
-> **Anti-pattern — never build a custom merchant dashboard OUTSIDE Salla's native
-> embedded-app support.** The merchant UI MUST be an embedded page rendered inside the Salla
-> dashboard iframe (`salla_embedded_pages`). A standalone `/dashboard?store_id=…` page trusts
-> the query param — it has no auth, so anyone who knows a `store_id` gets in. Native embedded
-> support plus your own OAuth session is the auth model; a public URL is not.
-
-After `init()` verifies the SDK token client-side, ensure **your own app session** exists; if
-not, run your own OAuth, then render. Call `embedded.ready()` ONLY after your session is
-established **and** the page's data is loaded — otherwise the dashboard reveals an
-empty/broken iframe.
+1. **`await embedded.init()`** — establish the bridge; read `layout`.
+2. **`embedded.auth.getToken()`** — retrieve the short-lived token from the iframe URL
+   (returns `string | null`; handle `null` = opened outside Salla).
+3. **Send the token to YOUR backend.** The frontend is a courier — do **not** make authz
+   decisions here.
+4. **Backend verifies** via `POST https://api.salla.dev/exchange-authority/v1/introspect`,
+   header `S-Source: <YOUR_APP_ID>`, body `{ "token": "..." }` → success returns
+   `{ merchant_id, user_id, exp }`. Backend mints its own session (JWT / secure cookie).
+5. **`embedded.ready()`** — call **only** after the backend confirms **and** your data is
+   loaded. The dashboard shows a loading overlay until you do.
+6. **On failure** — call `embedded.destroy()` to exit gracefully rather than leaving the
+   merchant on a hung loading screen.
 
 ```ts
-// init() already verified the SDK token client-side (trusted) and logged the user in.
-const hasSession = await fetch("/api/session", {
-  method: "GET",
-  credentials: "include",
-}).then((res) => res.ok);
+// 1. Bridge + layout
+const { layout } = await embedded.init({ debug: false });
 
-if (!hasSession) {
-  // No app session yet → start YOUR OWN OAuth inside the iframe, then re-run boot.
-  await startAppOAuth();
-  return;
+try {
+  // 2. Capture the short-lived token from the URL
+  const token = embedded.auth.getToken();
+  if (!token) throw new Error("Opened outside Salla — no token");
+
+  // 3 + 4. Hand the token to YOUR backend; it introspects and mints a session.
+  const res = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) throw new Error("Verification failed");
+
+  // 5. Backend confirmed + data loaded → reveal the iframe.
+  await loadDashboardData();
+  embedded.ready();
+} catch (err) {
+  console.error("Auth failed", err);
+  embedded.destroy(); // exit gracefully instead of hanging on the loading overlay
 }
-
-// Your app session is established; now load this page's data, THEN reveal.
-await loadDashboardData();
-embedded.ready(); // signals the dashboard to show the iframe
 ```
 
-When the SDK token expires, `embedded.auth.refresh()` re-renders the iframe with a fresh one
-(Salla handles it); your bootstrap re-runs and re-checks your app session.
+**`embedded.auth.introspect()` is dev/debug ONLY** — a frontend reference helper for the
+introspection flow that the docs explicitly say "should not be used as a primary authentication
+method." Production authorization is always the backend introspect above.
 
-Full two-session implementation (your-OAuth session + SDK refresh) →
+When the backend returns `401`/expiry → call `embedded.auth.refresh()`; Salla reloads the iframe
+with a fresh token, your bootstrap re-runs, and the flow restarts.
+
+Full backend introspect (with `S-Source`), session minting, and the 401→refresh loop →
 [`references/auth-and-session.md`](references/auth-and-session.md)
 
-**Gate:** "Does your app establish its own OAuth session inside the iframe and render only
-after it exists? Test with a demo store."
+**Gate:** "Does your backend introspect the token (with the `S-Source` header) and mint its own
+session before you call `ready()`? Test with a demo store."
 
 ---
 
@@ -185,17 +212,15 @@ query params manually:
 if (layout) {
   document.documentElement.setAttribute("data-theme", layout.theme);
   document.documentElement.setAttribute("lang", layout.locale);
-  document.documentElement.setAttribute(
-    "dir",
-    layout.locale === "ar" ? "rtl" : "ltr",
-  );
+  document.documentElement.setAttribute("dir", layout.dir); // "rtl" for ar, "ltr" for en
 }
 ```
 
 `layout` is the source of truth for appearance; re-apply it whenever the SDK re-initializes (e.g.
-after `embedded.auth.refresh()` reloads the iframe).
+after `embedded.auth.refresh()` reloads the iframe). The dashboard also supports dynamic theme
+switching — listen with `embedded.onThemeChange()` where available.
 
-Design tokens, RTL patterns → [`references/design-guidelines.md`](references/design-guidelines.md)
+Design tokens, brand colors, RTL patterns → [`references/design-guidelines.md`](references/design-guidelines.md)
 
 ---
 
@@ -203,36 +228,35 @@ Design tokens, RTL patterns → [`references/design-guidelines.md`](references/d
 
 Based on your needs from Step 0, implement the relevant modules:
 
-**Auth — refresh-first recovery (never destroy on a recoverable expiry):**
+**Auth — refresh on recoverable expiry; destroy only when unrecoverable:**
 
 ```ts
-// On an expired SDK token: refresh FIRST — Salla re-renders the iframe with a fresh one.
+// Backend reported the token expired (401): refresh — Salla re-renders the iframe with a fresh one.
 embedded.auth.refresh();
 
-// Only when auth is unrecoverable (a fresh token still can't establish a session, app suspended):
+// Only when auth is unrecoverable (a fresh token still can't verify, app suspended):
 embedded.destroy(); // tears down the iframe so the dashboard doesn't hang
 ```
 
-Order matters: a transient expiry must `refresh()`, not `destroy()`. Reserve `destroy()`
-for genuine, unrecoverable auth failure.
+Order matters: a transient expiry must `refresh()`, not `destroy()`.
 
-**Page — title and in-dashboard navigation:**
+**Page — title and dashboard navigation:**
 
 ```ts
 embedded.page.setTitle("My App");
-embedded.page.navigate("/orders"); // route the dashboard (SPA); also redirect() for external URLs
-// Don't call page.resize() — height is auto-managed by the host; resize/autoResize are deprecated no-ops.
+embedded.page.navigate("/orders"); // internal SPA route (React Router)
+embedded.page.redirect("https://docs.my-app.com/help"); // external / full reload
+embedded.page.navTo("/orders"); // auto-picks navigate vs redirect
 ```
 
-**Nav — action button:**
+**Nav — action button + sub-nav items:**
 
 ```ts
 embedded.nav.setAction({ title: "Save", value: "save", icon: "sicon-check" }); // icon optional
-const unsubscribe = embedded.nav.onActionClick((value) => {
+const off = embedded.nav.onActionClick((value) => {
   if (value === "save") saveChanges();
 });
-// Clear the action when the merchant navigates away from this view:
-embedded.nav.clearAction();
+embedded.nav.clearAction(); // when the merchant leaves this view
 ```
 
 **UI — toasts, loading, confirm, breadcrumbs:**
@@ -257,7 +281,8 @@ for addon pricing/entitlement mechanics see `salla-addon-purchase`)
 Full method signatures → [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)
 
 **Gate:** "Test each module you're using in the SDK Playground before going to
-production."
+production." → [Playground](https://docs.salla.dev/embedded-sdk/playground.md) /
+[Test Kit](https://github.com/SallaApp/embedded-sdk-playground)
 
 ---
 
@@ -273,13 +298,17 @@ in the publish step of **`salla-app-builder`**.
 | Topic                  | Link                                                                       |
 | ---------------------- | -------------------------------------------------------------------------- |
 | Overview (hub)         | https://docs.salla.dev/embedded-sdk/overview.md                            |
+| Getting Started        | https://docs.salla.dev/embedded-sdk/getting-started.md                     |
 | Installation           | https://docs.salla.dev/embedded-sdk/installation.md                        |
 | Create an embedded app | https://docs.salla.dev/embedded-sdk/create-app.md                          |
 | Authentication         | https://docs.salla.dev/embedded-sdk/authentication.md                      |
+| Token Introspect (API) | https://docs.salla.dev/27474794e0.md                                       |
 | App Design Guidelines  | https://docs.salla.dev/embedded-sdk/design-guidelines.md                   |
 | Playground / testing   | https://docs.salla.dev/embedded-sdk/playground.md                          |
+| Support & community    | https://docs.salla.dev/embedded-sdk/resources/support.md                   |
 | Implementation guide   | [`references/implementation-guide.md`](references/implementation-guide.md) |
 | SDK module methods     | [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)       |
 
-> Per-module pages (auth/page/nav/ui/checkout) don't have public URLs yet — use the bundled
-> [`sdk-modules-guide.md`](references/sdk-modules-guide.md) for method signatures.
+> Per-module pages live under `https://docs.salla.dev/embedded-sdk/modules/...` (auth, page, nav,
+> ui, checkout). The bundled [`sdk-modules-guide.md`](references/sdk-modules-guide.md) mirrors
+> their signatures.

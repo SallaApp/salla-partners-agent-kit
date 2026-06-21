@@ -14,19 +14,21 @@ Examples are vanilla TS so they port anywhere; framework gotchas are called out 
 The dashboard shell renders at `https://s.salla.sa/embedded/app/{appId}/{route}` and loads your
 registered `iframe_url` **inside an iframe**, appending query params:
 
-| Param   | Value                         | Read it via                     |
-| ------- | ----------------------------- | ------------------------------- |
-| `token` | short-lived (5 min) SDK token | `embedded.auth.getToken()`      |
-| `theme` | `light` \| `dark`             | `layout.theme` (from `init()`)  |
-| `lang`  | `ar` \| `en`                  | `layout.locale` (from `init()`) |
+| Param   | Value                 | Read it via                     |
+| ------- | --------------------- | ------------------------------- |
+| `token` | short-lived SDK token | `embedded.auth.getToken()`      |
+| `theme` | `light` \| `dark`     | `layout.theme` (from `init()`)  |
+| `lang`  | `ar` \| `en`          | `layout.locale` (from `init()`) |
 
-The SDK auto-logs-in the user **client-side** during `init()` (trusted UX only). It is not an
-authorization signal — do not introspect/validate `token` on the frontend, and never send it to
-your backend to be "verified". Validation/authorization happens on the **backend**: your app
-maintains its **own OAuth session** on top (see [`auth-and-session.md`](auth-and-session.md)).
+> Source: https://docs.salla.dev/embedded-sdk/create-app.md
 
-Never parse these params yourself — call `embedded.init()` and read `layout`. The handshake also
-gives you `layout.dir` (`rtl`/`ltr`).
+**Trust-but-Verify:** the token in the URL is a _bootstrap_ credential. Your frontend reads it
+with `embedded.auth.getToken()` and sends it to **your backend**, which verifies it via
+`POST /exchange-authority/v1/introspect` (header `S-Source = your App ID`) and mints its own
+session. The frontend never authorizes. See [`auth-and-session.md`](auth-and-session.md).
+
+Never parse the query params yourself — call `embedded.init()` and read `layout` (it also carries
+`layout.dir` = `rtl`/`ltr`).
 
 ---
 
@@ -79,9 +81,9 @@ module.exports = {
 > If you use Helmet, set `frameguard: false` and configure `contentSecurityPolicy` with the
 > `frameAncestors` directive — Helmet's defaults send `X-Frame-Options: SAMEORIGIN`.
 
-**CORS:** the iframe page calls _your_ backend (`/api/session`, your OAuth routes, data
-endpoints). If the frontend and backend are different origins, enable CORS (with credentials)
-for the frontend origin on those routes. Same-origin (page and API under one host) needs nothing.
+**CORS:** the iframe page calls _your_ backend (`/api/auth/session`, data endpoints). If the
+frontend and backend are different origins, enable CORS (with credentials) for the frontend
+origin on those routes. Same-origin (page and API under one host) needs nothing.
 
 ---
 
@@ -102,18 +104,21 @@ a token. Two supported paths:
 5. Re-point `iframe_url` back to production before publishing.
 
 **B. Fork the official Test Kit (best for exploring SDK behavior first):** fork and deploy
-[`SallaApp/embedded-sdk-playground`](https://github.com/SallaApp/embedded-sdk-playground), set your
-`iframe_url` to the deployment, install on a demo store, and Run App. Its **Event Console**
+[`SallaApp/embedded-sdk-playground`](https://github.com/SallaApp/embedded-sdk-playground), set
+your `iframe_url` to the deployment, install on a demo store, and Run App. Its **Event Console**
 triggers each SDK event with one click and its **Interactive Playground** runs SDK snippets live
 (`window.salla.embedded`) against the dashboard — ideal for confirming toast/confirm/nav behavior
-before you wire it into your own code. Point its session/OAuth hooks at your backend to exercise
-your own app-session flow end to end.
+before you wire it into your own code. Point its token-verification hook
+(`/server/functions/verify-token.js`) at **your** backend introspect endpoint to exercise the
+full Trust-but-Verify handshake end to end.
+
+> Source: https://docs.salla.dev/embedded-sdk/playground.md
 
 ---
 
 ## 3. Worked example — a settings page (vanilla TS)
 
-End-to-end: init (SDK verifies the token client-side) → theme/locale → ensure your own app
+End-to-end: init → theme/locale → `getToken()` → backend verifies (introspect) and mints a
 session → `ready()` → a Save action in the dashboard navbar → toast → a guarded destructive
 action with `ui.confirm`.
 
@@ -136,23 +141,35 @@ async function bootstrap() {
   document.documentElement.lang = layout.locale;
   document.documentElement.dir = layout.dir; // "rtl" for ar, "ltr" for en
 
-  // 2. init() already verified the SDK token client-side (trusted) and logged the user in.
-  //    Ensure YOUR OWN app session exists — do NOT send the SDK token to the backend.
-  const hasSession = await fetch("/api/session", {
-    method: "GET",
-    credentials: "include",
-  }).then((r) => r.ok);
-  if (!hasSession) {
-    await startAppOAuth(); // your own OAuth inside the iframe; boot re-runs after it returns.
+  try {
+    // 2. Capture the short-lived token and hand it to YOUR backend.
+    const token = embedded.auth.getToken();
+    if (!token) throw new Error("No token — opened outside Salla");
+
+    // 3 + 4. Backend introspects (S-Source = App ID) and mints its own session.
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ token }),
+    });
+    if (res.status === 401) {
+      embedded.auth.refresh(); // expired → reload iframe with a fresh token; boot re-runs
+      return;
+    }
+    if (!res.ok) throw new Error("Verification failed");
+
+    // 5. Load this page's data, then reveal.
+    await loadSettings();
+    embedded.page.setTitle(layout.locale === "ar" ? "الإعدادات" : "Settings");
+    embedded.ready();
+  } catch (err) {
+    console.error("Auth failed", err);
+    embedded.destroy(); // exit gracefully instead of hanging on the loading overlay
     return;
   }
 
-  // 3. Load this page's data, then reveal.
-  await loadSettings();
-  embedded.page.setTitle(layout.locale === "ar" ? "الإعدادات" : "Settings");
-  embedded.ready();
-
-  // 4. Put the primary CTA in the dashboard navbar (not inside the iframe).
+  // 6. Put the primary CTA in the dashboard navbar (not inside the iframe).
   embedded.nav.setAction({
     title: layout.locale === "ar" ? "حفظ" : "Save",
     value: "save",
@@ -173,7 +190,7 @@ async function bootstrap() {
     }
   });
 
-  // 5. Guarded destructive action — confirm() resolves to { confirmed }.
+  // 7. Guarded destructive action — confirm() resolves to { confirmed }.
   document.querySelector("#reset")?.addEventListener("click", async () => {
     const { confirmed } = await embedded.ui.confirm({
       title: layout.locale === "ar" ? "إعادة تعيين؟" : "Reset settings?",
@@ -185,7 +202,7 @@ async function bootstrap() {
     if (confirmed) await resetSettings();
   });
 
-  // 6. Clean up listeners when the view tears down.
+  // 8. Clean up listeners when the view tears down.
   window.addEventListener("beforeunload", () => {
     offAction();
     embedded.nav.clearAction();
@@ -194,9 +211,6 @@ async function bootstrap() {
 
 bootstrap();
 ```
-
-Do **not** call `embedded.page.resize()` — iframe height is auto-managed by the host; `resize()`,
-`autoResize()`, and `stopAutoResize()` are deprecated no-ops.
 
 ---
 
@@ -225,8 +239,8 @@ Minimal file set for a same-origin app (page + backend on one host). Adapt paths
 
 **`src/app.ts`** — the frontend bootstrap: use the [worked example](#3-worked-example--a-settings-page-vanilla-ts) above.
 
-**`server.ts`** — backend: serves the page with framing headers + maintains your own app session
-(your own OAuth). It does **not** verify the SDK token — that verify is client-side and trusted.
+**`server.ts`** — backend: serves the page with framing headers + verifies the Salla token via
+introspection and mints its own session.
 
 ```ts
 import express from "express";
@@ -243,26 +257,38 @@ app.use((req, res, next) => {
   next();
 });
 
-// Your own app session check — keyed off YOUR cookie/session, not the SDK token.
-app.get("/api/session", (req, res) => {
-  if (req.session?.merchantId) {
-    return res.json({ ok: true, merchant_id: req.session.merchantId });
-  }
-  return res.status(401).json({ ok: false });
-});
+// Trust-but-Verify: introspect the Salla token, then mint YOUR session.
+app.post("/api/auth/session", async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ ok: false });
 
-// Your own OAuth callback establishes the session (token storage/refresh → salla-app-auth).
-app.get("/api/oauth/callback", async (req, res) => {
-  const merchantId = await completeAppOAuth(req.query); // your OAuth implementation
-  req.session.merchantId = merchantId; // your own session, your own cookie
-  res.redirect("/");
+  const introspect = await fetch(
+    "https://api.salla.dev/exchange-authority/v1/introspect",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "S-Source": process.env.SALLA_APP_ID, // your own App ID
+      },
+      body: JSON.stringify({ token }),
+    },
+  );
+
+  const payload = await introspect.json();
+  if (!introspect.ok || !payload.success) {
+    return res.status(401).json({ ok: false });
+  }
+
+  req.session.merchantId = payload.data.merchant_id;
+  req.session.userId = payload.data.user_id;
+  return res.json({ ok: true, merchant_id: payload.data.merchant_id });
 });
 
 app.use(express.static("public"));
 app.listen(3000);
 ```
 
-Full two-session model and security rules → [`auth-and-session.md`](auth-and-session.md).
+Full Trust-but-Verify model and security rules → [`auth-and-session.md`](auth-and-session.md).
 
 ---
 

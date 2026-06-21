@@ -38,8 +38,9 @@ each in its own skill, and clear every gate before moving on.
   the operation and your return value shapes or blocks it; a webhook only reacts after.
 
 Fall back to a webhook (**salla-webhooks**) when no App Function trigger exists, or when the
-work can't fit the runtime (sync 5 s total / async 30 s) or the V8 sandbox (no npm, no
-`fs`/`http`) — confirm those limits in **salla-app-functions-handler** before committing.
+work can't fit the runtime (sync 5 s total / async 30 s) or the V8 isolate (no npm, no
+`fs`/`net`/`http` servers/`child_process`; Web Crypto only; `fetch` for HTTP) — confirm those
+limits in **salla-app-functions-handler** before committing.
 
 ## Act with the Salla Partners MCP
 
@@ -48,10 +49,12 @@ work can't fit the runtime (sync 5 s total / async 30 s) or the V8 sandbox (no n
 | `salla_functions` | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store |
 | `salla_apps`      | `publish`                                                       | Submit the app for review (releases the function to real stores)                                                            |
 
-> Sync actions must finish within a **5 s total budget** (keep each internal async call
-> **< 2 s**); async events get **30 s**. `Resp`,
-> `CommunicationEvent`, and all typed contexts are **pre-declared runtime globals** — never
-> re-declare or import them in code you paste into the Portal.
+> Sync actions have a **hard 5 s total** limit (keep each internal async call **< 2 s**); the
+> docs **recommend < 500 ms** since the merchant is blocked (target, not the limit). Async
+> events get **30 s**. `Resp`, the entity builders (e.g. `Shipment`), `CommunicationEvent`, and
+> all typed contexts are **pre-declared runtime globals** — never re-declare or import them in
+> code you paste into the Portal. Runtime is a **V8 isolate**, not Node — details +
+> module/response specifics in **salla-app-functions-handler**.
 
 ## Step 0 — Discover (ask first)
 
@@ -63,4 +66,5 @@ work can't fit the runtime (sync 5 s total / async 30 s) or the V8 sandbox (no n
 
 - Overview https://docs.salla.dev/1726814m0.md · Get started https://docs.salla.dev/1726815m0.md
 - Supported events https://docs.salla.dev/1726818m0.md · Testing https://docs.salla.dev/1726816m0.md
+- Responses https://docs.salla.dev/1758222m0.md · Node.js support https://docs.salla.dev/1769435m0.md
 - Partners Portal https://portal.salla.partners · Community https://t.me/salladev

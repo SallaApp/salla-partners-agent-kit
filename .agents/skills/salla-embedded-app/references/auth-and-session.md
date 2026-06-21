@@ -1,183 +1,257 @@
 # Embedded App — Authentication & Session Management
 
-Embedded apps use **two independent sessions**, and it is critical not to conflate them:
+Salla embedded apps authenticate with a **Trust-but-Verify** model. When a merchant opens your
+app, Salla passes a **short-lived session token** through the iframe URL. Your frontend captures
+it and hands it to **your backend**, which **verifies it with Salla's Introspection API** and
+then mints its own session. The frontend never makes authorization decisions — it is a courier.
 
-1. **The SDK session token** — short-lived (**5 minutes**), issued by the dashboard to the
-   iframe. The SDK verifies it **client-side** and **auto-logs-in** the user (trusted **UX
-   only** — you don't build this). It is **not** an authorization signal: never
-   introspect/validate it on the frontend, and never send it to your server to "verify" it.
-   The frontend is never trusted for authz.
-2. **Your app's own user session** — your backend runs its **own OAuth** for its own user
-   inside the iframe and maintains that session with cookies / server sessions / localStorage,
-   exactly like any web app. This is where validation/authorization lives and what authorizes
-   your API calls.
-
-Every embedded page is still authorized — but on the **backend**, via **your app's own OAuth
-session**, never via the frontend and never via a verify of the SDK token.
+> Source: https://docs.salla.dev/embedded-sdk/authentication.md
 
 ---
 
-## Two-session model
+## The authentication flow
 
 ```text
 Merchant opens your embedded page in the dashboard
     ↓
-Salla loads your iframe URL with a short-lived (5 min) SDK token
+1. App  → Dashboard:  await embedded.init()          (postMessage bridge)
+   Dashboard → App:   layout (theme, locale, dir, …)
     ↓
-embedded.init() runs the handshake; the SDK auto-logs-in the user CLIENT-SIDE (UX only)
+2. App:  const token = embedded.auth.getToken()      (short-lived token from the URL)
     ↓
-Your backend validates and checks ITS OWN session (cookie / server session / localStorage)
+3. App  → Your Backend:  POST /api/auth/session { token }
     ↓
-   ├─ session present  → render the page
-   └─ no session yet   → run YOUR OWN OAuth, establish your session, then render
+4. Backend → Salla:  POST /exchange-authority/v1/introspect
+                     header  S-Source: <YOUR_APP_ID>
+                     body    { "token": "..." }
+   Salla → Backend:  { merchant_id, user_id, exp }
+   Backend mints its own session (JWT / secure cookie)
+    ↓
+5. App:  embedded.ready()   (only after backend confirms AND data is loaded)
+       └─ on failure: embedded.destroy()
 ```
 
-The SDK auto-login gets the user into your iframe; **your own backend OAuth session** is what
-validates them and authorizes your backend. The frontend is never trusted for authz.
+The frontend gathers context and hands it to the server. **Do not** perform business logic based
+on an unverified frontend token.
 
 ---
 
-## SDK Initialization (Frontend)
+## Frontend (the courier)
 
 ```ts
 import { embedded } from "@salla.sa/embedded-sdk";
 
 async function bootstrapApp() {
+  // 1. Establish the bridge and read layout.
+  const { layout } = await embedded.init({
+    debug: process.env.NODE_ENV !== "production",
+  });
+
+  if (layout) {
+    document.documentElement.setAttribute("data-theme", layout.theme);
+    document.documentElement.setAttribute("lang", layout.locale);
+    document.documentElement.setAttribute("dir", layout.dir);
+  }
+
   try {
-    // Initialize SDK and apply layout settings from dashboard.
-    // The SDK verifies the short-lived token client-side (trusted) and logs the user in.
-    const { layout } = await embedded.init({
-      debug: process.env.NODE_ENV !== "production",
-    });
+    // 2. Capture the short-lived token from the URL.
+    const token = embedded.auth.getToken();
+    if (!token) throw new Error("Opened outside Salla — no token in URL");
 
-    if (layout) {
-      document.documentElement.setAttribute("data-theme", layout.theme);
-      document.documentElement.setAttribute("lang", layout.locale);
-      document.documentElement.setAttribute(
-        "dir",
-        layout.locale === "ar" ? "rtl" : "ltr",
-      );
-    }
-
-    // Ensure YOUR OWN app session exists (your own OAuth). The SDK token is NOT
-    // sent to the backend to be "verified" — it is trusted client-side.
-    const hasSession = await fetch("/api/session", {
-      method: "GET",
+    // 3. Send it to YOUR backend; do NOT make authz decisions on the frontend.
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-    }).then((res) => res.ok);
+      body: JSON.stringify({ token }),
+    });
+    if (!res.ok) throw new Error("Backend verification failed");
 
-    if (!hasSession) {
-      // No app session yet → start YOUR OWN OAuth inside the iframe, then re-run boot.
-      await startAppOAuth();
-      return;
-    }
-
-    // Signal ready to the dashboard shell
+    // 5. Backend confirmed + data loaded → reveal.
+    await loadDashboardData();
     embedded.ready();
     embedded.page.setTitle(layout?.locale === "ar" ? "تطبيقي" : "My App");
   } catch (err) {
-    console.error("Handshake failed", err);
-    // Render an error/"open inside Salla" state; on an expired SDK token call
-    // embedded.auth.refresh().
+    console.error("Auth failed", err);
+    // On an expired token, prefer refresh (see below); otherwise exit gracefully.
+    embedded.destroy();
   }
 }
 
 bootstrapApp();
 ```
 
+`embedded.auth.getToken()` returns `string | null` — always handle the `null` case (app opened
+outside the Salla dashboard).
+
 ---
 
-## Your app's own session (Backend)
+## Backend verification (the source of truth)
 
-Authorization lives here. Your backend does **not** introspect or verify the SDK token (and the
-frontend must not either). Instead it maintains its own authenticated user session — established
-by **your own OAuth** — using cookies / server sessions / localStorage, the same as any web app
-rendered in an iframe, and authorizes every request against that session.
+Your backend verifies the token via Salla's Introspection API. This proves the request is
+genuine and identifies the merchant and user. Then it mints **its own** session — the Salla
+token is used **only** to bootstrap that session, never stored as a long-lived credential.
 
-```ts
-// Your app's session check — keyed off YOUR cookie/session, not the SDK token.
-app.get("/api/session", (req, res) => {
-  if (req.session?.merchantId) {
-    return res.json({ ok: true, merchant_id: req.session.merchantId });
+**Method:** `POST`
+**URL:** `https://api.salla.dev/exchange-authority/v1/introspect`
+**Header:** `S-Source: <YOUR_APP_ID>` (your own App ID)
+**Body:** `{ "token": "em_tok_..." }`
+
+**Successful response:**
+
+```json
+{
+  "status": 200,
+  "success": true,
+  "data": {
+    "merchant_id": 123456,
+    "user_id": 987654,
+    "exp": "2026-01-19T12:00:00Z"
   }
-  return res.status(401).json({ ok: false });
-});
+}
+```
 
-// Your own OAuth flow establishes the session (see salla-app-auth for token storage,
-// refresh, and the per-merchant refresh lock).
-app.get("/api/oauth/callback", async (req, res) => {
-  const merchantId = await completeAppOAuth(req.query); // your OAuth implementation
-  req.session.merchantId = merchantId; // your own session, your own cookie
-  res.redirect("/"); // back into the iframe, now with an app session
+**Failure (`401`):**
+
+```json
+{
+  "status": 401,
+  "success": false,
+  "error": { "message": "Decryption failed", "code": 0 }
+}
+```
+
+> Full OpenAPI for the endpoint: https://docs.salla.dev/27474794e0.md
+
+```ts
+// POST /api/auth/session — verify the Salla token, then mint YOUR session.
+app.post("/api/auth/session", async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ ok: false });
+
+  const introspect = await fetch(
+    "https://api.salla.dev/exchange-authority/v1/introspect",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "S-Source": process.env.SALLA_APP_ID, // your own App ID
+      },
+      body: JSON.stringify({ token }),
+    },
+  );
+
+  const payload = await introspect.json();
+  if (!introspect.ok || !payload.success) {
+    return res.status(401).json({ ok: false });
+  }
+
+  const { merchant_id, user_id } = payload.data;
+
+  // Mint YOUR session (short-lived Salla token is now done its job).
+  req.session.merchantId = merchant_id;
+  req.session.userId = user_id;
+
+  return res.json({ ok: true, merchant_id });
 });
 ```
 
-> Where this OAuth comes from: the merchant authorizes your app on install
-> (`app.store.authorize`), and you store the access/refresh tokens then. The embedded page
-> establishes its own user session on top of that. Token storage, single-use refresh tokens,
-> and the per-merchant refresh lock all live in `salla-app-auth`.
+### Validate the `S-Source` header
+
+Always send your unique **App ID** in `S-Source`. This scopes introspection to your identity and
+prevents another app from verifying tokens against you. Keep your App ID server-side
+(`process.env.SALLA_APP_ID`) — never accept it from the request.
 
 ---
 
-## SDK Token Refresh
+## Client Introspect (`embedded.auth.introspect()`) — DEV / DEBUG ONLY
 
-The SDK token is short-lived — **5 minutes**. When the SDK reports the token is stale, refresh
-it; this is independent of your app session:
+The SDK exposes a frontend introspect helper for **local development and debugging only**. The
+docs are explicit: it "should not be used as a primary authentication method," and **never** make
+final authentication decisions on the frontend. Use the backend introspect above for production.
 
 ```ts
+// DEV/DEBUG ONLY — inspect a token's details from the client during development.
+const result = await embedded.auth.introspect();
+if (result.isVerified) {
+  console.log("Token valid for user:", result.data.user_id);
+}
+```
+
+`introspect(options?)` accepts optional `{ appId, token, refreshOnError }` (all auto-extracted
+from the URL by default) and resolves to `{ isVerified, isError, data }` where `data` holds
+`merchant_id`, `user_id`, `exp`. See [`sdk-modules-guide.md`](sdk-modules-guide.md) for the full
+signature.
+
+---
+
+## Handling token expiration (401 → refresh)
+
+The Salla token is short-lived by design. When your backend returns `401` (or otherwise reports
+the session expired), trigger the refresh flow:
+
+```text
+App → Backend:  API request (session expired)
+Backend → App:  401 Unauthorized
+App → Host:     embedded.auth.refresh()
+Host → App:     reload iframe with a fresh token
+                → bootstrapApp() runs again, restarting the auth flow
+```
+
+```ts
+// Backend reported the token expired:
 embedded.auth.refresh();
-// Salla re-renders the iframe with a fresh SDK token, triggering bootstrapApp() again.
+// Salla re-renders the iframe with a fresh token in the URL; bootstrapApp() re-runs.
 ```
 
-`embedded.auth.refresh()` posts a message to the dashboard shell. The iframe reloads with a new
-token in the URL — your `bootstrapApp()` runs again automatically and re-checks your app session.
+`refresh()` returns `void` and posts a message to the host. **Avoid loops:** don't call
+`refresh()` repeatedly if the token stays invalid for a different reason; consider a brief
+loading hint before the reload.
 
 ---
 
-## Calling the Salla API (from your backend)
+## Calling the Salla Admin API (from your backend)
 
-Once your app session is established, your backend calls the Salla Admin API using the merchant's
-OAuth access token (stored during `app.store.authorize`). The SDK session token is **not** an
-Admin API credential. Storing/refreshing the OAuth access token (and the single-use refresh
-token plus the per-merchant refresh lock) is `salla-app-auth`; Admin API request/error/auth
-patterns are `salla-api-core`. Always scope the query to **your authenticated** session
-merchant, never a client-supplied id:
+Introspection is for **authenticating the embedded session**, not for calling the Admin API. To
+call the Salla Admin API on behalf of the merchant, use the merchant's **OAuth access token**
+stored at install (`app.store.authorize`). Always scope the query to the `merchant_id` your
+introspection returned — never a client-supplied id.
 
 ```ts
-// Take the merchant from YOUR verified app session, never from a request/body param.
 async function fetchOrders(req: Request) {
-  const merchantId = req.session.merchantId; // set by YOUR OAuth, not the SDK token
+  const merchantId = req.session.merchantId; // set by introspection, not by the client
   if (!merchantId) throw new Error("Unauthenticated");
-  const token = await db.getAccessToken(merchantId); // stored at install
+  const accessToken = await db.getAccessToken(merchantId); // stored at install
   const res = await fetch("https://api.salla.dev/admin/v2/orders", {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
   const { data } = await res.json();
   return data;
 }
 ```
 
+OAuth token storage, single-use refresh tokens, and the per-merchant refresh lock →
+`salla-app-auth`. Admin API request/error patterns → `salla-api-core`.
+
 ---
 
-## Security Rules
+## Security rules
 
-- **SDK auto-login is client-side and UX only** — the SDK verifies the token in the iframe and
-  auto-logs-in the user, but the frontend is **never** trusted for authz. Do **not**
-  introspect/validate the SDK token on the frontend, and do **not** send it to your backend to
-  "verify" it.
-- **Validate/authorize on the backend via your own OAuth** — every embedded page is authorized
-  by your app's own backend session (cookie/server session/localStorage), not via the SDK token
-  and never on the frontend.
-- **The SDK token is short-lived (5 min)** — call `embedded.auth.refresh()` when it expires; it
-  is bootstrap-only, not an API credential.
-- **Scope every query to your authenticated session merchant** — never derive the merchant from
+- **Trust-but-Verify** — the frontend captures the token and forwards it; the **backend**
+  verifies it (introspect) and decides authorization. Never authorize on the frontend.
+- **Validate `S-Source`** — always send your own App ID; keep it server-side.
+- **`embedded.auth.introspect()` is dev-only** — never a primary auth method.
+- **Short-lived token** — used only to mint your session; `embedded.auth.refresh()` on
+  401/expiry; `embedded.destroy()` on unrecoverable failure (don't hang the loading overlay).
+- **Scope every query** to the session `merchant_id` from introspection — never trust
   client-supplied input.
 
 ---
 
 ## Resources
 
-| Topic                 | Link                                                          |
-| --------------------- | ------------------------------------------------------------- |
-| Authentication guide  | https://docs.salla.dev/embedded-sdk/authentication.md         |
-| Auth Module reference | https://docs.salla.dev/embedded-sdk/modules/auth/get-token.md |
+| Topic                  | Link                                                  |
+| ---------------------- | ----------------------------------------------------- |
+| Authentication guide   | https://docs.salla.dev/embedded-sdk/authentication.md |
+| Token Introspect (API) | https://docs.salla.dev/27474794e0.md                  |
+| Get Token (auth)       | https://docs.salla.dev/embedded-sdk/modules/auth.md   |

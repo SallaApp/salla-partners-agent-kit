@@ -14,10 +14,14 @@ Decide _what_ runs and _when_ before you write any code.
 
 ## Step 1 — Confirm the event contract
 
-Confirm the event's exact `payload.data` shape in the App Functions events reference
-(https://docs.salla.dev/1726818m0.md) **before** writing any handler. Never assume a
-payload. The event → typed-context mapping and the supported trigger list live in
-**[references/event-contexts.md](references/event-contexts.md)**.
+The doc-grounded event catalog — every trigger grouped Merchant vs Customer, its
+sync/async type, and its documented `payload.data` shape — lives in
+**[references/event-contexts.md](references/event-contexts.md)**. Use it to pick the trigger
+and read the context shape. Never assume a payload. The live source of truth for trigger
+names and categories is **`salla_functions action=list_triggers`** (no `app_id` needed);
+for the exact, authoritative `.d.ts` of a trigger, use `salla_functions action=get`.
+Customer-event docs ship illustrative payloads — confirm those field names against the
+schema doc / `action=get` before relying on them.
 
 **Gate:** "Do you have the confirmed `payload.data` field names for this event?"
 
@@ -28,14 +32,15 @@ payload. The event → typed-context mapping and the supported trigger list live
 | **Asynchronous event** | After the operation  | No           | 30 s          | Fire-and-forget: logged, does **not** affect the flow.                 |
 | **Synchronous action** | Before the operation | Yes          | **5 s total** | Blocking: can **modify** parameters or **reject/block** the operation. |
 
-- **Sync actions** (the `merchant_actions` category — currently `shipment.creating` and
-  `shipment.cancelling`) intercept the lifecycle: `Resp.error().setMessage("…")` cancels the
-  operation (message shown to the customer/merchant); `Resp.success().setData({ … })` alters
-  the operation's data before it completes. Confirm which triggers are sync via
-  `salla_functions action=list_triggers` (category `merchant_actions`) — don't infer it from
-  the verb form.
+- **Sync actions** are exactly the `merchant_actions` category — `shipment.creating` and
+  `shipment.cancelling` (confirmed via `salla_functions action=list_triggers`; don't infer
+  it from the verb form). They intercept the lifecycle before it completes: erroring cancels
+  the operation, succeeding can modify its data. Note `shipment.creating` is the documented
+  sync example and returns a **`Shipment`** (`(context: Shipments): Promise<Shipment>`), not
+  a plain `Resp` — it sets the shipment number/label. Exact builder mechanics →
+  **salla-app-functions-handler**.
 - **Async events** (e.g. `order.created`, `product.added`) run out-of-band; return a valid
-  `Resp.success()` / `Resp.error()` so the result is recorded in logs.
+  success/error result so it's recorded in logs.
 
 ### Sync budget (5 s total)
 

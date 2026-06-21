@@ -1,13 +1,29 @@
 # Embedded App — Design Guidelines
 
-Your app runs inside the Salla Merchant Dashboard. It must look and behave like a native part of the platform — not a foreign iframe.
+Your app runs inside the Salla Merchant Dashboard. It must look and behave like a native part of
+the platform — not a foreign iframe.
 
-> **Auth is not optional here.** This file is design only — it shows the app shell, not how
-> to authenticate it. Every embedded page MUST run on your app's **own OAuth session** before
-> any of this UI renders. (The SDK's client-side auto-login is trusted UX only — never
-> introspect the token on the FE; your backend validates and owns the session; SKILL.md Step 3 →
-> [`auth-and-session.md`](auth-and-session.md).) OAuth/merchant-token specifics →
-> `salla-app-auth`.
+> Source: https://docs.salla.dev/embedded-sdk/design-guidelines.md
+
+> **Auth is not optional here.** This file is design only — it shows the app shell, not how to
+> authenticate it. Every embedded page MUST be authenticated before any of this UI renders, via
+> the **Trust-but-Verify** model: the frontend captures the token (`embedded.auth.getToken()`)
+> and your backend verifies it (`POST /exchange-authority/v1/introspect`, `S-Source = App ID`)
+> and mints its own session. Call `embedded.ready()` only after that. SKILL.md Step 3 →
+> [`auth-and-session.md`](auth-and-session.md). Admin-API merchant tokens → `salla-app-auth`.
+
+---
+
+## Use SDK components (a requirement, not a suggestion)
+
+Using the Embedded SDK modules for core dashboard interactions is **mandatory** — it keeps the
+merchant from facing fragmented UI patterns. Crucially:
+
+- **Use methods, not events.** Always call the high-level SDK methods (e.g.
+  `embedded.ui.toast.success`) instead of sending `postMessage` directly. Internal message shapes
+  may change; the SDK handles validation, error states, and abstraction.
+- Toasts, confirms, loading, navbar actions, breadcrumbs, page title, and navigation all have
+  native SDK methods — use them rather than building your own.
 
 ---
 
@@ -58,15 +74,42 @@ Tailwind CSS with RTL plugin (or `rtl:` variants) is recommended.
 
 ## Theme Synchronization
 
-Set a data attribute from the same `layout`:
+The dashboard supports dynamic Light/Dark switching, and your app **must** respond. Set a data
+attribute from `layout` on init, and re-apply it when the theme changes:
 
 ```ts
 document.documentElement.setAttribute("data-theme", layout.theme ?? "light");
+
+// Sync on live theme switches:
+embedded.onThemeChange((theme) => {
+  document.documentElement.setAttribute("data-theme", theme);
+});
 ```
 
-There is no official published token set to import — the goal is to **match Salla's look &
-feel**. Use CSS variables that respond to the attribute; the values below are recommended
-defaults that align with the dashboard:
+There is **no official published token set to import** — the goal is to **match Salla's look &
+feel** (follow the [Salla Brand Guidelines](https://brand.salla.com/)). The brand colors below
+come from the official design guidelines; use them (or their HSL equivalents) so your components
+match the merchant's current theme. Ensure all elements stay legible in both modes.
+
+**Light mode:**
+
+| Token       | HSL            | Hex       | Use                                   |
+| ----------- | -------------- | --------- | ------------------------------------- |
+| `primary`   | `189 100% 17%` | `#004d5b` | Main brand color, deep teal headings. |
+| `secondary` | `163 100% 82%` | `#73fcd7` | Mint/teal accents, active states.     |
+| `success`   | `157 100% 34%` | `#00b259` | Positive feedback, active status.     |
+| `danger`    | `358 89% 64%`  | `#f5434a` | Errors and destructive actions.       |
+| `bg-main`   | `0 0% 97%`     | `#f8f8f8` | Main dashboard workspace background.  |
+
+**Dark mode:**
+
+| Token       | HSL            | Hex       | Use                                 |
+| ----------- | -------------- | --------- | ----------------------------------- |
+| `primary`   | `166 70% 84%`  | `#baefe3` | Light teal text / primary elements. |
+| `secondary` | `166 70% 84%`  | `#baefe3` | Accent highlights in dark mode.     |
+| `success`   | `157 100% 34%` | `#00b259` | Standard success green.             |
+| `danger`    | `358 89% 64%`  | `#f5434a` | Standard error red.                 |
+| `bg-main`   | `220 5% 12%`   | `#1d1e20` | Dark surface background.            |
 
 ```css
 :root {
@@ -75,7 +118,13 @@ defaults that align with the dashboard:
   --color-success: #00b259;
   --color-danger: #f5434a;
   --color-bg-main: #f8f8f8;
-  --font-main: "Outfit", sans-serif;
+}
+[data-theme="dark"] {
+  --color-primary: #baefe3;
+  --color-secondary: #baefe3;
+  --color-success: #00b259;
+  --color-danger: #f5434a;
+  --color-bg-main: #1d1e20;
 }
 ```
 
@@ -83,11 +132,13 @@ defaults that align with the dashboard:
 
 ## Typography
 
-Recommended defaults to match the Salla dashboard font stack and scale:
+Salla uses the **PingARLT** font family for a professional, readable experience across Arabic and
+English. There is no public token set to import — match the dashboard's weight and spacing with a
+clean sans-serif stack:
 
 ```css
 body {
-  font-family: "IBM Plex Sans Arabic", "Inter", system-ui, sans-serif;
+  font-family: "PingARLT", "IBM Plex Sans Arabic", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
@@ -104,6 +155,17 @@ body {
 
 ---
 
+## Iconography
+
+Salla uses the **[Hugeicons](https://hugeicons.com/)** library for a clean, geometric, modern
+visual language. Match it to feel native.
+
+- Keep consistent stroke weights. If using SVG versions, convert strokes to shapes before scaling.
+- SDK methods use the same icons — e.g. `nav.setAction` accepts an icon class. Use the standard
+  Hugeicons class naming (e.g. `hgi hgi-stroke hgi-star`).
+
+---
+
 ## Spacing
 
 Use 4px base grid:
@@ -115,6 +177,23 @@ Use 4px base grid:
 | `space-4` | 16px | Component padding |
 | `space-6` | 24px | Between sections  |
 | `space-8` | 32px | Page margins      |
+
+---
+
+## Layout & spacing — the "No-Chrome" rule
+
+Your app runs **inside** the Salla Dashboard. Do **not** replicate the dashboard's navigation or
+layout — that creates a confusing "nested dashboard" effect that wastes space.
+
+- **No sidebar.** Use the dashboard's native app navigation.
+- **No top navbar / in-iframe breadcrumbs.** Use `embedded.page.setTitle()` and
+  `embedded.nav.setAction()` instead; toggle host breadcrumbs with `embedded.ui.breadcrumbs`.
+- **Full width.** Let your content expand to fill the iframe container.
+- **Good integration** uses native dashboard components and adheres to the dashboard theme/colors;
+  **bad integration** adds its own chrome and off-brand colors.
+
+> **Embedded App Banner:** add a `1420×520 px` banner image to your App Card before publishing
+> (My Apps → App → App Details → Start publishing → App Features → Embedded App Banner).
 
 ---
 

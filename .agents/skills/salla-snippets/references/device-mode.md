@@ -9,6 +9,11 @@ your `tracker.js` script embedded in the storefront.
 > selector, or payload path — confirm against the SDK docs and a real demo store
 > (`salla_apps action=demo_stores`; log `salla.event` / `emittedEvents`) before relying on
 > it.
+>
+> **Events here, methods elsewhere:** this file covers the `::` event catalogue and
+> payloads. The SDK **methods** an app snippet can call (`salla.cart.addItem`,
+> `salla.auth.login`, `salla.api.component.getReviews`, …) and the theme-vs-snippet
+> boundary live in [`twilight-js-sdk.md`](twilight-js-sdk.md).
 
 ---
 

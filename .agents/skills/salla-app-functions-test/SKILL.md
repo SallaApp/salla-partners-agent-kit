@@ -66,6 +66,13 @@ touch that URL yourself) and returns the function's response **as-is** (`http_st
 `response`). A `success:false` / `Resp.error()` result is a real function outcome — inspect
 it, don't assume a tool failure.
 
+This mirrors the Portal's **Save and Preview** panel
+([Testing](https://docs.salla.dev/1726816m0.md)), which runs the function against the demo
+store and surfaces the same things you should check in the returned `response`: execution
+status (success/failure), the response data, execution time, your `console.log()` output, and
+any errors. Test multiple scenarios — happy path, edge cases (null/empty fields), and error
+cases (API failures, timeouts). Changes stay in the sandbox until you publish.
+
 ## Errors
 
 - _"still deploying or failed to deploy"_ → wait ~30s / check `deploy_status`.

@@ -99,6 +99,32 @@ then **inject it as a storefront snippet** with the tool:
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)
 
+#### Twilight JS SDK (for app snippets)
+
+The Twilight theme engine **auto-injects** the Twilight Storefront JS SDK (`window.salla`)
+on every storefront page (the `body:end` hook). Your app snippet runs in that same page,
+so it can call the same runtime API — auth, cart, wishlist, product, order, rating,
+currency, loyalty, comment, profile, booking, `salla.api.component.*`, `salla.config`,
+`salla.event`, `salla.storage`, `salla.notify`, `salla.lang`, `salla.helpers`, metadata.
+
+**Method catalogue (signatures, per-module doc links, theme-vs-snippet boundary) →
+[`references/twilight-js-sdk.md`](references/twilight-js-sdk.md).** Events (the `::`
+catalogue, the `product::fetch.succeeded` trap, price encodings) stay in
+[`references/device-mode.md`](references/device-mode.md).
+
+Snippet rules that differ from themes: **do NOT call `salla.init()`** (the theme already
+initialized the SDK; `init()` is for standalone HTML only); gate on `salla.onReady` and
+register `salla.event.*` listeners at module top level; you **canNOT** define Twig
+`{% hook %}`s, ship `<salla-*>` web components, or use theme settings / `twilight.json` /
+the Twilight CLI — those are theme-development constructs, out of scope.
+
+**Glue:** this skill = the **shopper's browser** (customer-side actions/events via
+snippets). For a **server reaction** to the same activity, the hookable rule applies — a
+server event with an App Function trigger → **App Function**
+([salla-app-functions](../salla-app-functions/SKILL.md), server-side V8 isolate,
+preferred); else → **webhook** ([salla-webhooks](../salla-webhooks/SKILL.md)). Native
+visible UI → [salla-ui-compliance](../salla-ui-compliance/SKILL.md).
+
 #### Storefront UI compliance (when the snippet renders visible UI)
 
 A snippet that **draws on the page** must look native to the store's Twilight theme — not

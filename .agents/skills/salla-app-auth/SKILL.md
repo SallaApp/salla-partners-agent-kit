@@ -16,10 +16,11 @@ app, receive/exchange tokens, and refresh them safely. Work through the steps in
 complete each gate before moving on. Step 2 **performs actions** with the Salla Partners
 MCP; the token handling is runtime code.
 
-> **Publishing the app? → Easy Mode. Stop — do NOT build an OAuth callback or `state`
-> handling.** Tokens arrive in the `app.store.authorize` webhook. Custom Mode (a `/callback`
-> code exchange) is local-dev / Postman only. This is a hard requirement — do not substitute
-> a familiar OAuth2 callback pattern.
+> **Publishing the app? → default to Easy Mode.** Tokens arrive in the `app.store.authorize`
+> webhook, so you don't need an OAuth `/callback` or `state` handling. Custom Mode (a
+> `/callback` code exchange) is mainly for local dev / Postman; shipping it in a published app
+> without a real, justifiable use case can be rejected at Salla's admin review — so reach for
+> Easy Mode rather than a familiar OAuth2 callback out of habit.
 
 ## Tools & MCPs
 
@@ -29,7 +30,7 @@ MCP; the token handling is runtime code.
 | `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call         |
 | `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)                 |
 
-> Easy Mode is the **recommended default** and is required for all published App Store apps.
+> Easy Mode is the **recommended default** for published App Store apps.
 > Custom Mode is for local dev / Postman during development — shipping it in a published app
 > **without a real use case can get the app rejected at review**. Docs:
 > https://docs.salla.dev/421118m0.md · App Events:
@@ -48,14 +49,14 @@ MCP; the token handling is runtime code.
 
 ## Step 1 — Choose Your OAuth Mode
 
-|                             | Easy Mode ✅                              | Custom Mode                         |
-| --------------------------- | ----------------------------------------- | ----------------------------------- |
-| How tokens arrive           | Via `app.store.authorize` webhook payload | Via `/oauth/callback` code exchange |
-| Callback URL needed?        | No                                        | Yes                                 |
-| Allowed for published apps? | Yes — required                            | No                                  |
-| Allowed for testing?        | Yes                                       | Yes (Postman, local dev)            |
-| Recommendation              | **Default — recommended for every app**   | Dev only; needs a real use case     |
-| Token handling              | Salla handles everything; you just save   | You implement the full exchange     |
+|                      | Easy Mode ✅                              | Custom Mode                                                   |
+| -------------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| How tokens arrive    | Via `app.store.authorize` webhook payload | Via `/oauth/callback` code exchange                           |
+| Callback URL needed? | No                                        | Yes                                                           |
+| Published apps?      | Recommended (default)                     | Allowed with a justified use case — may be rejected at review |
+| Allowed for testing? | Yes                                       | Yes (Postman, local dev)                                      |
+| Recommendation       | **Default — recommended for every app**   | Dev only; needs a real use case                               |
+| Token handling       | Salla handles everything; you just save   | You implement the full exchange                               |
 
 **Decision rule — default to Easy Mode.** Easy Mode is the **recommended default for every
 app**; use it unless you have a concrete technical reason it cannot work. Custom Mode is for

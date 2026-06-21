@@ -5,6 +5,11 @@
       {
         "command": "./hooks/run-hook.cmd session-start"
       }
+    ],
+    "postToolUse": [
+      {
+        "command": "./hooks/run-hook.cmd track-telemetry"
+      }
     ]
   }
 }

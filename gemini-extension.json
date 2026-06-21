@@ -1,0 +1,10 @@
+{
+  "name": "salla-partners",
+  "version": "1.0.2",
+  "contextFileName": "AGENTS.md",
+  "mcpServers": {
+    "salla-partners": {
+      "httpUrl": "https://partners.mcp.salla.dev"
+    }
+  }
+}

@@ -10,8 +10,14 @@ act on it: create, configure, hook, monetize, and publish apps without touching 
 # Claude Code — skills + master agent
 claude plugin marketplace add SallaApp/salla-partners-agent-kit
 
-# All other agents (Cursor, Copilot, Codex, etc.)
+# Cursor, Copilot, Codex
 npx plugins add SallaApp/salla-partners-agent-kit
+
+# Gemini CLI (loads skills, AGENTS.md routing, and the MCP from gemini-extension.json)
+gemini extensions install https://github.com/SallaApp/salla-partners-agent-kit
+
+# Hermes (clones + links .hermes-plugin/ into ~/.hermes; re-run to update)
+curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/master/.hermes-plugin/install.sh | bash
 ```
 
 For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/getting-started.md)**.

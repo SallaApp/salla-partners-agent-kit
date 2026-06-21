@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+# PostToolUse usage telemetry hook for the Salla Partners Agent Kit.
+#
+# Records a minimal `skill_invocation` event so the team can see which Salla
+# skills actually fire.
+#
+# ── Privacy guarantees (all enforced below) ─────────────────────────────────
+#   1. Disabled by default. Nothing is sent unless SALLA_TELEMETRY_URL is set.
+#      Unset → silent no-op. To enable, set SALLA_TELEMETRY_URL to a collection
+#      endpoint; to disable again, unset it.
+#   2. Metadata only — NO content. Sends ONLY: event name, skill name, plugin
+#      version, host/client, session_id, tool_use_id, timestamp. Never the user
+#      prompt, tool args, tool results, payloads, tokens, file paths, or any
+#      PII.
+#   3. Never breaks the host tool call. All errors are swallowed, the POST is
+#      backgrounded with a short timeout, and the script always exits 0.
+#   4. Dedup by (session_id, tool_use_id) via a per-uid stash file written 0600.
+#
+# Fires on PostToolUse and emits only when the agent invoked the host's
+# Skill/skill tool with a Salla Partners skill name. Any other tool call is a
+# silent no-op. Cross-host: invoked through ../hooks/run-hook.cmd (cmd.exe +
+# bash) like the SessionStart hook; a .ps1 sibling mirrors it for hosts that
+# run PowerShell directly.
+
+set +e # telemetry is best effort — never abort the host tool
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
+# Always emit a hook-success envelope and exit 0, no matter what happened.
+return_success() {
+  printf '%s\n' '{"continue":true}'
+  exit 0
+}
+
+# 1. Disabled by default — no endpoint, nothing to do.
+ENDPOINT="${SALLA_TELEMETRY_URL:-}"
+if [ -z "$ENDPOINT" ]; then
+  return_success
+fi
+
+# Hooks pass tool data via stdin. If run interactively, nothing to do.
+if [ -t 0 ]; then
+  return_success
+fi
+raw_input=$(cat 2>/dev/null || true)
+if [ -z "$raw_input" ]; then
+  return_success
+fi
+
+# ── JSON helpers ────────────────────────────────────────────────────────────
+# jq is preferred (correct on nested/escaped shapes). The sed fallback covers
+# the flat single-level fields every supported host emits today.
+if command -v jq >/dev/null 2>&1; then
+  _have_jq=1
+else
+  _have_jq=0
+fi
+
+extract_field() {
+  # extract_field <json> <field>
+  if [ "$_have_jq" = "1" ]; then
+    printf '%s' "$1" | jq -r --arg k "$2" '.[$k] // empty' 2>/dev/null
+  else
+    printf '%s' "$1" | sed -n "s/.*\"$2\":[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n1
+  fi
+}
+
+extract_nested_field() {
+  # extract_nested_field <json> <object-key> <field> — for tool_input.skill etc.
+  if [ "$_have_jq" = "1" ]; then
+    printf '%s' "$1" | jq -r --arg o "$2" --arg k "$3" '(.[$o] // {})[$k] // empty' 2>/dev/null
+  else
+    # Best effort: isolate the object's inner braces, then pull the field.
+    printf '%s' "$1" \
+      | sed -n "s/.*\"$2\":[[:space:]]*{\\([^}]*\\)}.*/\\1/p" \
+      | sed -n "s/.*\"$3\":[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -n1
+  fi
+}
+
+# ── Host field-shape detection ──────────────────────────────────────────────
+# Claude Code / Cursor / VS Code:  snake_case (tool_name, tool_input, session_id,
+#                                  tool_use_id), Skill tool is PascalCase "Skill".
+# Codex / Copilot CLI:             camelCase  (toolName, toolInput, sessionId,
+#                                  toolUseId), skill tool lowercase "skill".
+tool_name=$(extract_field "$raw_input" "tool_name")
+[ -z "$tool_name" ] && tool_name=$(extract_field "$raw_input" "toolName")
+
+# session_id: Claude Code "session_id"; Cursor "conversation_id"; Codex "turn_id".
+session_id=$(extract_field "$raw_input" "session_id")
+[ -z "$session_id" ] && session_id=$(extract_field "$raw_input" "sessionId")
+[ -z "$session_id" ] && session_id=$(extract_field "$raw_input" "conversation_id")
+[ -z "$session_id" ] && session_id=$(extract_field "$raw_input" "turn_id")
+
+# tool_use_id: Claude Code / Cursor only. Codex omits it; dedup degrades to a
+# single POST per process invocation, which is fine.
+tool_use_id=$(extract_field "$raw_input" "tool_use_id")
+[ -z "$tool_use_id" ] && tool_use_id=$(extract_field "$raw_input" "toolUseId")
+
+# Only react to the host's skill-invocation tool. Anything else is a no-op so we
+# never inspect or transmit data about other tool calls.
+case "$tool_name" in
+Skill | skill) ;;
+*) return_success ;;
+esac
+
+# The skill name lives in tool_input.skill (snake_case hosts) or toolInput.skill
+# (camelCase hosts). Hosts namespace it as "salla-partners:<skill>".
+skill_raw=$(extract_nested_field "$raw_input" "tool_input" "skill")
+[ -z "$skill_raw" ] && skill_raw=$(extract_nested_field "$raw_input" "toolInput" "skill")
+if [ -z "$skill_raw" ]; then
+  return_success
+fi
+
+# Strip any "plugin:" / "salla-partners:" namespace prefix.
+skill_name="${skill_raw##*:}"
+
+# Only Salla Partners skills — never anything else.
+case "$skill_name" in
+salla-*) ;;
+*) return_success ;;
+esac
+
+# ── Client / host label ─────────────────────────────────────────────────────
+client="unknown"
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  client="cursor"
+elif [ -n "${CODEX_PLUGIN_ROOT:-}" ] || [ -n "${PLUGIN_ROOT:-}" ]; then
+  client="codex"
+elif [ -n "${COPILOT_CLI:-}" ]; then
+  client="copilot-cli"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  client="claude-code"
+fi
+
+# ── Plugin version (metadata, not content) ──────────────────────────────────
+# Read from the kit's own plugin.json next to hooks/. Best effort → null.
+plugin_version="null_literal"
+for manifest in \
+  "${SCRIPT_DIR}/../.claude-plugin/plugin.json" \
+  "${SCRIPT_DIR}/../.plugin/plugin.json"; do
+  if [ -f "$manifest" ]; then
+    if [ "$_have_jq" = "1" ]; then
+      v=$(jq -r '.version // empty' "$manifest" 2>/dev/null)
+    else
+      v=$(sed -n 's/.*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest" | head -n1)
+    fi
+    if [ -n "$v" ]; then
+      plugin_version="$v"
+      break
+    fi
+  fi
+done
+
+# ── Dedup on (session_id, tool_use_id) ──────────────────────────────────────
+# Claude Code fires the same PostToolUse once per tool call, but a host could
+# retry or double-fire. Stash seen keys in a per-uid temp dir, 0600, so we POST
+# at most once per (session, tool_use). No content is ever written here — only
+# an opaque dedup key.
+if [ -n "$session_id" ] && [ -n "$tool_use_id" ]; then
+  uid=$(id -u 2>/dev/null || echo 0)
+  stash_dir="${TMPDIR:-/tmp}/salla-partners-telemetry-${uid}"
+  ( umask 077 && mkdir -p "$stash_dir" ) >/dev/null 2>&1
+  # Hash the key so the filename leaks nothing.
+  key="${session_id}:${tool_use_id}"
+  if command -v shasum >/dev/null 2>&1; then
+    key_hash=$(printf '%s' "$key" | shasum 2>/dev/null | awk '{print $1}')
+  elif command -v sha1sum >/dev/null 2>&1; then
+    key_hash=$(printf '%s' "$key" | sha1sum 2>/dev/null | awk '{print $1}')
+  else
+    key_hash=$(printf '%s' "$key" | tr -c 'a-zA-Z0-9' '_')
+  fi
+  stash_file="${stash_dir}/${key_hash}"
+  if [ -e "$stash_file" ]; then
+    # Already reported this exact tool call — dedup, do nothing.
+    return_success
+  fi
+  ( umask 077 && : > "$stash_file" ) >/dev/null 2>&1
+fi
+
+# ── Build the metadata-only body ────────────────────────────────────────────
+# ONLY these fields. No prompt, no args, no results, no file paths, no tokens.
+timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "")
+
+json_str() { # emit "value" or null for empty
+  if [ -z "$1" ]; then
+    printf 'null'
+  else
+    # Escape backslash and double-quote only (these fields are opaque ids).
+    esc=$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    printf '"%s"' "$esc"
+  fi
+}
+
+if [ "$plugin_version" = "null_literal" ]; then
+  version_json="null"
+else
+  version_json=$(json_str "$plugin_version")
+fi
+
+body=$(
+  printf '{"event":"skill_invocation","skill":%s,"plugin_version":%s,"client":%s,"session_id":%s,"tool_use_id":%s,"timestamp":%s}' \
+    "$(json_str "$skill_name")" \
+    "$version_json" \
+    "$(json_str "$client")" \
+    "$(json_str "$session_id")" \
+    "$(json_str "$tool_use_id")" \
+    "$(json_str "$timestamp")"
+)
+
+# ── Fire-and-forget POST ────────────────────────────────────────────────────
+# Backgrounded with a short timeout so the agent's tool loop is never delayed,
+# and fully detached so this hook returns immediately. All errors swallowed.
+if command -v curl >/dev/null 2>&1; then
+  (
+    curl -sS -m 5 \
+      -X POST "$ENDPOINT" \
+      -H "Content-Type: application/json" \
+      -H "X-Salla-Telemetry-Surface: skills-hook" \
+      -H "X-Salla-Telemetry-Client: ${client}" \
+      --data "$body" \
+      >/dev/null 2>&1
+  ) &
+  # Detach so we never wait on the network.
+  disown >/dev/null 2>&1 || true
+fi
+
+return_success

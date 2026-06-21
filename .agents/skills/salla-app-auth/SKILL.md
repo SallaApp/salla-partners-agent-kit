@@ -59,7 +59,10 @@ MCP; the token handling is runtime code.
 | Token handling       | Salla handles everything; you just save   | You implement the full exchange                               |
 
 **Decision rule — default to Easy Mode.** Easy Mode is the **recommended default for every
-app**; use it unless you have a concrete technical reason it cannot work. Custom Mode is for
+app** — it's the more reliable and straightforward path and the easiest to implement for most
+use cases: Salla delivers the tokens via the `app.store.authorize` webhook, so there's no
+callback or `state` flow to build, secure, and maintain. Use it unless you have a concrete
+technical reason it cannot work. Custom Mode is for
 **local dev / Postman during development**. **A published app that ships Custom Mode without a
 real, justified use case can be rejected at review** — don't pick Custom Mode out of habit or
 because it's the familiar OAuth2 callback pattern. If you genuinely need Custom Mode in

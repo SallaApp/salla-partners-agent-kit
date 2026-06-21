@@ -1,22 +1,40 @@
 ---
 name: salla-shipping-app
 description: >
-  Build a Salla Shipping or Order Fulfillment App: create it (shipping sub-category),
-  configure zones/settings via salla_shipping, implement the synchronous App Functions
-  shipment.creating and shipment.cancelling (they return a Shipment to shape the
-  operation), subscribe the async shipment events (created/cancelled/updated), then set
-  tracking, label, cost, and status via PUT /shipments/{id}. Use for any carrier, rate,
-  label, tracking, COD, cancellation, or return task. App Function mechanics →
-  salla-app-functions; Token/OAuth → salla-app-auth; webhook verification → salla-webhooks;
-  publish → salla-app-builder.
+  Build a Salla shipping app in one of two models — Shipping Management (one carrier:
+  the modern Salla AWB model, App Functions inside Salla Partners, no backend) or Order
+  Fulfilment (auto-dispatch across carriers). Create it, configure zones via
+  salla_shipping, implement the sync App Functions shipment.creating (returns a Shipment
+  with AWB number + PDF label) and shipment.cancelling (returns Resp). Use for any
+  carrier, AWB, label, tracking, COD, or return task. App Function mechanics →
+  salla-app-functions; OAuth → salla-app-auth; webhooks → salla-webhooks; publish →
+  salla-app-builder.
 ---
 
 # Salla Shipping App Flow
 
-Build a Shipping App or Order Fulfillment App by **performing the actions** with the
-Salla Partners MCP tools. Follow the steps in order — complete each gate before moving on.
+Build a shipping app by **performing the actions** with the Salla Partners MCP tools.
+Follow the steps in order — complete each gate before moving on.
 
-> **Shipping Apps must be Public** — Private apps are not supported for this category.
+> **Shipping Apps must be Public** — Private apps are not supported for this category
+> (https://docs.salla.dev/422995m0.md).
+
+## Two app models — pick first
+
+Salla has **two distinct shipping app models** (https://docs.salla.dev/422988m0.md). They
+share creation and OAuth but diverge on setup, lifecycle, and testing:
+
+| Model                                   | What it is                                                                                                                                                                                                               | Owns the lifecycle in             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| **Shipping Management** (carrier / AWB) | Integrates **one shipping company**. The modern **Salla AWB** model — write **App Functions inside Salla Partners (no backend to build or host)** that call your carrier API to generate the AWB and return it to Salla. | `references/shipment-cycle.md`    |
+| **Order Fulfilment**                    | Sits **across carriers** — receives the order, auto-assigns the best carrier/branch, then drives the assigned Shipping App.                                                                                              | `references/fulfillment-cycle.md` |
+
+> **Salla AWB is the preferred Shipping Management model** — your shipping service appears
+> natively in the merchant's **AWB creation screen** (Orders → Create shipping label) with
+> no servers, deployments, or polling to maintain. Logic runs in Salla's App Function
+> runtime with direct access to the Salla Shipping API
+> (https://docs.salla.dev/1792089m0.md). To make your app appear in the AWB
+> courier options, email **partners@salla.sa** (https://docs.salla.dev/1792111m0.md).
 
 ## Tools
 
@@ -38,9 +56,11 @@ Salla Partners MCP tools. Follow the steps in order — complete each gate befor
 
 Ask before starting:
 
-1. **What type of app?**
-   - **Shipping App** — provides carrier rates, creates labels, tracks shipments
-   - **Order Fulfillment App** — manages multi-carrier dispatch across branches
+1. **Which model?** (decides which reference owns the lifecycle — see the table above)
+   - **Shipping Management / AWB** — integrates one carrier; you write the
+     `shipment.creating` / `shipment.cancelling` App Functions that generate the AWB
+   - **Order Fulfilment** — auto-assigns the best carrier/branch across multiple
+     shipping apps
 2. **Which carrier or provider are you integrating?**
 3. **Do you support Cash on Delivery (COD)?**
 4. **Which regions / shipping zones does your carrier cover?**
@@ -63,8 +83,10 @@ Ask before starting:
 
 The result returns the `app_id`.
 
-> **Shipping Company ID:** assigned **only by Salla** (contact shipping-team@salla.sa).
-> You cannot set it yourself, and publication is blocked until Salla sets it.
+> **Appear in AWB couriers / Shipping Company ID:** to make a Shipping Management (AWB)
+> app appear in the merchant's AWB courier options, email **partners@salla.sa**
+> (https://docs.salla.dev/1792111m0.md). The Shipping Company ID is assigned **only by
+> Salla** — you cannot set it yourself.
 
 **Manual fallback:** Portal → **My Apps → Create App** (Public, category Shipping App).
 Full walkthrough: https://docs.salla.dev/422995m0.md
@@ -125,53 +147,71 @@ merchant can enter carrier credentials on your Shipping Settings page."
 
 ---
 
-## Step 4 — Handle the Shipment Lifecycle
+## Step 4 — Core App Functions (Shipping Management / AWB)
 
-The shipment lifecycle splits into **two synchronous App Functions** and **three async
-events** (source of truth: https://docs.salla.dev/1726835m0.md). The App Functions run
-inside Salla's runtime, can shape the operation by **returning a `Shipment`**, and are
-tested via the App Function MCP preview — **not** a webhook endpoint. Confirm the trigger
-names and categories with `salla_functions action=list_triggers`.
+A Shipping Management (AWB) app implements **two sync App Functions**
+(`salla_functions action=list_triggers` category `merchant_actions`) and may subscribe
+**three async events** (`merchant_events`). The App Functions run inside Salla's runtime,
+shape the operation by their **return value**, and are tested via the App Function MCP
+preview — **not** a webhook endpoint.
 
-| Trigger               | Kind                           | When it fires                                                              | What your handler does                                            |
-| --------------------- | ------------------------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `shipment.creating`   | **App Function** — sync action | Before a shipment is created (order → `completed`, or **Generate Policy**) | Create with the carrier; **return** a `Shipment` (number + label) |
-| `shipment.cancelling` | **App Function** — sync action | Before a shipment is cancelled                                             | Void the label / stop pickup; **return** a `Shipment` (or error)  |
-| `shipment.created`    | Async event                    | After a shipment is created                                                | Sync downstream state (background)                                |
-| `shipment.cancelled`  | Async event                    | After a shipment is cancelled                                              | Reconcile / notify (background)                                   |
-| `shipment.updated`    | Async event                    | After shipment details change                                              | Sync tracking/status (background)                                 |
+| Trigger               | Category (MCP-confirmed)      | Return type         | When it fires                                                                                                     | What your handler does                                                                          |
+| --------------------- | ----------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `shipment.creating`   | **`merchant_actions`** (sync) | `Promise<Shipment>` | A shipment **or return** is created (order → `completed`, or **Create shipping label** / **Create return label**) | Call your carrier API → generate the AWB; **return a `Shipment`** (number + PDF label + status) |
+| `shipment.cancelling` | **`merchant_actions`** (sync) | `Promise<Resp>`     | Before a shipment/return is cancelled                                                                             | Call your carrier API to void / cancel; **return `Resp.success()`** (or error to decline)       |
+| `shipment.created`    | `merchant_events` (async)     | —                   | After a shipment is created                                                                                       | Sync downstream state (background)                                                              |
+| `shipment.cancelled`  | `merchant_events` (async)     | —                   | After a shipment is cancelled                                                                                     | Reconcile / notify (background)                                                                 |
+| `shipment.updated`    | `merchant_events` (async)     | —                   | After shipment details change                                                                                     | Sync tracking/status (background)                                                               |
 
-Returns reuse `shipment.creating` with the payload's `type` field set to `"return"`
-(new shipments use `"shipment"`).
+> **Trigger-name reconciliation (verified via `salla_functions action=list_triggers`):**
+> the **sync** cancellation App Function is **`shipment.cancelling`** (category
+> `merchant_actions`, returns `Resp`). It is distinct from the **async**
+> **`shipment.cancelled`** event (`merchant_events`). The AWB docs label the function screen
+> "Shipment Cancelled" (https://docs.salla.dev/1797616m0.md), but the actual sync
+> trigger you `save` against is `shipment.cancelling`.
 
-**The two sync triggers are App Functions, not webhooks.** Implement them with
-`salla_functions action=save` (one function per trigger) and the locked wrapper from
-`salla_functions action=get`. The handler signature is:
+`shipment.creating` handles **both new shipments and returns** — one function, branch on the
+payload's `type` field (`"shipment"` vs `"return"`) (https://docs.salla.dev/1792119m0.md).
+
+**These sync triggers are App Functions, not webhooks.** Implement each with
+`salla_functions action=save` (one function per trigger) using the locked wrapper from
+`salla_functions action=get`. Handler signatures (first line of each is locked):
 
 ```ts
-// shipment.creating — runs before the shipment is created, returns the Shipment
+// shipment.creating — generate the AWB and return a Shipment
 export default async (context: Shipments): Promise<Shipment> => {
   const { payload, settings, merchant } = context;
-  const { data: shipment } = payload; // the Shipment context object
+  const { data: shipment } = payload; // type: "shipment" | "return"
 
-  const result = await createWithCarrier(shipment); // carrier API call
+  const result = await callCarrierAwbApi(shipment); // your third-party API
 
-  // setShipmentNumber() is required to identify the shipment; use Shipment.error()
-  // to fail the operation. Other setters (setLabel, setTracking…) are available.
+  // setShipmentNumber() is REQUIRED; setPdfLabel/setStatus shape the AWB.
+  // Return Shipment.error("…") on carrier failure.
   return Shipment.success()
-    .setShipmentNumber(result.shipment_number)
-    .setLabel(result.label_url);
+    .setShipmentNumber(result.awb_number)
+    .setPdfLabel(result.label_url)
+    .setStatus(ShipmentStatusEnum.IN_TRANSIT);
+};
+```
+
+```ts
+// shipment.cancelling — void with the carrier, return Resp (NOT a Shipment)
+export default async (context: Shipments): Promise<Resp> => {
+  await voidWithCarrier(context.payload.data.shipping_number);
+  return Resp.success().setData({});
 };
 ```
 
 > **App Function mechanics live in the `salla-app-functions` family** — the V8 sandbox
 > limits, the locked template/first-line rule, save/validate, the **5-second sync budget**
 > (each internal async call < 2s), pre-authenticated Admin API (no `Authorization` header),
-> and `Resp`/`Shipment` builders. Don't reimplement them here:
+> and the `Resp`/`Shipment` builder runtime. Don't reimplement them here:
 > design → **`salla-app-functions-design`**, the handler body → **`salla-app-functions-handler`**,
 > save/validate → **`salla-app-functions-validate`**, test/preview → **`salla-app-functions-test`**.
-> This skill owns the shipping specifics: what to compute in the handler (rates, labels,
-> tracking, COD) and the **Shipment context object** shape
+> This skill owns the shipping specifics: the **`Shipment` builder shipping methods**
+> (`setShipmentNumber`, `setPdfLabel`, `setStatus`, `setTrackingNumber`, `setTrackingLink`,
+> `setStatusNote`, `setCost`), the `ShipmentStatusEnum`, the AWB processing flows, the
+> `Shipments` context shape, and the two app models
 > ([`references/shipment-cycle.md`](references/shipment-cycle.md)).
 
 **Test via the App Function MCP preview:** save the function, poll
@@ -185,47 +225,34 @@ ordinary store events — subscribe them with `salla_events action=subscribe` (i
 the full list, so include every event you want active). Verify with `salla_events
 action=list`. Transport (signature, fast-200, idempotency) → **`salla-webhooks`**.
 
-After the carrier confirms a shipment, push tracking, label, cost, and status back with a
-single **Update Shipment Details** call (use the stored merchant `access_token` — token
-storage/refresh → **`salla-app-auth`**). This is a partner-initiated REST call, separate
-from the App Function flow:
+The App Function already returns the AWB synchronously. For **out-of-band** updates after the
+carrier confirms (real shipping cost, tracking, status changes), push them with the
+partner-initiated **Update Shipment Details** REST call (`PUT /shipments/{id}`, stored merchant
+`access_token` — token storage/refresh → **`salla-app-auth`**). Endpoint shape, required
+fields, and status enum live in [`references/api-endpoints.md`](references/api-endpoints.md) —
+don't restate them here.
 
-```http
-# Update Shipment Details — set tracking, label, cost, and status in one call
-PUT https://api.salla.dev/admin/v2/shipments/{shipment_id}
-Authorization: Bearer {access_token}
-Content-Type: application/json
-
-{
-  "shipment_number": "846984645",
-  "tracking_number": "4324233",
-  "tracking_link": "https://carrier.com/track/4324233",
-  "cost": 25.5,
-  "status": "shipped"
-}
-```
-
-Full App Function context payloads + handler shapes →
-[`references/shipment-cycle.md`](references/shipment-cycle.md); the Shipping API
-endpoints (update, list, return, cancel) →
-[`references/api-endpoints.md`](references/api-endpoints.md)
+Full `Shipments` context payloads, the `Shipment` builder methods, and the three AWB
+processing flows (Shipment AWB / Return AWB / Cancelled AWB) →
+[`references/shipment-cycle.md`](references/shipment-cycle.md).
 
 **Gate:** "`salla_functions action=preview` returns a valid `Shipment` for `shipment.creating`
-and `shipment.cancelling` on the demo store, and the tracking ID appears on the order."
+(both `type: shipment` and `type: return`) and `Resp.success()` for `shipment.cancelling` on
+the demo store, and the AWB number / tracking appears on the order."
 
 ---
 
-## Step 5 — Order Fulfillment (if applicable)
+## Step 5 — Order Fulfilment (if that's your model)
 
-If your app type from Step 0 is **Order Fulfillment App**:
+If your model from Step 0 is **Order Fulfilment** (https://docs.salla.dev/423000m0.md), the
+flow differs: you don't write a `shipment.creating` App Function — you react to
+`order.created`, pick the carrier/branch, and **assign** the shipment, which triggers the
+assigned Shipping App's `shipment.creating` function. Setup scopes (Basic Info, Orders,
+Webhooks, Shipping) and events (`order.created`, `shipment.created`) per
+https://docs.salla.dev/423002m0.md.
 
-1. Create it under the **Order Fulfillment** category (`salla_reference action=categories`
-   → matching `sub_category_id`).
-2. Handle order assignment across carriers by zone/weight rules.
-3. Manage branch inventory, parcel dispatch, and status updates.
-
-Fulfillment lifecycle → [`references/fulfillment-cycle.md`](references/fulfillment-cycle.md)
-Setup guide: https://docs.salla.dev/423002m0.md
+Full assignment + return/cancel cycle →
+[`references/fulfillment-cycle.md`](references/fulfillment-cycle.md).
 
 ---
 
@@ -243,8 +270,9 @@ the publishing sections in the Portal. Two shipping-specific blockers:
 
 - The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).
-- The **Shipping Company ID** must already be assigned by Salla
-  (shipping-team@salla.sa) — publication is blocked until it is set.
+- To appear in the merchant's **AWB courier options**, your app must be enabled by Salla —
+  email **partners@salla.sa** (https://docs.salla.dev/1792111m0.md). The **Shipping
+  Company ID** is assigned only by Salla; you cannot set it yourself.
 
 Once approved, your app is listed at https://apps.salla.sa/en under Shipping.
 
@@ -257,17 +285,22 @@ Publishing guide: https://docs.salla.dev/422990m0.md
 
 ## Resources
 
-| Topic                          | Link                                                                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| Shipping API (getting started) | https://docs.salla.dev/422988m0.md                                                                                             |
-| List of Shipping API           | https://docs.salla.dev/api-5578809                                                                                             |
-| Shipping App Cycle             | https://docs.salla.dev/422994m0.md                                                                                             |
-| Create Shipping App            | https://docs.salla.dev/422995m0.md                                                                                             |
-| Setup Shipping App             | https://docs.salla.dev/422996m0.md                                                                                             |
-| Shipping API Migration Guide   | https://docs.salla.dev/422989m0.md                                                                                             |
-| Shipping API Change Log        | https://docs.salla.dev/422992m0.md                                                                                             |
-| New Order Fulfillment App      | https://docs.salla.dev/423001m0.md                                                                                             |
-| Order Fulfillment Cycle        | https://docs.salla.dev/423000m0.md                                                                                             |
-| Test Order Fulfillment App     | https://docs.salla.dev/423003m0.md                                                                                             |
-| Postman Collection             | https://www.postman.com/salla-app/workspace/salla-e-commerce-platform/collection/17687195-d700cd60-adf3-4b20-82ee-94851e88bd44 |
-| Developer Community            | https://t.me/salladev                                                                                                          |
+| Topic                             | Link                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Shipping overview (both models)   | https://docs.salla.dev/422988m0.md                                                                                             |
+| List of Shipping API              | https://docs.salla.dev/api-5578809                                                                                             |
+| **Salla AWB** — getting started   | https://docs.salla.dev/1792089m0.md                                                                                            |
+| AWB — create app                  | https://docs.salla.dev/1792111m0.md                                                                                            |
+| AWB — setup app                   | https://docs.salla.dev/1792112m0.md                                                                                            |
+| AWB function — Shipment Creating  | https://docs.salla.dev/1792119m0.md                                                                                            |
+| AWB function — Shipment Cancelled | https://docs.salla.dev/1797616m0.md                                                                                            |
+| Shipping Management — create      | https://docs.salla.dev/422995m0.md                                                                                             |
+| Shipping Management — setup       | https://docs.salla.dev/422996m0.md                                                                                             |
+| Shipping Management — app cycle   | https://docs.salla.dev/422994m0.md                                                                                             |
+| Shipping Management — test        | https://docs.salla.dev/422998m0.md                                                                                             |
+| Order Fulfilment — create         | https://docs.salla.dev/423001m0.md                                                                                             |
+| Order Fulfilment — setup          | https://docs.salla.dev/423002m0.md                                                                                             |
+| Order Fulfilment — app cycle      | https://docs.salla.dev/423000m0.md                                                                                             |
+| Order Fulfilment — test           | https://docs.salla.dev/423003m0.md                                                                                             |
+| Postman Collection                | https://www.postman.com/salla-app/workspace/salla-e-commerce-platform/collection/17687195-d700cd60-adf3-4b20-82ee-94851e88bd44 |
+| Developer Community               | https://t.me/salladev                                                                                                          |

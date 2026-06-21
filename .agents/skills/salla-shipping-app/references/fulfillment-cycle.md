@@ -1,54 +1,72 @@
-# Order Fulfillment App Cycle — Detailed Reference
+# Order Fulfilment App Cycle — Detailed Reference
 
-Order Fulfillment Apps manage dispatching orders across multiple carriers and branches, abstracting multi-carrier complexity from merchants. Source of truth: https://docs.salla.dev/423000m0.md and https://docs.salla.dev/422988m0.md.
+An **Order Fulfilment** app sits **across multiple carriers**: it receives the order,
+auto-assigns the best carrier/branch, and drives the assigned Shipping App — abstracting
+multi-carrier complexity from the merchant. This is the **second shipping app model**; the
+single-carrier **Shipping Management / AWB** model (where you write the `shipment.creating`
+App Function) lives in `shipment-cycle.md`. Source of truth:
+https://docs.salla.dev/423000m0.md, https://docs.salla.dev/423001m0.md,
+https://docs.salla.dev/423002m0.md, https://docs.salla.dev/422988m0.md.
 
-> **Security & ownership (route, don't duplicate):** token storage/refresh → **`salla-app-auth`**;
-> webhook signature verification, idempotency, and fast-200 transport → **`salla-webhooks`**;
-> generic order/branch API mechanics → **`salla-api-core`**; App Function rate handlers →
-> **`salla-app-functions`**. Handling orders, addresses, branch inventory, and carrier
-> credentials means PII + secrets: store credentials encrypted and never log tokens,
-> addresses, phones, or labels.
+> **Security & ownership (route, don't duplicate):** token storage/refresh →
+> **`salla-app-auth`**; webhook signature verification, idempotency, and fast-200 transport →
+> **`salla-webhooks`**; generic order/branch API mechanics → **`salla-api-core`**; the
+> Shipping REST endpoint shapes (`GET /shipping/companies`, `POST /shipments`,
+> `PUT /shipments/{id}`, return/cancel) → [`api-endpoints.md`](api-endpoints.md). Orders,
+> addresses, branch inventory, and carrier credentials mean PII + secrets: store credentials
+> encrypted, never log tokens, addresses, phones, or labels.
 >
-> The endpoint paths and event names below are the **real** Shipping API
-> (https://docs.salla.dev/api-5578809); the TypeScript blocks are **pseudo-code**
-> (undefined helper types/functions) meant to show the pattern, not drop-in code.
+> The TypeScript blocks are **pseudo-code** (undefined helper types/functions) showing the
+> pattern, not drop-in code.
 
 ---
 
-## How It Differs from a Shipping App
+## Two models — how Fulfilment differs from Shipping Management
 
-|                    | Shipping App               | Order Fulfillment App                |
-| ------------------ | -------------------------- | ------------------------------------ |
-| **Focus**          | Single carrier integration | Multi-carrier, multi-branch dispatch |
-| **Decision maker** | Merchant picks carrier     | Your app auto-assigns best carrier   |
-| **Inventory**      | Not managed                | Managed across branches              |
-| **Complexity**     | Lower                      | Higher                               |
+|                    | Shipping Management (AWB)                                                | Order Fulfilment                                        |
+| ------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------- |
+| **Scope**          | One shipping company                                                     | Multiple carriers + branches                            |
+| **Decision maker** | Merchant picks the carrier                                               | Your app auto-assigns the best carrier                  |
+| **Inventory**      | Not managed                                                              | Managed across branches                                 |
+| **Core code**      | `shipment.creating` / `shipment.cancelling` App Functions (generate AWB) | React to `order.created`, **assign** shipments via REST |
+| **Reference**      | `shipment-cycle.md`                                                      | this file                                               |
+
+> A Fulfilment app **does not** write a `shipment.creating` function — it **assigns** the
+> order to a Shipping App, and that Shipping App's `shipment.creating` function (its AWB
+> logic) runs. The Fulfilment app is then notified back via the async `shipment.created` event.
 
 ---
 
-## Fulfillment Lifecycle
+## Setup (https://docs.salla.dev/423002m0.md)
+
+Minimum scopes: **Basic Info**, **Orders**, **Webhooks**, **Shipping**. Store events to
+subscribe: **Order Created** (`order.created`) and **Shipment Created** (`shipment.created`).
+
+---
+
+## Fulfilment Lifecycle
 
 ```text
-Order created in Salla
+Customer places order  (checkout, or Create Order API)
         ↓
-Salla fires: order.created  (shipment status "pending")
+Salla fires order.created  (shipment status "pending")
         ↓
-Your app evaluates order:
+Your app evaluates the order:
   - GET /shipping/companies → which carriers the merchant has enabled
-  - Which branch has stock?  Which carrier serves the destination?  Cheapest/fastest?
+  - which branch has stock? which carrier serves the destination? cheapest/fastest?
         ↓
 Your app assigns the order: POST /shipments  (shipment status "creating")
         ↓
-Salla runs the assigned Shipping App's shipment.creating App Function (sync)
+Salla runs the assigned Shipping App's shipment.creating App Function (its AWB logic)
         ↓
-Shipping App creates the shipment with the carrier (returns a Shipment), then PUT /shipments/{id}
-        ↓
-Salla fires the async shipment.created event back to the Order Fulfilment App (status sync)
+Salla fires async shipment.created back to your Fulfilment app  (status sync)
         ↓
 Carrier delivers → status updated via PUT /shipments/{id}
         ↓
-[If return]  POST /shipments/{id}/return    [If cancel]  POST /shipments/{id}/cancel
+[Return]  POST /shipments/{id}/return     [Cancel]  POST /shipments/{id}/cancel
 ```
+
+(Endpoint shapes, payloads, and the writable status enum → [`api-endpoints.md`](api-endpoints.md).)
 
 ---
 
@@ -60,151 +78,87 @@ Carrier delivers → status updated via PUT /shipments/{id}
 | `shipment.created`   | A Shipping App updated an assigned shipment  | Sync shipment/order status                             |
 | `shipment.cancelled` | A shipment/return was cancelled              | Reconcile and notify                                   |
 
-> The Order Fulfilment App **assigns** shipments via `POST /shipments` (which makes Salla
-> run the Shipping App's `shipment.creating` App Function) and is notified back via the
-> async `shipment.created` event.
-> It drives returns/cancellations through `POST /shipments/{id}/return` and
-> `POST /shipments/{id}/cancel`. See shipment-cycle.md for the Shipping App's side.
+The `order.created` payload carries the order, items, addresses, and `pickup_branch`/branch
+ids, so you usually do **not** need a separate branch lookup. Generic order/branch endpoints
+are owned by **`salla-api-core`**.
 
 ---
 
-## Discover the Merchant's Carriers
+## Discover the merchant's carriers
 
-Before assigning, list the shipping apps/companies the merchant has enabled
-(https://docs.salla.dev/api-5394239):
-
-```http
-GET https://api.salla.dev/admin/v2/shipping/companies
-Authorization: Bearer {access_token}
-```
-
-```json
-{
-  "status": 200,
-  "success": true,
-  "data": [
-    {
-      "id": 1723506348,
-      "name": "سمسا",
-      "app_id": "1683195908",
-      "activation_type": "manual",
-      "slug": null
-    },
-    {
-      "id": 814202285,
-      "name": "DHL Express",
-      "app_id": "827885927",
-      "activation_type": "api",
-      "slug": "dhl-express"
-    }
-  ]
-}
-```
-
-`activation_type` is `manual` or `api`; `slug`/`courier_id` feed the `GET /shipments`
-filters. The order's `pickup_branch` and branch ids arrive inside the `order.created`
-payload (see below), so you usually do not need a separate branch lookup; generic
-branch/order endpoints are owned by **`salla-api-core`**.
+Before assigning, list the shipping companies the merchant has enabled with
+`GET /shipping/companies` (shape and response fields — `id`, `app_id`, `activation_type`
+`manual`/`api`, `slug` — are documented in [`api-endpoints.md`](api-endpoints.md)). `slug` /
+`courier_id` feed the `GET /shipments` filters.
 
 ---
 
-## Carrier Assignment Logic
-
-Implement routing rules based on your business model:
+## Carrier assignment logic (your business rules)
 
 ```ts
 async function assignCarrier(
   order: Order,
   branches: Branch[],
 ): Promise<Assignment> {
-  // 1. Find branches with all items in stock
+  // 1. Branches that have all items in stock
   const availableBranches = await filterByStock(branches, order.items);
-
-  // 2. Find nearest branch to receiver
+  // 2. Nearest branch to the receiver
   const nearestBranch = findNearest(availableBranches, order.receiver.address);
-
-  // 3. Select carrier for that zone
+  // 3. Pick a carrier for that zone (consider COD support)
   const carrier = await selectCarrierForZone(
     nearestBranch.city,
     order.receiver.address.city,
     order.is_cod,
   );
-
   return { branch: nearestBranch, carrier };
 }
 ```
 
----
-
-## Multi-Carrier Integration Pattern
+### Multi-carrier adapter pattern
 
 ```ts
 interface CarrierAdapter {
   createShipment(params: ShipmentParams): Promise<ShipmentResult>;
-  getLabel(shipmentId: string): Promise<string>; // returns label URL
+  getLabel(shipmentId: string): Promise<string>;
   track(trackingNumber: string): Promise<TrackingStatus>;
   voidShipment(shipmentId: string): Promise<void>;
 }
 
-// Register adapters
 const carriers: Record<string, CarrierAdapter> = {
   aramex: new AramexAdapter(),
   smsa: new SmsaAdapter(),
   dhl: new DhlAdapter(),
-  naqel: new NaqelAdapter(),
 };
 
-// Use in fulfillment handler
 const adapter = carriers[assignment.carrier];
 const result = await adapter.createShipment(params);
 ```
 
 ---
 
-## Shipment / Order Status Updates
+## Status updates
 
-A single endpoint — **Update Shipment Details** (`PUT /shipments/{id}`,
-https://docs.salla.dev/api-5578810) — updates both the shipment and the order status as
-fulfillment progresses. `shipment_number` and `status` are **required**:
-
-```http
-PUT https://api.salla.dev/admin/v2/shipments/{shipment_id}
-Authorization: Bearer {access_token}
-Content-Type: application/json
-
-{
-  "shipment_number": "846984645",
-  "tracking_number": "4324233",
-  "tracking_link": "https://carrier.com/track/4324233",
-  "cost": 25.5,
-  "status": "shipped"
-}
-```
-
-**Available `status` values** (https://docs.salla.dev/422994m0.md): `created`, `shipped`,
-`delivering`, `delivered`, `in_progress`, `cancelled`. **Exception:** once `shipped`,
-`delivering`, or `delivered`, the status cannot move back to `created` or `in_progress`.
-(`GET /shipments?status=` accepts a wider read-only enum — see api-endpoints.md.)
+As fulfilment progresses, update both the shipment and the order status with the single
+**Update Shipment Details** call (`PUT /shipments/{id}`) — required fields, the writable
+status enum, and the no-going-backwards transition rule live in
+[`api-endpoints.md`](api-endpoints.md). Returns and cancellations go through
+`POST /shipments/{id}/return` and `POST /shipments/{id}/cancel` (same reference).
 
 ---
 
-## Webhook Handler for Fulfillment
+## Webhook handler (fast-ack + idempotent)
 
-> Verify `X-Salla-Signature` (raw body) and dedupe by event id for **idempotency** before
-> doing work — these belong to **`salla-webhooks`**. The async events below are **fast-ack**:
-> acknowledge with `200` **first**, then enqueue the carrier/assignment work in a durable
-> queue/background job with retries and failure recording — never `await` carrier or API
-> calls after sending the response. `shipment.created`/`shipment.cancelled` are the async
-> events a fulfilment app receives back; `shipment.creating` / `shipment.cancelling` (5s
-> sync App Functions, not webhooks) run on the Shipping App side (shipment-cycle.md) — see
-> **`salla-app-functions`**.
+> Verify `X-Salla-Signature` (raw body) and dedupe by event id **before** doing work — these
+> belong to **`salla-webhooks`**. The events below are **fast-ack**: respond `200` **first**,
+> then enqueue the carrier/assignment work in a durable queue with retries — never `await`
+> carrier or API calls after sending the response. (`shipment.creating` /
+> `shipment.cancelling` are 5s sync App Functions on the **Shipping App** side, not webhooks —
+> see `shipment-cycle.md` and **`salla-app-functions`**.)
 
 ```ts
 app.post("/webhook", verifySignature, async (req, res) => {
   const { event, data } = req.body;
-
-  // Fast-ack: respond first, then queue — no awaited work after res.send
-  res.status(200).send("OK");
+  res.status(200).send("OK"); // fast-ack: respond first, then queue
 
   switch (event) {
     case "order.created":
@@ -223,13 +177,22 @@ app.post("/webhook", verifySignature, async (req, res) => {
 
 ---
 
+## Test (https://docs.salla.dev/423003m0.md)
+
+Install on a demo store, create an order, and confirm `order.created` fires in the Partners
+**Webhooks Log**, then that your app assigns a shipment and reacts to the `shipment.created`
+event. End-to-end demo-store validation → **`salla-live-testing`**.
+
+---
+
 ## Resources
 
-| Topic                          | Link                               |
-| ------------------------------ | ---------------------------------- |
-| Order Fulfillment App overview | https://docs.salla.dev/423001m0.md |
-| Fulfillment App Cycle          | https://docs.salla.dev/423000m0.md |
-| List of Shipping API           | https://docs.salla.dev/api-5578809 |
-| List Shipping Apps (companies) | https://docs.salla.dev/api-5394239 |
-| Setup Fulfillment App          | https://docs.salla.dev/423002m0.md |
-| Test Fulfillment App           | https://docs.salla.dev/423003m0.md |
+| Topic                           | Link                                   |
+| ------------------------------- | -------------------------------------- |
+| Order Fulfilment — create       | https://docs.salla.dev/423001m0.md     |
+| Order Fulfilment — setup        | https://docs.salla.dev/423002m0.md     |
+| Order Fulfilment — app cycle    | https://docs.salla.dev/423000m0.md     |
+| Order Fulfilment — test         | https://docs.salla.dev/423003m0.md     |
+| Shipping overview (both models) | https://docs.salla.dev/422988m0.md     |
+| Shipping REST endpoints         | [api-endpoints.md](api-endpoints.md)   |
+| Shipping Management (AWB) cycle | [shipment-cycle.md](shipment-cycle.md) |

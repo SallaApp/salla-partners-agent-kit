@@ -5,9 +5,9 @@ description: >
   planning. Use when building, configuring, or debugging a Salla app, when the
   task is broad ("build a Salla app", "add X to my app"), or when unsure which
   Salla skill applies. Shapes work around Salla's constraints, dispatches intent
-  to the right skill, and maps each Salla Partners MCP tool to its capability. The
-  entry point on platforms without agent support. For a specific subsystem (OAuth,
-  webhooks, settings, billing, publishing…), go straight to its skill.
+  to the right skill, and maps each Salla Partners MCP tool to its capability. For
+  a specific subsystem (OAuth, webhooks, settings, billing, publishing…), go
+  straight to its skill.
 ---
 
 # Salla App Expert — Master Router

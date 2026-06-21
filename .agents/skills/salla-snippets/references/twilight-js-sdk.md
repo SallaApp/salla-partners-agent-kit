@@ -40,8 +40,13 @@ But snippets are NOT themes — some SDK affordances are theme-development const
   Twig interpolation — `{{ store.lang }}`, `{% if … %}` — does **not** run. It ships verbatim
   to the browser as literal text, breaking the script. There is no server-side render pass.
   Get dynamic values at **runtime** from the SDK instead: `salla.config.get(...)`, event
-  payloads, `salla.lang.get(...)`. (Snippet `content` is also injected as HTML — wrap JS in
-  `<script>…</script>` or it silently does nothing; see device-mode.md.)
+  payloads, `salla.lang.get(...)`.
+- **Author pure JS (going-forward) vs the legacy inline branch.** With the `live-js` feature
+  flag the snippet JS is uploaded **verbatim to a CDN** and served via `<script src>`, so
+  write pure JS — no `<script>` wrapper, no HTML. Only on the legacy inline path (store not on
+  `live-js`, or snippet not yet migrated) is `content` injected as HTML, where raw JS needs a
+  `<script>…</script>` wrapper or it silently does nothing. Check `salla_snippets action=list`:
+  a `url` means CDN/pure-JS, inline `content` means legacy. See device-mode.md.
 
 **Availability key per method below:**
 

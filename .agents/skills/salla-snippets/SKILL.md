@@ -67,29 +67,47 @@ If still unclear, ask: _"Should this run in the browser or on your server?"_
 The snippet body runs in the storefront browser via the Twilight SDK. Write the listener,
 then **inject it as a storefront snippet** with the tool:
 
-1. Write the snippet body — listen with the Twilight SDK and process the payload:
+1. Write the snippet body — listen with the Twilight SDK and process the payload.
+   **Author pure JavaScript** (the going-forward model — no `<script>` wrapper, no
+   HTML, no Twig):
 
-   ```html
-   <!-- Snippet content is injected HTML — raw JS MUST be wrapped in <script>. -->
-   <script>
-     // Event names are ::-namespaced — there is no `cart.add`. See the catalogue.
-     salla.event.on("cart::item.added", (e) => {
-       // e.data carries product_id + cart; there is NO top-level item price.
-       analytics.track("Add to Cart", e.data);
-     });
-   </script>
+   ```js
+   // Pure JS — the JS-only editor / live-js CDN model. Event names are
+   // ::-namespaced — there is no `cart.add`. See the catalogue.
+   salla.event.on("cart::item.added", (e) => {
+     // e.data carries product_id + cart; there is NO top-level item price.
+     analytics.track("Add to Cart", e.data);
+   });
    ```
 
-   > **Wrap JS in `<script>…</script>`.** Snippet `content` is injected as **HTML**, not
-   > evaluated as a script. A `content` that is just JavaScript with no `<script>` tag is
-   > rendered as inert text and **silently does nothing** — no error, no execution. Always
-   > wrap the snippet body in `<script>…</script>` (and any visible markup in its own HTML).
+   > **Author snippets as pure JavaScript (the going-forward model).** Stores on the
+   > `live-js` feature flag upload your JS **verbatim to a CDN** as a `.js` file and the
+   > storefront loads it via `<script src>` (cacheable / edge-cached) — so write clean JS
+   > with **no `<script>` wrapper, no HTML, no Twig**. This is the direction; prefer it.
+   > (The old HTML→JS auto-converter `SnippetToPureJSAction` and the
+   > `app:snippets-to-pure-js` command are deprecated — mass conversion mangled partner
+   > markup — so don't rely on auto-conversion; write clean JS yourself.)
    >
-   > **No Twig in snippet JS.** App snippets are injected JS running in the **shopper's
-   > browser** — they are NOT theme templates. Twig interpolation (`{{ … }}`, `{% … %}`) does
-   > **not** work here; it ships as literal text and breaks the script. Get dynamic values at
-   > **runtime** from the Twilight SDK instead — `salla.config.get(...)`, events, etc. (See
-   > the theme-vs-snippet boundary in [`twilight-js-sdk.md`](references/twilight-js-sdk.md).)
+   > **Legacy inline branch (store NOT on `live-js`, or the snippet hasn't migrated yet).**
+   > There the `content` is injected as **inline HTML**, not run as a script, so a body that
+   > is just JavaScript with no `<script>` tag renders as inert text and **silently does
+   > nothing** — no error, no execution. For a legacy store, wrap the body in
+   > `<script>…</script>` (and any visible markup in its own HTML).
+   >
+   > **Decide which branch you're in via `salla_snippets action=list`:** if `list` returns a
+   > **`url`**, the store is on `live-js` / CDN — author pure JS, served as a file. If `list`
+   > returns inline **`content`**, it's the legacy path — the body needs `<script>` wrapping.
+   > `live-js` rolls out **per store** (organic: a snippet moves to the CDN on its **next
+   > save** once the flag is on — no mass backfill), so **confirm the store's mode rather
+   > than assuming**. Either way you still send the JS as `content` on `create`/`update`;
+   > only `list` differs (`url` vs inline `content`).
+   >
+   > **No Twig in snippet JS (both branches).** App snippets are injected JS running in the
+   > **shopper's browser** — they are NOT theme templates. Twig interpolation (`{{ … }}`,
+   > `{% … %}`) does **not** work here; it ships as literal text and breaks the script. Get
+   > dynamic values at **runtime** from the Twilight SDK instead — `salla.config.get(...)`,
+   > events, etc. (See the theme-vs-snippet boundary in
+   > [`twilight-js-sdk.md`](references/twilight-js-sdk.md).)
 
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.
@@ -98,7 +116,10 @@ then **inject it as a storefront snippet** with the tool:
    body). **Dedup first:** call `salla_snippets action=list` and `update`/`delete` any
    existing snippet for this app before creating — stacked duplicates double-render the UI
    and double-fire events. Verify with `salla_snippets action=list`; use `update` /
-   `delete` to change or remove it. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`,
+   `delete` to change or remove it. `list` also tells you the store's serving mode: a
+   **`url`** means CDN / `live-js` (your JS is served as a `.js` file via `<script src>`,
+   portal-side `content` is null); inline **`content`** means the legacy inline path. Create
+   and update are unchanged — always send the JS as `content`. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`,
    and `content` together (it is not a partial patch). `action=update` returns
    `{"snippet":{}}` (empty object) on success — call `action=list` to verify the
    change.

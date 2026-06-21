@@ -27,19 +27,14 @@ storefront page via `<script src>` (cacheable / edge-cached). So write clean JS 
 ```js
 (function () {
   salla.onReady(function () {
-    // your code — salla is already app-scoped (see below)
+    // your code — just use salla / salla.onReady / salla.config.get directly
   });
 })();
 ```
 
-> **The backend wraps your code — you get a pre-scoped `salla`.** Your code is wrapped in a
-> versioned wrapper (`/*__SALLA_WRAP_V1__*/`, between `/*__SALLA_USER_CODE_START__*/` …
-> `/*__SALLA_USER_CODE_END__*/`) that runs it **inside `Salla.onReady(...)`** and rebinds
-> `salla` / `Salla` to `window.Salla.appScope(<your scope>)`, proxying
-> `document.currentScript` to your own script element. **Don't call `appScope` yourself or
-> touch `document.currentScript`** — just use `salla` / `salla.onReady` /
-> `salla.config.get(...)` directly. The scoped `salla` isolates your snippet from other apps
-> on the page.
+> **You write plain JS; Salla serves and runs it for you.** There's nothing to wrap or scope
+> yourself — author plain, valid JavaScript and use `salla` / `salla.onReady` /
+> `salla.config.get(...)` directly.
 >
 > **If you need an external script** (e.g. a third-party tracker), load it from your JS at
 > runtime (`document.createElement('script')` / dynamic `import`), not as an HTML `<script>`
@@ -262,12 +257,13 @@ salla.config.get("store.lang"); // ⚠️ may be null — use a fallback chain
 salla.config.get("store"); // whole object · salla.config.get("user")
 ```
 
-> **Your app's settings reach the storefront under `app.*`.** Read a merchant's App Settings
-> at runtime with `salla.config.get("app.<key>")` — e.g.
+> **Read your app's settings ONLY with `salla.config.get("app.<key>")`.** This is the one and
+> only way to read a merchant's App Settings in a storefront snippet — e.g.
 > `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`.
-> **Only settings marked `public: true` are exposed client-side**; secrets stay server-side
-> and never appear in the snippet. This is the bridge from a merchant's settings form to the
-> storefront — define the keys (and which are public vs secret) in
+> **Hard rule:** only settings marked **`public: true`** are accessible in a storefront
+> snippet; **private settings (`public: false`) are NOT accessible on the storefront** — they
+> stay server-side and never appear in the snippet. This is the bridge from a merchant's
+> settings form to the storefront — define the keys (and which are `public`) in
 > [salla-app-settings](../../salla-app-settings/SKILL.md). Read these defensively too
 > (null-check; the setting may be unset on a fresh install).
 

@@ -48,7 +48,7 @@ server-side and authoritative.
 
 Pass `section` plus only the fields you're setting:
 
-1. **`basic_information`** — `short_description{ar,en}` (≥50 chars), `main_category_id`,
+1. **`basic_information`** — `short_description{ar,en}` (50–200 chars), `main_category_id`,
    `categories[]` (sub-categories of the main category), `video_url`, `demo_url`,
    `search_terms[]`, `supported_countries[]`.
 2. **`features`** — `banner`, `embedded_image`. **NOTE:** `screenshots` and `benefits` for

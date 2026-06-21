@@ -4,7 +4,7 @@ How a block's element values are shaped when you pass them to **`app_page_builde
 
 Each value's shape is dictated by the element's `format` and `lingual` flag. **Discover the real element keys with `action=show`** before building a `set` payload — the ids and URLs below are **illustrative**.
 
-> **Prerequisite:** `app_publish action=open` must have created a draft, or `app_page_builder` returns 404. Draft/publish flow → salla-publication-consistency.
+> **Prerequisite:** `app_page_builder` is disabled until the app is public and has a draft — `app_publish action=open` must have created it first. Draft/publish flow → salla-publication-consistency.
 >
 > **`set` replaces the whole block.** Carry over every value you aren't changing — especially `required` elements — or you'll trigger validation or wipe existing content. Keep already-stored images by leaving their `{ id, url }` in place.
 >

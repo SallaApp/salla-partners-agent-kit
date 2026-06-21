@@ -4,7 +4,7 @@ The listing page has two layers: the **block** (a section in the app's App Store
 
 **Discover, don't hardcode.** Block types come from `action=catalog`; a block's element keys come from `action=show`. Block `id`s, option lists, and element sets drift between environments and over time, so the examples below are **illustrative** — confirm them against `action=catalog` / `action=show` (and cross-check via `salla-docs`). `image` and `richtext` values render as **public App-Store content** — use only trusted, sanitized assets/HTML.
 
-> **Prerequisite.** The builder is disabled (404) until `app_publish action=open` has created a draft on a public app. Run `app_page_builder action=init` once on a fresh draft to seed the required blocks. Draft/publish lifecycle → salla-publication-consistency.
+> **Prerequisite.** The builder is disabled until the app is public and has a draft — run `app_publish action=open` first to create it. Then run `app_page_builder action=init` once on the fresh draft to seed the required blocks. Draft/publish lifecycle → salla-publication-consistency.
 
 ---
 
@@ -56,7 +56,7 @@ Editing block elements writes these **shared listing fields** into the draft pub
 | `screenshots` | App Information         | image `[{ id, url }, …]` (multiple)      |
 | `benefits`    | App Features            | collection (array of prefixed-key items) |
 
-> **`short_description` is NOT here.** It belongs to the publication `basic_information` section, written via `app_publish` → salla-publication-consistency.
+> **`short_description` is NOT here.** It belongs to the publication `basic_information` section (50–200 chars), written via `app_publish` → salla-publication-consistency.
 
 ---
 

@@ -24,7 +24,7 @@ Editing a block's element values **writes the shared listing content directly in
 
 ## Prerequisite: open a draft first
 
-The builder is **disabled (returns 404) until the app is public and has a draft publication.** Before calling `app_page_builder`, call:
+The builder is **disabled until the app is public and has a draft publication** — run `app_publish action=open` first to create the draft. Before calling `app_page_builder`, call:
 
 ```
 app_publish action=open
@@ -64,7 +64,7 @@ Writing element values on the listing blocks persists these **shared listing fie
 - `screenshots`
 - `benefits`
 
-> **`short_description` is NOT set here.** It belongs to the publication's `basic_information` section and is written via `app_publish` — route it to **salla-publication-consistency**. (The `app_page_builder` tool's own description may also mention `short_description`, but the authoritative owner is `app_publish`; do not author it through this skill.)
+> **`short_description` is NOT set here.** It belongs to the publication's `basic_information` section (50–200 chars) and is written via `app_publish` — route it to **salla-publication-consistency**. (The `app_page_builder` tool's own description may also mention `short_description`, but the authoritative owner is `app_publish`; do not author it through this skill.)
 
 ## Media (logo, screenshots)
 
@@ -90,7 +90,7 @@ See [Blocks and Fields](references/blocks-and-fields.md) for the block/element m
 
 ## Things to keep in mind
 
-> - **Open the draft first.** `app_page_builder` is 404 until `app_publish action=open` has created a draft on a public app.
+> - **Open the draft first.** `app_page_builder` is disabled until `app_publish action=open` has created a draft on a public app — run it first.
 > - **Run `init` before anything else** on a fresh draft — it seeds the required blocks and returns the current page.
 > - **Discover, don't guess.** Use `action=catalog` (block types) and `action=show` (element keys) instead of hardcoding ids/keys.
 > - **App Information & App Plans are required** — always present, can't be removed.

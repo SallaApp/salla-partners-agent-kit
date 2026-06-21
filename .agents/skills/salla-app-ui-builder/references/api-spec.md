@@ -4,7 +4,7 @@ The App Store listing page is authored through the **`app_page_builder`** MCP to
 
 > **Dependency:** `app_page_builder` ships in the Salla Partners MCP (partners-mcp #10) and must be deployed.
 
-> **Prerequisite:** `app_publish action=open` must have created a draft on a **public** app, or every `app_page_builder` action returns **404** (disabled). The draft/publish lifecycle is owned by **salla-publication-consistency**.
+> **Prerequisite:** `app_page_builder` is **disabled until the app is public and has a draft** — `app_publish action=open` must have created the draft first. The draft/publish lifecycle is owned by **salla-publication-consistency**.
 
 ---
 

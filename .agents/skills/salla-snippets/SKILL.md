@@ -84,15 +84,10 @@ then **inject it as a storefront snippet** with the tool:
    })();
    ```
 
-   > **The backend wraps your code — you get a pre-scoped `salla` for free.** On save, Salla
-   > stores your JS verbatim and serves it from a CDN, wrapped in a versioned wrapper
-   > (`/*__SALLA_WRAP_V1__*/`, your code between `/*__SALLA_USER_CODE_START__*/` …
-   > `/*__SALLA_USER_CODE_END__*/`). The wrapper runs your code **inside `Salla.onReady(...)`**
-   > and rebinds `salla` / `Salla` to `window.Salla.appScope(<your scope>)`, and proxies
-   > `document.currentScript` to your own script element. **Do NOT call `appScope` yourself
-   > or touch `document.currentScript`** — just use `salla`, `salla.onReady`,
-   > `salla.config.get(...)` directly. The scoped `salla` is what isolates your snippet from
-   > other apps on the page.
+   > **You just write plain JS — Salla serves and runs it for you.** There is nothing to wrap
+   > or scope yourself; author plain, valid JavaScript and Salla stores it verbatim and serves
+   > it from a CDN as a real `.js` file. Use `salla`, `salla.onReady`, `salla.config.get(...)`
+   > directly.
    >
    > **No `<script>`, no HTML, no Twig, no `{}`.** The file is loaded as a real `.js` via
    > `<script src>` — a `<script>` wrapper or stray HTML is a syntax error, and Twig
@@ -100,12 +95,13 @@ then **inject it as a storefront snippet** with the tool:
    > render pass) — it ships as literal text and breaks the script. Get every dynamic value
    > at **runtime** from `salla.config.get(...)` / events instead (see below).
    >
-   > **Settings bridge — `salla.config.get("app.<key>")` (no Twig).** Your app's merchant
-   > settings reach the storefront under **`app.*`** — e.g.
+   > **Settings bridge — read app settings ONLY with `salla.config.get("app.<key>")`.** This
+   > is the one and only way to read a merchant's App Settings in a storefront snippet — e.g.
    > `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`.
-   > Only settings marked **`public: true`** are exposed client-side; secrets stay
-   > server-side and are never in the snippet. This is how a merchant's **App Settings**
-   > drive the storefront — define the keys (and public vs secret) in
+   > **Hard rule:** only settings marked **`public: true`** are accessible in a storefront
+   > snippet; **private settings (`public: false`) are NOT accessible on the storefront** —
+   > they stay server-side and never appear in the snippet. This is how a merchant's **App
+   > Settings** drive the storefront — define the keys (and which are `public`) in
    > [salla-app-settings](../salla-app-settings/SKILL.md).
    >
    > **Store / session config:** `salla.config.get("user.id")`,
@@ -131,9 +127,8 @@ then **inject it as a storefront snippet** with the tool:
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.
 3. Inject it: `salla_snippets action=create`, `app_id`, `name` (required), `place`
-   ("before" — the only accepted value), `tag` ("body" — snippets render **before
-   `</body>`**; the old `tag: "head"` placement is **no longer used** for the CDN model),
-   `content` (your pure JS). **Dedup first:** call `salla_snippets action=list` and
+   ("before" — the only accepted value), `tag` (`"body"` only — snippets render **before
+   `</body>`**), `content` (your pure JS). **Dedup first:** call `salla_snippets action=list` and
    `update`/`delete` any existing snippet for this app before creating — stacked duplicates
    double-render the UI and double-fire events. Read back with `salla_snippets action=list` /
    `get`: on `live-js` it returns the snippet **metadata** with a **`url`** (the CDN `.js`

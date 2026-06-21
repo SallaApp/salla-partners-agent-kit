@@ -29,8 +29,10 @@ MCP; the token handling is runtime code.
 | `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call         |
 | `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)                 |
 
-> Easy Mode is required for all published App Store apps. Custom Mode is for local dev and
-> Postman testing only. Docs: https://docs.salla.dev/421118m0.md · App Events:
+> Easy Mode is the **recommended default** and is required for all published App Store apps.
+> Custom Mode is for local dev / Postman during development — shipping it in a published app
+> **without a real use case can get the app rejected at review**. Docs:
+> https://docs.salla.dev/421118m0.md · App Events:
 > https://docs.salla.dev/421413m0.md · API header: `Authorization: Bearer <access_token>`.
 
 ---
@@ -52,11 +54,17 @@ MCP; the token handling is runtime code.
 | Callback URL needed?        | No                                        | Yes                                 |
 | Allowed for published apps? | Yes — required                            | No                                  |
 | Allowed for testing?        | Yes                                       | Yes (Postman, local dev)            |
+| Recommendation              | **Default — recommended for every app**   | Dev only; needs a real use case     |
 | Token handling              | Salla handles everything; you just save   | You implement the full exchange     |
 
-**Decision rule:** App Store app → Easy Mode. Postman/local server → Custom Mode.
+**Decision rule — default to Easy Mode.** Easy Mode is the **recommended default for every
+app**; use it unless you have a concrete technical reason it cannot work. Custom Mode is for
+**local dev / Postman during development**. **A published app that ships Custom Mode without a
+real, justified use case can be rejected at review** — don't pick Custom Mode out of habit or
+because it's the familiar OAuth2 callback pattern. If you genuinely need Custom Mode in
+production, be ready to justify the use case.
 
-**Gate:** "Mode chosen, and it matches whether the app is published?"
+**Gate:** "Defaulted to Easy Mode (or have a real, reviewable reason for Custom Mode)?"
 
 ---
 

@@ -46,14 +46,14 @@ But snippets are NOT themes — some SDK affordances are theme-development const
 
 - **Storefront JS SDK (this skill)** = the **shopper's browser**, via app snippets —
   customer-side actions/events.
-- **App Functions** ([salla-app-functions](../salla-app-functions/SKILL.md)) =
+- **App Functions** ([salla-app-functions](../../salla-app-functions/SKILL.md)) =
   **server-side** (V8 isolate), merchant/server events.
 - **The hookable rule** (from salla-app-expert): shopper's browser → snippet (here); a
   server event with an App Function trigger exists → App Function (preferred); else →
-  webhook ([salla-webhooks](../salla-webhooks/SKILL.md)).
+  webhook ([salla-webhooks](../../salla-webhooks/SKILL.md)).
 - Do a customer-side action/listen here; for a **server reaction** (persist, sync, call the
   Admin API, react reliably) route to salla-app-functions / salla-webhooks. Native visible
-  UI → [salla-ui-compliance](../salla-ui-compliance/SKILL.md).
+  UI → [salla-ui-compliance](../../salla-ui-compliance/SKILL.md).
 
 > Almost all methods return a **Promise** resolving to `{ status, success, message?, data }`.
 > Each module also exposes alias events (`salla.event.<module>.on…` / `salla.<module>.event.on…`)

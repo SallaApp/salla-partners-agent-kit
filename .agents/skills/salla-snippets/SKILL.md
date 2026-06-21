@@ -129,8 +129,13 @@ Device Mode setup, full event catalogue, payload shapes →
 200 only confirms the file deployed, not that it runs. Treat **every `create`/`update`** as
 the trigger for one loop, repeated until clean:
 
-1. **Pure-JS check** — the `content` is plain JavaScript only: no `<script>` tag, HTML, or
-   Twig (the snippet is served as a `.js` file). → [`references/device-mode.md`](references/device-mode.md).
+1. **Parse-as-JS check (do this before `create`/`update`)** — confirm the `content` parses
+   as valid JavaScript, the same check the Portal editor runs before it lets you save: e.g.
+   `node --check snippet.js`, or a `new Function(code)` in a try/catch. Parse it, don't
+   pattern-match — `<script>` tags, HTML, and Twig (`{{ … }}` / `{% … %}`) all fail to parse
+   as JS and are caught for free, because the snippet is served as a `.js` file. Fix any
+   syntax error before saving; the MCP no longer guards content shape, so the body parsing
+   cleanly is the author's responsibility. → [`references/device-mode.md`](references/device-mode.md).
 2. **Config-key check** — for **every** `salla.config.get("app.<key>")` the snippet reads,
    confirm `<key>` is a defined setting marked `public: true` in the app's settings. A key
    that's missing or not `public` reads `undefined` on the storefront. The settings define

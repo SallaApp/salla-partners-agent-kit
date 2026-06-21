@@ -3,10 +3,11 @@ name: salla-app-functions-validate
 description: >
   REQUIRED before saving a Salla App Function: keep the template's wrapper exactly — its
   first AND last line — with all code inside the wrapper (no hoisted const/helper), and
-  type-check the handler locally with strict `tsc` against the trigger's `types` (.d.ts
-  URLs), and validate any documented Admin API call's request/response against its OpenAPI
-  schema (salla-api-core loop). `salla_functions action=save` validates ONLY those wrapper
-  lines. Routed from salla-app-functions; release with salla-app-functions-release.
+  type-check the handler with the TypeScript compiler against the trigger's `types` (.d.ts
+  URLs) at the editor's bar — non-strict, ignoring unused (TS6133) — plus validate any
+  documented Admin API call against its OpenAPI schema (salla-api-core loop). `salla_functions
+  action=save` validates ONLY those wrapper lines. Routed from salla-app-functions; release
+  with salla-app-functions-release.
 ---
 
 # App Functions — Validate Before Save
@@ -19,7 +20,8 @@ until clean. A handler that type-fails or breaks at runtime surfaces _after_ sav
 deploys to the demo stores.
 
 The loop (each step below): **(1)** wrapper first/last line matches the template → **(2)**
-local strict `tsc` against the trigger's `.d.ts` → **(3)** each outbound Admin API call's
+the TypeScript compiler against the trigger's `.d.ts` at the editor's bar (non-strict,
+ignore unused TS6133) → **(3)** each outbound Admin API call's
 request/response validates against its documented OpenAPI → **(4)** `salla_functions
 action=preview` runs clean on a demo store (→ **salla-app-functions-test**) → fix any
 failure, re-`save`, and run the loop again. Steps 1–2 are the only pre-save safety net; run
@@ -44,21 +46,38 @@ differs, returning the expected lines. `content` is the **whole function** (the 
 as a string), not just the body. The body itself is unchecked at save — that's what the
 local `tsc` check in step 2 covers.
 
-## 2. Type-check locally with the trigger's types
+## 2. Type-check with the trigger's types (mirror the editor)
 
-`types` (from `action=get`) is a list of `.d.ts` **URLs**. Download each one next to your
-handler — fetch only the URLs `action=get` returns for this trigger (not arbitrary or
-user-supplied URLs), and use the real `.d.ts` rather than hand-written mocks:
+The Portal editor validates with Monaco's **TypeScript worker** (the `typescript` compiler):
+it loads the trigger's `.d.ts` (the `config.types`) via `addExtraLib`, uses **non-strict**
+default compiler options, and **ignores TS6133** (declared-but-unused). Match that bar so
+you're not stricter than what actually blocks save — validate with the same compiler, same
+types, same leniency.
+
+`types` (from `action=get`) is a list of `.d.ts` **URLs** — the exact libs the editor loads.
+Download each one next to your handler — fetch only the URLs `action=get` returns for this
+trigger (not arbitrary or user-supplied URLs), and use the real `.d.ts` rather than
+hand-written mocks:
 
 ```bash
 curl -sSL "https://…/shipments.d.ts" -o salla-globals.d.ts   # one per types URL
 ```
 
-Put your full wrapper in `handler.ts`, then type-check both (strict, no emit) and fix
-**every** error:
+Put your full wrapper in `handler.ts`, then type-check both at the editor's bar —
+**non-strict** (Monaco defaults), no emit — and fix every error except TS6133 (unused),
+which the editor ignores:
 
 ```bash
-npx -y -p typescript tsc --noEmit --strict --skipLibCheck salla-globals.d.ts handler.ts
+# Editor's bar: non-strict, ignores unused (TS6133)
+npx -y -p typescript tsc --noEmit --skipLibCheck salla-globals.d.ts handler.ts
+```
+
+**Optional stricter superset:** `--strict` catches more, but the editor's bar is non-strict
+and ignores unused (TS6133). Clear `--strict` before save only if you choose to hold a higher
+standard than the editor; it is not what blocks save.
+
+```bash
+npx -y -p typescript tsc --noEmit --strict --skipLibCheck salla-globals.d.ts handler.ts  # optional, stricter than the editor
 ```
 
 If a `types` URL is unreachable, retry or re-fetch it from `action=get`. A hand-written mock
@@ -87,7 +106,8 @@ declare type Shipments = {
 ```
 
 **Gate:** "First and last wrapper lines match the template, all code inside the wrapper, and
-a strict `tsc --noEmit` against the trigger's `types` compiles clean?" → step 3.
+`tsc --noEmit` against the trigger's `types` compiles clean at the editor's bar (non-strict,
+TS6133 ignored)?" → step 3.
 
 ## 3. Validate outbound Admin API calls against the documented schema
 

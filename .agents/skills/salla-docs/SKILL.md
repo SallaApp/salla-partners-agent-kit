@@ -33,6 +33,19 @@ the source of truth (e.g. `https://docs.salla.dev/5394153e0.md` = `POST /orders/
 To build and validate a call against it, follow the closed-loop in
 [salla-api-core](../salla-api-core/SKILL.md).
 
+### Current-reference workflow (validation & upgrade checks)
+
+To pin behavior to the **live** spec: find the resource in
+[`references/docs-map.md`](references/docs-map.md) → fetch the live
+`https://docs.salla.dev/<id>.md` → read its inline OpenAPI block. Use it for:
+
+- **Validation** — build/verify against the live schema (field names, types, enums,
+  required); loop mechanics are in [salla-api-core](../salla-api-core/SKILL.md).
+- **Upgrade checks** — diff what the current spec offers vs what the app uses, then
+  surface available upgrades.
+- **Freshness guard** — always fetch live, never a cached shape; on a `404` the handle
+  was renumbered, so relocate the page via step 3/4.
+
 ## 3. Topic → scoped docs entry point
 
 Open the scoped page, not an index. The numeric URLs below are stable handles that can

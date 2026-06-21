@@ -1,13 +1,13 @@
 ---
 name: salla-app-billing
 description: >
-  Salla app monetization: plans and addons are defined inside the publish payload (no
-  pricing endpoint) and billed by Salla. Track merchant plan state from
-  app.subscription.* / app.trial.* events (one payload family — item_type distinguishes
-  plan vs addon), gate features by the merchant's combined plan + addon entitlements
-  (features[]), reconcile via salla_apps action=subscriptions, and meter
-  usage-based billing against the subscription balance. In-app addon purchase UI →
-  salla-addon-purchase; event wiring → salla-app-lifecycle.
+  Salla app monetization: plans and addons live in the publish payload (no pricing
+  endpoint), billed by Salla. Track plan state from app.subscription.* / app.trial.* events
+  (one family — item_type splits plan vs addon), gate features by combined plan + addon
+  entitlements, reconcile via salla_apps action=subscriptions, meter usage against the
+  balance. Verify event signatures first → salla-webhooks; tokens → salla-app-auth; event
+  wiring → salla-app-lifecycle; in-app addon purchase UI → salla-addon-purchase /
+  salla-addon-purchase-embedded.
 ---
 
 # Salla App Billing Flow
@@ -112,6 +112,15 @@ be set — see salla-app-lifecycle Step 1):
 
 ## Step 3 — Track Plan State from Events
 
+> **Security — events grant paid access.** These webhooks drive entitlements, so a forged
+> or replayed one can hand out (or revoke) paid features. **Verify the webhook signature
+> and enforce idempotency before mutating plan/entitlement state** — that transport layer
+> (signature verification, replay protection, fast 2xx) is owned by **salla-webhooks**;
+> token/OAuth by **salla-app-auth**. Treat entitlement changes as authoritative only from a
+> verified server event (or the reconciled Partners API, Step 5) — **never** from a
+> client-reported plan. Keep entitlement-state reads/writes behind your own authenticated
+> admin path, and keep signing secrets and tokens out of logs.
+
 Wire the events via salla-app-lifecycle. The deltas that matter here:
 
 - **Branch on `item_type`** — `"plan"` updates plan state; `"addon"` updates addon
@@ -159,6 +168,9 @@ This endpoint is **company-scoped**: it returns subscriptions across **all of yo
 company's apps and all their merchants**, not a single app. Always filter the response by
 `app_id` **and** merchant ID before updating any stored state — applying another app's or
 merchant's subscription data silently corrupts plan gating.
+
+The shape below is **illustrative** — confirm exact fields via `salla_apps
+action=subscriptions` or the Apps API docs before coding:
 
 ```json
 {

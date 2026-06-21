@@ -1,10 +1,10 @@
 ---
 name: salla-app-functions-release
 description: >
-  Save & publish a Salla App Function: `salla_functions action=save` triggers an async deploy
-  to demo stores (returns a `job` — poll `action=deploy_status` until COMPLETED), then test
-  (salla-app-functions-test) and `salla_apps action=publish` for admin approval to reach real
-  stores. Use after validating. Routed from salla-app-functions.
+  Save & publish a Salla App Function. `salla_functions action=save` deploys to demo stores
+  (poll `action=deploy_status`); then test (salla-app-functions-test) and `salla_apps
+  action=publish` for admin approval to reach real stores. Use after validating. Routed from
+  salla-app-functions; OAuth/tokens → salla-app-auth, webhook verification → salla-webhooks.
 ---
 
 # App Functions — Save, Test & Publish
@@ -13,8 +13,8 @@ Save only after a clean validate pass (**salla-app-functions-validate**).
 
 ## Save (create or update)
 
-Every function is **keyed by its trigger**, so `get` / `save` / `delete` take `app_id` **and**
-`trigger`. A given app runs a single function — `save` is an **upsert**.
+An app has **one function, keyed by its trigger**, so `get` / `save` / `delete` take `app_id`
+**and** `trigger`. `save` is an **upsert** for that trigger's function.
 
 - **Save:** `salla_functions action=save`, `app_id`, `trigger`, `content` (the whole function
   as a string), `name`. Keep the template's first line exactly — save **rejects** a change.
@@ -27,7 +27,12 @@ Every function is **keyed by its trigger**, so `get` / `save` / `delete` take `a
 
 Saving triggers an **async deploy** to the app's demo stores — poll `deploy_status` (the
 save `job`) until `COMPLETED`, then test it (**salla-app-functions-test**). You don't call a
-separate deploy action, manage versions, or re-save the publication draft.
+separate deploy action or manage versions. (Param names/job shape above are illustrative —
+confirm exact fields with `salla_functions` before relying on them.)
+
+> Note: if you later change app config that the publication snapshot captured, re-open
+> publish to refresh it — see **salla-publication-consistency**. The function deploy itself
+> does not need re-saving.
 
 ## Test before publishing
 
@@ -38,21 +43,29 @@ are visible.
 
 ## Publish (production)
 
-This step's only action is **publish** — do **not** re-run `save` (that just queues another
-deploy). The already-saved function reaches **real merchant stores only after the publish
-request is approved**:
+Do **not** re-run `save` to publish (that just queues another deploy). The already-saved
+function reaches **real merchant stores only after the publish request is approved**:
 
-- **Publish:** `salla_apps action=publish`, `app_id` (optional `update_note`) → submit for
-  review; admin approval releases the saved function to live stores.
+- **Publish:** `salla_apps action=publish`, `app_id`, **`publish_action`** (`"save"` drafts
+  the publication, `"submit"` sends for review) with the `publication` payload; optional
+  `update_note`. Admin approval releases the saved function to live stores. Confirm the exact
+  required `publication` fields with `salla_apps` / **salla-publication-consistency** before
+  submitting — they are version-specific.
+
+**Pre-publish security check.** Before `publish_action="submit"`, scan the saved `content`
+(`salla_functions action=get`): no hardcoded tokens, secrets, or API keys; no debug dumps of
+`context` or merchant PII into preview logs; no over-broad outbound `fetch` calls. Token/OAuth
+handling belongs in your backend, not the function — see **salla-app-auth**; webhook signature
+verification → **salla-webhooks**.
 
 ## Checklist
 
-- [ ] `payload.data` confirmed (design) · strict `tsc` clean (validate).
-- [ ] Sync body well under 500 ms; every `fetch` bounded.
+- [ ] `payload.data` confirmed (**salla-app-functions-design**) · strict `tsc` clean (**salla-app-functions-validate**).
+- [ ] Sync body within the 5 s total budget (each internal async call < 2 s); every `fetch` bounded.
 - [ ] `Resp.success().setData(...)` on every path — `{}` if empty.
-- [ ] No npm/unsupported core; `globalThis.crypto`; no secrets logged.
-- [ ] Tested in preview against a demo store with a real record ID.
-- [ ] Saved (`action=save`) then submitted for publish (`salla_apps action=publish`).
+- [ ] No npm/unsupported core; `globalThis.crypto`; no hardcoded secrets/tokens, no PII logged.
+- [ ] Tested in preview against a demo store with a real record ID (**salla-app-functions-test**).
+- [ ] Saved (`action=save`) then submitted (`salla_apps action=publish`, `publish_action="submit"`).
 
 **Gate:** "Execution Status = success in preview, within the timeout budget, and submitted
 for publish?"

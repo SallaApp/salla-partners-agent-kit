@@ -26,16 +26,18 @@ defined at publish (`salla_apps action=publish`, `addons[]`).
 
 > Salla owns billing — you never charge. Purchase UX (iframe) →
 > **salla-addon-purchase-embedded** · pricing/entitlement primitives & gating →
-> **salla-app-billing** · webhook signature/idempotency → **salla-webhooks**.
+> **salla-app-billing** · webhook signature/idempotency → **salla-webhooks** · OAuth scopes
+> & merchant token storage for any API call you make off these events → **salla-app-auth**.
 
 ---
 
 ## Step 1 — Define the Addon
 
 Addons live in the `addons[]` array of the publish payload (`salla_apps action=publish`) —
-there is no separate pricing endpoint; after publishing they appear under **App Details →
-Custom Plans**. Each addon has an `item_slug` you match on for every lifecycle event. Full
-payload shape → **salla-app-billing** Step 1.
+there is no separate pricing endpoint; after publishing they surface in the addon/plans
+section of the app's Portal page (verify the exact location against the current Partners
+Portal). Each addon has an `item_slug` you match on for every lifecycle event. Full payload
+shape → **salla-app-billing** Step 1.
 
 **Gate:** "Addon in the publish payload, published, and you know its `item_slug`?"
 
@@ -59,9 +61,13 @@ Confirm exact slugs via `salla_events action=list` / the App Events doc before c
 
 ## Step 3 — Activate on `app.subscription.started` (source of truth)
 
-Do **not** unlock features because a purchase redirect returned — wait for Salla's webhook:
+Do **not** unlock features because a purchase redirect returned — wait for Salla's webhook.
+Field names below (`item_type`, `item_slug`, `subscription_id`, `end_date`, `features`) are
+illustrative — confirm the exact payload shape via `salla_events action=list` or the App
+Events doc before relying on them:
 
 ```typescript
+// Runs only AFTER the request is signature-verified and de-duplicated — see salla-webhooks.
 if (
   payload.event === "app.subscription.started" &&
   payload.data.item_type === "addon"
@@ -77,7 +83,8 @@ if (
 ```
 
 - Match the addon by **`item_slug`** (plans carry `item_slug: null`; addons carry the slug).
-- Verify the signature, respond `200` fast, dedup → **salla-webhooks**.
+- Verify the signature, respond `200` fast, dedup → **salla-webhooks**. Any merchant-token
+  API call you make from here → **salla-app-auth**.
 
 **Gate:** "Activation fires on `started` + `item_type === "addon"`, matched by `item_slug`,
 signature-verified and idempotent?"

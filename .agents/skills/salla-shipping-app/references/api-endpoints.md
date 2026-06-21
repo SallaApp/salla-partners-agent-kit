@@ -3,130 +3,136 @@
 Base URL: `https://api.salla.dev/admin/v2`
 Auth: `Authorization: Bearer {access_token}`
 
-Full API reference: https://docs.salla.dev/841806f0.md
+List of Shipping API (source of truth): https://docs.salla.dev/api-5578809 ·
+Getting started: https://docs.salla.dev/422988m0.md
+
+> **Security & ownership (route, don't duplicate):** use the stored merchant token and
+> refresh it through **`salla-app-auth`**; request the minimum scopes the app needs
+> (`shipping.read` for reads, `shipping.read_write` for writes); never log bearer tokens,
+> signing secrets, or customer PII (names, phones, addresses). Generic auth headers,
+> pagination, rate limits, and error shapes live in **`salla-api-core`**. Webhook signature
+> verification + idempotency → **`salla-webhooks`**.
 
 ---
 
 ## Shipments
 
-| Method   | Path                                | Purpose                    |
-| -------- | ----------------------------------- | -------------------------- |
-| `GET`    | `/shipping/shipments`               | List all shipments         |
-| `GET`    | `/shipping/shipments/{id}`          | Get shipment detail        |
-| `POST`   | `/shipping/shipments`               | Create a shipment manually |
-| `PUT`    | `/shipping/shipments/{id}`          | Update shipment            |
-| `DELETE` | `/shipping/shipments/{id}`          | Cancel/delete shipment     |
-| `POST`   | `/shipping/shipments/{id}/label`    | Attach label URL           |
-| `PUT`    | `/shipping/shipments/{id}/tracking` | Set tracking number + URL  |
-| `POST`   | `/shipping/shipments/{id}/return`   | Create return shipment     |
+These are the real endpoints from the Shipping API list. Note: there is **no separate
+`/label` or `/tracking` sub-resource** — tracking number, tracking link, label, cost, and
+status are all set through the single **Update Shipment Details** (`PUT /shipments/{id}`)
+endpoint.
 
-### Create Shipment
+| Method | Path                              | Purpose                                                     | Doc                                |
+| ------ | --------------------------------- | ----------------------------------------------------------- | ---------------------------------- |
+| `GET`  | `/shipments`                      | List shipments (filterable)                                 | https://docs.salla.dev/api-5578809 |
+| `PUT`  | `/shipments/{shipment_id}`        | **Update Shipment Details** — tracking, label, cost, status | https://docs.salla.dev/api-5578810 |
+| `POST` | `/shipments`                      | Create / assign a shipment (Order Fulfilment)               | https://docs.salla.dev/api-5394231 |
+| `POST` | `/shipments/{shipment_id}/return` | Initiate a return on a delivered shipment                   | https://docs.salla.dev/api-5394236 |
+| `POST` | `/shipments/{shipment_id}/cancel` | Cancel a shipment                                           | https://docs.salla.dev/api-5394235 |
+
+### List Shipments
+
+`GET /shipments` — scope `shipping.read`. Query filters (all optional):
+
+| Param                                          | Meaning                           |
+| ---------------------------------------------- | --------------------------------- |
+| `order_id`                                     | Filter by order                   |
+| `courier_id` / `courier_slug`                  | Filter by shipping company        |
+| `status`                                       | Shipment status (enum, see below) |
+| `shipment_type`                                | `shipment` or `return`            |
+| `payment_method`                               | `pre_paid` or `cod`               |
+| `from_date` / `to_date`                        | Date range (`YYYY-MM-DD`)         |
+| `ship_to[country_id\|country_code\|city_id]`   | Destination filters               |
+| `ship_from[country_id\|country_code\|city_id]` | Origin filters                    |
+| `source`                                       | Shipment source (e.g. `api`)      |
+| `per_page`                                     | Records per page                  |
+
+Full `status` filter enum: `created`, `in_progress`, `in_transit`,
+`received_at_final_hub`, `to_be_reattempted`, `reattempted`, `unable_to_deliver`,
+`delivering`, `delivered`, `partially_delivered`, `shipped`, `cancelled`, `lost`,
+`damaged`, `return_to_origin`, `return_in_progress`.
+
+The response `data` is an **array** of shipment objects (`id`, `order_id`, `type`,
+`courier_id`/`courier_name`, `shipping_number`, `tracking_number`, `tracking_link`,
+`label`, `payment_method` (`cod`/`pre_paid`), `status`, `total`, `cash_on_delivery`,
+`packages[]`, `ship_from`, `ship_to`, `billing_account` (`salla`/`merchant`), `meta`)
+plus a `pagination` block (`count`, `total`, `perPage`, `currentPage`, `totalPages`,
+`links.next`).
+
+### Update Shipment Details
+
+`PUT /shipments/{shipment_id}` — the single endpoint a Shipping App uses to push results
+back after creating a shipment with its carrier. `shipment_number` and `status` are
+**required** and must match the value used in the first update; everything else is
+optional. Include VAT in `cost`.
 
 ```http
-POST /shipping/shipments
+PUT /shipments/{shipment_id}
 Content-Type: application/json
 
 {
-  "order_id": 12345,
-  "carrier_id": "smsa",
-  "service_type": "standard",
-  "sender": {
-    "name": "My Store",
-    "phone": "+966500000000",
-    "address": {
-      "street": "King Fahd Road",
-      "city": "Riyadh",
-      "country": "SA",
-      "zip": "12271"
-    }
-  },
-  "receiver": {
-    "name": "Ahmed Al-Rashidi",
-    "phone": "+966501234567",
-    "address": {
-      "street": "Al-Corniche",
-      "city": "Jeddah",
-      "country": "SA",
-      "zip": "21577"
-    }
-  },
-  "package": {
-    "weight": 1.5,
-    "weight_unit": "kg",
-    "dimensions": { "length": 30, "width": 20, "height": 10, "unit": "cm" }
-  },
-  "cod": { "amount": 0, "currency": "SAR" }
+  "shipment_number": "846984645",
+  "tracking_number": "4324233",
+  "tracking_link": "https://carrier.com/track/4324233",
+  "label": { "format": "pdf", "url": "https://carrier.com/labels/SHP-001.pdf" },
+  "cost": 25.5,
+  "status_note": "Picked up from Riyadh hub",
+  "status": "shipped"
 }
 ```
 
-### Attach Label
+> **Available `status` values** (Update Shipment / Order Status,
+> https://docs.salla.dev/422994m0.md): `created`, `shipped`, `delivering`, `delivered`,
+> `in_progress`, `cancelled`. **Exception:** once a shipment is `shipped`, `delivering`,
+> or `delivered`, it cannot be moved back to `created` or `in_progress`.
 
-```http
-POST /shipping/shipments/{id}/label
+A successful response returns the full shipment object with `status` as an object
+(`{ id, name, slug }`, e.g. slug `under_review`). For the exact field-by-field request and
+response schema see https://docs.salla.dev/api-5578810.
 
-{
-  "label_url": "https://carrier.com/labels/SHP-001.pdf",
-  "label_format": "pdf",
-  "carrier_shipment_id": "CARRIER-REF-123"
-}
-```
+### Create / Assign Shipment (Order Fulfilment)
 
-### Set Tracking
+`POST /shipments` — used by an Order Fulfilment App to assign an order to a carrier; the
+created shipment comes back with `status: "creating"`, which triggers `shipment.creating`
+to the assigned Shipping App. Request schema: https://docs.salla.dev/api-5394231.
 
-```http
-PUT /shipping/shipments/{id}/tracking
+### Return & Cancel
 
-{
-  "tracking_number": "1Z999AA10123456784",
-  "tracking_url": "https://carrier.com/track/1Z999AA10123456784"
-}
-```
+`POST /shipments/{shipment_id}/return` initiates a return on a delivered shipment — Salla
+then runs the Shipping App's `shipment.creating` App Function with `type: "return"`.
+`POST /shipments/{shipment_id}/cancel` cancels a shipment — Salla first runs the Shipping
+App's `shipment.cancelling` App Function (sync), then fires the async `shipment.cancelled`
+event. Docs: https://docs.salla.dev/api-5394236 (return),
+https://docs.salla.dev/api-5394235 (cancel).
+
+---
+
+## Shipping Companies & Lookups
+
+| Method | Path                  | Purpose                                               | Doc                                |
+| ------ | --------------------- | ----------------------------------------------------- | ---------------------------------- |
+| `GET`  | `/shipping/companies` | List shipping apps/companies the merchant has enabled | https://docs.salla.dev/api-5394239 |
+
+Each entry returns `id`, `name`, `app_id`, `activation_type` (`manual` or `api`), and
+`slug`. An Order Fulfilment App calls this to discover which carriers a merchant has active
+before assigning an order.
+
+Country / city lookups used by the shipment filters:
+
+| Method | Path                     | Purpose          | Doc                                |
+| ------ | ------------------------ | ---------------- | ---------------------------------- |
+| `GET`  | `/countries`             | List country ids | https://docs.salla.dev/api-5394228 |
+| `GET`  | `/countries/{id}/cities` | List city ids    | https://docs.salla.dev/api-5394230 |
 
 ---
 
 ## Orders
 
-| Method | Path                  | Purpose                   |
-| ------ | --------------------- | ------------------------- |
-| `GET`  | `/orders`             | List orders               |
-| `GET`  | `/orders/{id}`        | Order detail              |
-| `PUT`  | `/orders/{id}/status` | Update fulfillment status |
-| `PUT`  | `/orders/{id}/branch` | Assign to branch          |
-
-### Update Order Status
-
-```http
-PUT /orders/{id}/status
-
-{
-  "status": "shipping",
-  "tracking_number": "1Z999AA10123456784",
-  "tracking_company": "SMSA Express",
-  "note": "Dispatched from Riyadh warehouse"
-}
-```
-
-| Status        | Meaning                 |
-| ------------- | ----------------------- |
-| `pending`     | Received, not processed |
-| `in_progress` | Being prepared          |
-| `shipping`    | Handed to carrier       |
-| `delivered`   | Confirmed delivered     |
-| `cancelled`   | Cancelled               |
-| `returned`    | Return received         |
-
----
-
-## Branches
-
-| Method   | Path                   | Purpose                |
-| -------- | ---------------------- | ---------------------- |
-| `GET`    | `/store/branches`      | List all branches      |
-| `GET`    | `/store/branches/{id}` | Branch detail          |
-| `POST`   | `/store/branches`      | Create branch          |
-| `PUT`    | `/store/branches/{id}` | Update branch          |
-| `DELETE` | `/store/branches/{id}` | Delete branch          |
-| `PUT`    | `/orders/{id}/branch`  | Assign order to branch |
+Order data, addresses, and order status arrive in the `order.created` webhook payload and in
+the `shipment.creating` App Function context (see `fulfillment-cycle.md` and
+`shipment-cycle.md`). Order status that **triggers** shipment creation is `completed`
+(returns: `restoring` / `restored`) — see https://docs.salla.dev/422994m0.md. Generic order
+read/list endpoints are owned by **`salla-api-core`**.
 
 ---
 
@@ -137,58 +143,65 @@ PUT /orders/{id}/status
 | `GET`  | `/apps/{app_id}/settings` | Get merchant's carrier credentials  |
 | `POST` | `/apps/{app_id}/settings` | Save merchant's carrier credentials |
 
+> Settings schema design, registration, validation, and the read-modify-write (full
+> replace — POST overwrites the whole record, so merge before saving) pattern are owned
+> by **`salla-app-settings`**. Carrier credentials are secrets: store them encrypted,
+> authenticate the merchant before reading/writing, and never log them.
+
 ---
 
 ## Response Envelope
 
 The `data` field shape depends on the endpoint type:
 
-**List endpoints** (`GET /shipments`, `GET /orders`, etc.) — `data` is an **array**:
+**List endpoints** (`GET /shipments`, `GET /shipping/companies`) — `data` is an **array**,
+with a sibling `pagination` block:
 
 ```json
 {
   "status": 200,
   "success": true,
-  "data": [ { "id": "SHP-001", ... } ]
+  "data": [{ "id": 362985660, "type": "shipment", "status": "creating" }],
+  "pagination": {
+    "count": 3,
+    "total": 32,
+    "perPage": 3,
+    "currentPage": 1,
+    "totalPages": 11
+  }
 }
 ```
 
-**Single-resource endpoints** (`GET /shipments/{id}`, `GET /orders/{id}`, etc.) — `data` is an **object**:
+**Single-resource endpoints** (`PUT /shipments/{id}`, `POST /shipments`, return/cancel) —
+`data` is an **object**:
 
 ```json
 {
   "status": 200,
   "success": true,
-  "data": { "id": "SHP-001", "status": "shipped", ... }
+  "data": {
+    "id": 1139865338,
+    "type": "shipment",
+    "status": { "id": 566146469, "slug": "under_review" }
+  }
 }
 ```
 
-Do not assume `data` is always an array. Check the endpoint type before calling `.map()` or iterating.
+Do not assume `data` is always an array. Check the endpoint type before iterating.
 
-List endpoints support page-based pagination via query parameters:
+`GET /shipments` paginates via `per_page` and the returned `pagination.links.next`; the
+generic pagination loop lives in **`salla-api-core`**.
 
-- `page` — page number, 1-indexed (default: `1`)
-- `per_page` — records per page (default: `20`, max: `50`)
-
-```http
-GET /shipping/shipments?page=2&per_page=30
-```
-
-Iterate all pages until `data` is empty or fewer records than `per_page` are returned —
-the generic pagination loop lives in the **`salla-api-core`** skill.
-
-Error responses:
+Validation errors (`422`) carry a `fields` map:
 
 ```json
 {
   "status": 422,
   "success": false,
   "error": {
-    "code": 422,
-    "message": "Validation failed",
-    "errors": {
-      "tracking_number": ["The tracking number field is required."]
-    }
+    "code": "validation_failed",
+    "message": "alert.invalid_fields",
+    "fields": { "courier_slug": ["The field contains invalid values."] }
   }
 }
 ```
@@ -196,6 +209,10 @@ Error responses:
 ---
 
 ## Postman Collection
+
+> **Use demo/non-sensitive data only.** Never paste production bearer tokens, signing
+> secrets, carrier credentials, or real customer PII into Postman or any third-party
+> capture tool, and clear them from the environment after testing.
 
 Test all endpoints interactively:
 
@@ -205,7 +222,9 @@ Test all endpoints interactively:
 
 ## Resources
 
-| Topic                       | Link                               |
-| --------------------------- | ---------------------------------- |
-| Full Shipping API reference | https://docs.salla.dev/841806f0.md |
-| Salla Admin API reference   | https://docs.salla.dev/421117m0.md |
+| Topic                        | Link                               |
+| ---------------------------- | ---------------------------------- |
+| Shipping API getting started | https://docs.salla.dev/422988m0.md |
+| List of Shipping API         | https://docs.salla.dev/api-5578809 |
+| Update Shipment Details      | https://docs.salla.dev/api-5578810 |
+| Salla Admin API reference    | https://docs.salla.dev/421117m0.md |

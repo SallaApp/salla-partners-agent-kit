@@ -1,13 +1,13 @@
 ---
 name: salla-app-builder
 description: >
-  Flow to create, configure, and publish a Salla app with the Salla
-  Partners MCP: create the app (category, sub_category_id, logo upload), connect OAuth
-  scopes + webhook URL, subscribe events, then branch by capability — snippets
-  (salla-snippets), embedded pages (salla-embedded-app), App Functions
-  (salla-app-functions), settings (salla-app-settings) — and publish. Use for "create a
-  new Salla app" or any create-to-publish step. Type deltas: salla-shipping-app,
-  salla-communication-app. Mechanics live in the routed skills.
+  End-to-end flow to create, configure, and publish a Salla app via the Salla Partners
+  MCP — create, connect OAuth scopes + webhook, subscribe events, then branch to the
+  owning skill and publish. Use for "create a new Salla app" or any create-to-publish
+  step. Hand off mechanics: snippets → salla-snippets, embedded pages → salla-embedded-app,
+  App Functions → salla-app-functions, settings → salla-app-settings, tokens/OAuth →
+  salla-app-auth, webhook verification → salla-webhooks, billing → salla-app-billing.
+  Type deltas: salla-shipping-app, salla-communication-app.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Hazem Khaled
@@ -29,6 +29,7 @@ These steps drive the **Salla Partners MCP** tools. Each is one tool with an `ac
 | `salla_reference` | Look up `categories`, `countries`, `cities`                                                                            |
 | `salla_upload`    | Upload a logo/file → returns a file `id`                                                                               |
 | `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` / `demo_stores` (testing) |
+| `salla_scopes`    | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)   |
 | `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                               |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
@@ -63,16 +64,16 @@ Use the answers to tailor Steps 1, 4–7.
    echoed), so use the returned `id`.
 3. **Create the app.** Call `salla_apps` with `action: "create"` and:
 
-| Field                        | Requirement                                                                                                                                                                                                 |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name` + `name_ar`           | **bilingual** — the API rejects missing variants (`name_ar` defaults to `name`). Both must be globally unique; `name_ar` must be plain Arabic letters with NO diacritics/tashkeel (e.g. هريفاي, not هرّفاي) |
-| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                |
-| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                   |
-| `app_url`                    | URL                                                                                                                                                                                                         |
-| `email`                      | support email                                                                                                                                                                                               |
-| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                               |
-| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                  |
-| `is_paid`                    | optional, boolean                                                                                                                                                                                           |
+| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name` + `name_ar`           | The app name **must be Arabic** and **must be globally unique** (a name that does not already exist across **all** Salla apps). Plain Arabic letters with NO diacritics/tashkeel (e.g. هريفاي, not هرّفاي). **Do not pre-validate uniqueness client-side** — submit `create` and handle the Portal's validation error (rename and resubmit if the name is taken). |
+| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                      |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                         |
+| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                               |
+| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                     |
+| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                     |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                        |
+| `is_paid`                    | optional, boolean                                                                                                                                                                                                                                                                                                                                                 |
 
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
@@ -94,15 +95,21 @@ link to the user after every create.
 Configure OAuth and webhooks in **one** `salla_apps action=connect` call. First check the
 app's valid scope slugs and current selection:
 
-1. Call `salla_apps` with `action: "get"` and the `app_id` to read the valid scope slugs,
-   their current selection, and any per-app disabled flags. (There is **no** scope-catalog
-   reference endpoint.) Request only the minimum the app needs.
+1. Call `salla_scopes` with `action: "get"` and the `app_id` to read the valid scope slugs,
+   their current selection, and any per-app `disabled` flags. (There is **no** scope-catalog
+   reference endpoint — `salla_scopes` reads them from the app.) **Least privilege:**
+   request only the minimum slugs the app needs, and prefer `read` over `read_write`
+   unless the app actually writes — excessive scopes risk review delay/rejection. Sending a
+   `disabled` option returns 422, so honour the flags from `get`.
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
    - `scopes` — map of `slug → "read" | "read_write"` (e.g.
      `{"orders": "read", "products": "read"}`). Pass **only** the resource map here —
      `offline_access` belongs in the OAuth authorize URL, not in the `scopes` map.
-   - `redirect_urls` — OAuth redirect URL(s)
-   - `webhook_url` — your webhook receiver
+     (You can also adjust the selection on its own with `salla_scopes action=set`.)
+   - `redirect_urls` — OAuth redirect URL(s). **HTTPS-only**; keep the allowlist tight
+     (register only the exact callbacks you use).
+   - `webhook_url` — your webhook receiver (**HTTPS-only**, must authenticate inbound
+     requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
    - `generate_secret: true` — mints + returns the webhook signing secret. An app
      already has a secret from creation, so this **rotates** it — don't regenerate if
@@ -111,9 +118,12 @@ app's valid scope slugs and current selection:
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
-Store the returned **webhook secret** securely; it verifies the HMAC-SHA256 signature on
-every webhook. Signature-verification code → **`salla-webhooks`** skill.
-Token-handling (Easy vs Custom mode) → **`salla-app-auth`** skill.
+Store the returned **webhook secret** in a secret manager (never in source/repo); it
+verifies the HMAC-SHA256 signature on every webhook. Don't `generate_secret` again once a
+secret is live on production traffic — rotating it breaks in-flight verification.
+Signature verification + idempotency → **`salla-webhooks`** skill. Token handling
+(Easy vs Custom mode, storage, refresh) → **`salla-app-auth`** skill. (Route, don't
+reimplement here.)
 
 **Gate:** "Scopes + redirect + webhook applied (no `_partial`). Is your webhook URL live
 and returning 200, with the secret stored?"
@@ -140,7 +150,7 @@ Common slugs by domain:
 
 | Domain             | Key events                                                                                                                 |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| Lifecycle (always) | `app.store.authorize`, `app.updated`, `app.subscription.started`                                                           |
+| Lifecycle (always) | `app.store.authorize`, `app.installed`, `app.uninstalled`, `app.updated`, `app.subscription.started`                       |
 | Orders             | `order.created`, `order.updated`, `order.status.updated`                                                                   |
 | Products           | `product.created`, `product.updated`, `product.deleted`                                                                    |
 | Customers          | `customer.created`, `customer.updated`                                                                                     |
@@ -185,10 +195,12 @@ later.
 - **Yes** → use `salla_onboarding_steps`:
   1. Call `salla_onboarding_steps action=create`, `app_id` with:
      - `slug` — **lowercase letters and digits only** (no hyphens or underscores)
-     - `icon`, `title`, `iframe_url` (the page the merchant completes this step on)
-  2. Repeat for each step, then call `action=sort` to set their order.
-     > `action=update` is a **full revalidation** — resend `slug`, `icon`, and `title`
-     > together; a partial payload 422s.
+     - `icon`, `title` (required); optional `fields` (the step's form inputs),
+       `sort`, `required`
+  2. Repeat for each step, then call `action=sort` (ordered `steps` id array) to set their
+     order.
+     > `action=update` is a **full revalidation** — resend `icon`, `title`, and `slug`
+     > together (plus `step_id`); a partial payload 422s.
 - **No** → skip to Step 6.
 
 ---
@@ -198,7 +210,9 @@ later.
 Ask: "Does your app need serverless handlers triggered by Salla events?"
 
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
-  context shape, `Resp` API, timeouts, and lifecycle-event handling.
+  context shape, `Resp` API, and timeouts. App Functions handle **store-event automation**
+  (where a trigger exists); **lifecycle/auth events stay on webhooks** (Step 3) and are
+  owned by **`salla-app-lifecycle`** / **`salla-app-auth`** — don't route them here.
 
 **Save the function with `salla_functions action=save` (`app_id`, `trigger`, `content`,
 `name`) — an upsert (create or update).** Saving is live on the app's demo stores
@@ -259,42 +273,27 @@ Integrates a carrier or fulfillment provider:
 
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
 3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
-   private-publish; optional `update_note`). Payload facts (verified):
-   - `action` is **always required**: `"save"` (draft) or `"submit"` (full validation).
+   private-publish; optional `update_note`). Pass the listing payload in `publication`.
+   The example shapes below are **illustrative** — confirm exact field names/shapes via the
+   Partners MCP tool schema or docs before relying on them:
+   - **`publish_action` is always required** (separate from the tool's `action: "publish"`):
+     `"save"` drafts the publication, `"submit"` sends it for full-validation review.
    - **`save` is NOT fully lenient** — it still requires `name: {en, ar}` and
      `short_description: {en, ar}` (bilingual nested objects). Heavier fields (logo id,
      screenshots, plans, etc.) are only required at `submit`.
    - `name`, `short_description`, and other user-facing text are bilingual nested objects:
      `{en: "…", ar: "…"}` — not flat strings.
-   - Upload media first via `salla_upload` → integer image IDs: `logo` (≥ 250×250, 1:1)
-     and `screenshots` as `[{image: id}]`, **min 3** (required at submit).
+   - Upload media first via `salla_upload` → integer image IDs: `logo` and
+     `screenshots` as `[{image: id}]`.
    - `categories` and `main_category_id` are **main** categories (`type=app` from
      `salla_reference`), distinct from the `sub_category_id` used at create time.
-   - Publishing **snapshots** the app's current snippets into the publication (with new
-     ids), so `salla_apps action=get` shows both the live snippet and its publication
-     copy — expected, not a duplicate-bug.
    - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
-     `plans`, `addons`) — there is no separate pricing endpoint → **`salla-app-billing`**.
-   - `trial_description` is a plain string, **30–1000 chars**.
+     `plans`, `addons`) — there is no separate pricing endpoint. In the Portal's
+     publication flow, **addons appear under Pricing**. → **`salla-app-billing`**.
    - `support_email` is required when `contact_method = "email"`.
-4. **Consistency gate (before submit / review).** Re-read and confirm everything is in
-   sync — a config change that isn't re-saved into the publication ships a stale snapshot:
-   - `salla_apps action=get` — scopes, webhook/redirect URLs, status are as intended.
-   - **Publication draft matches the app** — `publication_last_save.app_settings` (plus
-     logo / categories / plans) reflect your latest config; **re-save the publication after
-     ANY config change** (settings schema, snippet, scope) or review uses the old snapshot.
-   - **No duplicate snippets** — `salla_snippets action=list` shows one per purpose.
-   - **Embedded page** — `salla_embedded_pages action=list` URL is reachable and loads.
-   - **Webhook ↔ App Function split** is correct (lifecycle/auth on webhooks; store events
-     on App Functions where a trigger exists).
-   - **Settings save** verified on a real demo store (salla-app-settings save smoke test).
-
-   Full readback → **salla-publication-consistency**; live checks → **salla-live-testing**.
-
-5. Once approved the app is live on https://apps.salla.sa/en.
+4. Once approved the app is live on https://apps.salla.sa/en.
 
 Testing guide: references/demo-store-testing.md
-Publishing guide: references/publication-standards.md
 
 **Gate:** "Published — `salla_apps action=get` shows the expected status."
 

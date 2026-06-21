@@ -27,14 +27,18 @@ applies whenever your app draws visible UI; it does not inject anything itself (
 - **Inherit theme tokens** — Twilight CSS variables: `--color-primary`, `--color-text`,
   `--font-main`, and spacing/radius vars. Never hardcode fonts, colors, borders, or
   shadows except as fallbacks.
-- **Salla Icons** — use `sicon-*` classes (loaded by Twilight themes), not emoji/custom dots.
+- **Salla Icons** — use `sicon-*` classes, not emoji/custom dots. Twilight themes load the
+  Salla Icons (the theme engine injects the Twilight SDK into every storefront page
+  automatically), so the icon font is available without bundling it yourself.
 - **Match the product page** — adopt the surrounding spacing/density; insert next to the
   relevant element, not as a floating card overlapping the layout.
 - **RTL + locale** — most stores are Arabic/RTL. Honor `dir`/`lang`, mirror layout, and
   write copy Arabic-first.
 
-Docs: theme https://docs.salla.dev/421877m0.md · CSS variables https://docs.salla.dev/421945m0.md ·
-Salla Icons https://docs.salla.dev/422550m0.md · single product page https://docs.salla.dev/422561m0.md
+Docs: theme https://docs.salla.dev/421877m0.md · Twilight JS SDK (theme engine injects the
+SDK; themes load Salla Icons) https://docs.salla.dev/422610m0.md ·
+CSS variables https://docs.salla.dev/421945m0.md · Salla Icons https://docs.salla.dev/422550m0.md ·
+single product page https://docs.salla.dev/422561m0.md
 
 ## Embedded dashboard (Salla design guidelines)
 
@@ -43,6 +47,12 @@ Salla Icons https://docs.salla.dev/422550m0.md · single product page https://do
 - Use the SDK's native modules for chrome — `page` (title), `nav` (actions), `ui` (toasts,
   confirm, loading, breadcrumbs) — instead of custom in-iframe chrome (No-Chrome rule).
 - Match Salla dashboard spacing, typography, and components; support light/dark + RTL.
+
+> **Auth is non-negotiable, and lives elsewhere.** Every merchant-facing interface (the
+> embedded iframe and any backend it calls) must run an **authenticated, server-verified
+> session** — never trust the iframe context alone. This skill owns native look-and-feel
+> only; for embedded session/token verification see `salla-embedded-app`, and for OAuth /
+> merchant tokens see `salla-app-auth`. Don't duplicate auth logic here.
 
 Docs: design guidelines https://docs.salla.dev/embedded-sdk/design-guidelines.md ·
 playground https://docs.salla.dev/embedded-sdk/playground.md

@@ -1,7 +1,13 @@
 # App Lifecycle — Payload Reference
 
-Source: https://docs.salla.dev/421413m0.md — confirm exact fields there before depending
-on them.
+Source of truth: the App Events doc — https://docs.salla.dev/421413m0.md. The payload
+shapes below (including the trial vs subscription field differences) are taken from that
+doc. Event slugs are verified against the Partners MCP (`salla_events action=list`).
+
+> The token, id, and date **values** in the JSON below are placeholders copied from the
+> doc — never log, commit, or copy values out of a real webhook payload. Treat tokens as
+> secrets (see **salla-webhooks** for signature verification and **salla-app-auth** for
+> encrypting tokens at rest).
 
 Every event uses the standard webhook envelope:
 
@@ -78,58 +84,123 @@ Handling rules (single-use refresh token, mutex on refresh) → **salla-app-auth
 }
 ```
 
-Apply `data.settings` to your stored per-merchant configuration.
+`data.settings` keys are whatever **you** defined in your app's settings schema — the
+`apiKey` / `webhookUrl` above are arbitrary examples, not Salla-defined fields. Apply them
+to your stored per-merchant configuration; schema design is owned by **salla-app-settings**.
 
 ---
 
-## app.trial._ and app.subscription._
+## app.subscription.\*
 
-These share the subscription payload shape (they fire for **plans and addons**).
-`data.item_type` is `"plan"` or `"addon"`; `data.item_slug` is `null` for plans and the
-addon identifier for addons.
+Fired for **both plans and addons** (`app.subscription.started` / `.renewed` / `.expired`
+/ `.canceled`). `data.item_type` is `"plan"` or `"addon"`; `data.item_slug` is `null` for
+plans and the addon identifier for addons. Per the App Events doc, the subscription payload
+carries the full billing detail (pricing, tax, coupon, features). Example (plan
+subscription, from https://docs.salla.dev/421413m0.md):
 
 ```json
 {
   "event": "app.subscription.started",
   "merchant": 1234509876,
-  "created_at": "…",
+  "created_at": "2022-12-31 12:31:25",
   "data": {
-    "subscription_id": 657032372,
+    "id": 6789012345,
+    "subscription_id": 1510766049,
     "item_type": "plan",
     "item_slug": null,
-    "plan_name": "Yearly",
-    "plan_type": "recurring",
-    "plan_period": "yearly",
-    "start_date": "2022-05-23",
-    "end_date": "2023-05-23",
-    "renew_date": "2023-05-23",
-    "price": 20,
-    "tax": 3,
-    "total": 23,
-    "initialization_cost": 0,
-    "coupon": null,
     "quantity": 1,
-    "features": [{ "key": "messages", "quantity": 1000 }],
-    "store_type": "live"
+    "app_name": "Shipping app",
+    "description": "App Description",
+    "app_type": "app",
+    "categories": ["Marketing"],
+    "plan_type": "recurring",
+    "plan_name": null,
+    "plan_period": "1",
+    "start_date": "2021-10-09T21:00:00.000000Z",
+    "end_date": "2022-10-09T21:00:00.000000Z",
+    "coupon": { "name": "SPZGRDFS", "amount": "0.15" },
+    "initialization_cost": 10,
+    "price_before_discount": 5,
+    "price": "20.00",
+    "tax": "0.15",
+    "tax_value": "3.00",
+    "total": "23.00",
+    "subscription_balance": "null",
+    "features": [
+      { "key": "Feature1", "quantity": 1 },
+      { "key": "Feature3", "quantity": 5 }
+    ],
+    "store_type": "development"
   }
 }
 ```
 
-| Field                   | Notes                                                               |
-| ----------------------- | ------------------------------------------------------------------- |
-| `subscription_id`       | Subscription identifier                                             |
-| `item_type`             | `"plan"` \| `"addon"`                                               |
-| `item_slug`             | `null` for plans; addon identifier for addons                       |
-| `plan_name`             | e.g. `"Yearly"`; trials commonly `"trail"`                          |
-| `plan_type`             | `recurring` \| `one_time` (also seen: `free`, `once`, `on_demand`)  |
-| `plan_period`           | e.g. `monthly` / `yearly`                                           |
-| `start_date`/`end_date` | dates (nullable depending on plan)                                  |
-| `renew_date`            | present on `app.subscription.renewed`                               |
-| `price`/`tax`/`total`   | amounts (no currency field in the payload)                          |
-| `features[]`            | array of `{ key, quantity }` entitlements                           |
-| `store_type`            | `development` \| `demo` \| `live` — skip revenue logic for non-live |
+| Field                             | Notes                                                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`                              | App id                                                                                               |
+| `subscription_id`                 | Subscription identifier — good idempotency discriminator                                             |
+| `item_type`                       | `"plan"` \| `"addon"`                                                                                |
+| `item_slug`                       | `null` for plans; addon identifier for addons                                                        |
+| `quantity`                        | Purchased quantity (e.g. addon units)                                                                |
+| `plan_type`                       | e.g. `recurring` \| `one_time`                                                                       |
+| `plan_name`                       | **Free string** — any plan name; `null` is valid. Match by your own plan definitions, never hardcode |
+| `plan_period`                     | Billing period, e.g. `"1"` (nullable)                                                                |
+| `start_date`/`end_date`           | ISO dates (nullable depending on plan)                                                               |
+| `renew_date`                      | present **only** on `app.subscription.renewed`                                                       |
+| `coupon`                          | `{ name, amount }` or absent                                                                         |
+| `initialization_cost`             | One-off setup cost                                                                                   |
+| `price_before_discount`           | Pre-discount price (nullable)                                                                        |
+| `price`/`tax`/`tax_value`/`total` | amounts as strings (no currency field in the payload)                                                |
+| `subscription_balance`            | Remaining balance                                                                                    |
+| `features[]`                      | array of `{ key, quantity }` entitlements                                                            |
+| `store_type`                      | `development` \| `demo` \| `live` — skip revenue logic for non-live                                  |
+| `promotion`                       | `{ id, requirement, reward }` when a promotion applied (start only)                                  |
 
-Trial events (`app.trial.started` / `.expired` / `.canceled`) use the same envelope; the
-trial typically appears as a zero-price `plan_type` like `once` with `plan_name: "trail"`.
-Per-event field detail → confirm in https://docs.salla.dev/421413m0.md and see
-**salla-app-billing**.
+`renewed` adds `renew_date`. Addon payloads set `item_type: "addon"` + `item_slug` and may
+null out `plan_period` / `start_date` / `end_date` for one-time addons. Full per-event JSON
+(plan **and** addon variants) → https://docs.salla.dev/421413m0.md and **salla-app-billing**.
+
+## app.trial.\*
+
+**The trial payload is NOT the subscription payload** — it is slightly smaller. Per the App
+Events doc, `app.trial.started` carries only the fields below; it has **no**
+`subscription_id`, `item_type`, `item_slug`, `quantity`, `plan_period`, `coupon`,
+`price`/`tax`/`total`, `subscription_balance`, or `promotion`. Do not assume the
+subscription fields are present on a trial event.
+
+```json
+{
+  "event": "app.trial.started",
+  "merchant": 1234509876,
+  "created_at": "2022-12-31 12:31:25",
+  "data": {
+    "id": 6789012345,
+    "app_name": "Shipping app",
+    "app_description": "App Description",
+    "app_type": "app",
+    "categories": ["Accounting & Finance"],
+    "plan_name": "Diamond Plan",
+    "plan_type": "one_time",
+    "start_date": "2023-07-27",
+    "end_date": "2023-07-28",
+    "created_at": "2023-07-27 12:23:19",
+    "features": [],
+    "store_type": "development"
+  }
+}
+```
+
+| Field                   | Notes                                                                                                                             |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                    | App id                                                                                                                            |
+| `plan_name`             | **Free string** — any plan name; can be `null` (e.g. on `app.trial.canceled`). Match by your own plan definitions, never hardcode |
+| `plan_type`             | e.g. `one_time` \| `recurring`                                                                                                    |
+| `start_date`/`end_date` | trial window (date or ISO datetime, depending on event)                                                                           |
+| `features[]`            | array of `{ key, quantity }` entitlements (may be empty)                                                                          |
+| `store_type`            | `development` \| `demo` \| `live`                                                                                                 |
+
+`app.trial.canceled` additionally carries `subscription_at`; `app.trial.expired` omits
+`created_at` and `features`. Source of truth for the exact per-event shape:
+https://docs.salla.dev/421413m0.md. Branch on the **event name** and `store_type`, not on a
+hardcoded `plan_name` string (`plan_name` is an arbitrary, merchant-defined value). Plan-state
+handling → **salla-app-billing**.

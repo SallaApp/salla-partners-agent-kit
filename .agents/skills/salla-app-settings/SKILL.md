@@ -2,11 +2,12 @@
 name: salla-app-settings
 description: >
   Per-merchant settings for a Salla app: design the schema, register the form and
-  Validation URL via the salla_settings tool, declare supported features (publish-
-  blocker for communication apps), seed defaults on install, read/write values (POST is
-  a full replace — always send ALL keys), react to app.settings.updated (the event that
-  activates the app), and read context.settings inside App Functions. Admin API
-  mechanics → salla-api-core; lifecycle wiring → salla-app-lifecycle.
+  optional public Validation URL via the salla_settings tool, declare supported features
+  (publish-blocker for communication apps), seed defaults on install, read/write values
+  (POST is a full replace — always send ALL keys), react to app.settings.updated (the
+  event that activates the app AND is the storage source of truth), and read
+  context.settings inside App Functions. Admin API mechanics → salla-api-core; lifecycle
+  wiring → salla-app-lifecycle.
 ---
 
 # Salla App Settings Flow
@@ -44,8 +45,9 @@ Ask before starting:
 ## Step 1 — Design the Settings Schema
 
 Salla renders the merchant form from a **form-builder schema** (`type` **+** `format`).
-The loose aliases (`toggle`, bare `text` / `number` / `select`) are **NOT Portal-safe** —
-they can render as broken form-builder output and fail to save. Rules:
+Loose aliases (`toggle`, bare `text` / `number` / `select`) **save fine but fail to
+render** — the merchant sees broken or empty form-builder output. Always use a real
+`type`+`format` pair from the table below. Rules:
 
 - **Flat only** — no nested objects.
 - **`id` is snake_case** (`stock_threshold`, not `stockThreshold`). camelCase ids are
@@ -55,6 +57,17 @@ they can render as broken form-builder output and fail to save. Rules:
 - **Arabic-first labels.** Most Salla merchants are Arabic — write `label` / `description`
   in Arabic; set `multilanguage: true` to also provide English. Never leave Arabic blank.
 - `public: true` marks a value safe to read client-side (storefront / snippet).
+- **Secrets stay private and protected.** API keys, passwords, and tokens use
+  `format: "password"` and MUST keep `public: false` — never expose them to storefront /
+  client code. At runtime, store secret-typed values **encrypted**, and never log raw
+  settings (a settings object can carry credentials). OAuth/merchant access tokens are not
+  settings — handle those via [salla-app-auth](../salla-app-auth/SKILL.md), and request
+  only the minimum scopes you need.
+- **Scopes for settings.** You do **not** need a settings scope just to render a form or
+  receive `app.settings.updated`. A settings scope is only required when your app reads or
+  writes settings values via the Admin API **and** activation happens partner-side (not
+  from the merchant dashboard). Separately, the **Webhooks** scope **IS required** if your
+  app listens to any store events.
 
 | Control                 | Schema                                                                           |
 | ----------------------- | -------------------------------------------------------------------------------- |
@@ -93,9 +106,15 @@ value on each required field?"
 1. Call `salla_settings` with `action: "define_form"`, the `app_id`, and `settings` (the
    array of field objects from Step 1). Give each field a plain-string `label`; set
    `multilanguage: true` on any field whose text should be translated.
-2. If you need server-side validation, call `salla_settings` with
+2. **Optional Validation URL — public validation ONLY, not storage.** If you want to
+   reject bad input before Salla saves it, call `salla_settings` with
    `action: "set_validation_url"`, `app_id`, and `validation_url`. Salla POSTs the values
-   there before saving — respond with field errors or `200 OK`.
+   there before saving; you respond with field errors (to block) or `200 OK` (to allow).
+   There is **NO signature on this request** — treat it as a public endpoint, validate
+   only, and never use it as your storage trigger. To **store** settings, rely on the
+   `app.settings.updated` webhook (Step 4), which is the source of truth
+   ([docs](https://docs.salla.dev/421413m0.md)). Contract →
+   [`references/form-builder.md`](references/form-builder.md).
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
 
@@ -125,7 +144,8 @@ There is no MCP tool for writing per-merchant **values** — that happens at run
 the merchant's `access_token`. When `app.store.authorize` fires on install, seed any
 required defaults so the merchant starts with a working configuration.
 
-> **`app.settings.updated` is the source of truth.** It fires when the merchant saves the
+> **`app.settings.updated` is the storage source of truth**
+> ([docs](https://docs.salla.dev/421413m0.md)). It fires when the merchant saves the
 > form, **activates** the app, and carries the full settings in `data.settings` — persist
 > THAT on every activation/update (don't rely solely on a GET; the webhook is authoritative
 > and you may not hold a token yet). Payload:
@@ -189,7 +209,12 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Update — always send every key** (read first, merge your change, write all):
+**Update the form definition** (fields, formats, defaults, Validation URL) **via the
+Partners MCP only** — `salla_settings action=define_form`. That is the one supported way
+to change the schema; there is no Portal-side hand-edit you should script around.
+
+**Update per-merchant values** (runtime) **— always send every key** (read first, merge
+your change, write all):
 
 ```http
 POST https://api.salla.dev/admin/v2/apps/{app_id}/settings
@@ -198,6 +223,10 @@ Content-Type: application/json
 
 { "api_key": "sk-abc123", "fast_delivery": true, "contact_no": 50 }
 ```
+
+> The POST **response body doesn't matter** — don't parse or rely on what it echoes back.
+> Treat a 2xx as accepted, then confirm by a follow-up GET (or by the
+> `app.settings.updated` webhook, which is the storage source of truth).
 
 API spec → [`references/api-spec.md`](references/api-spec.md) ·
 Safe single-key update → [`references/settings-patterns.md`](references/settings-patterns.md)
@@ -218,7 +247,7 @@ export default async function (context: AppContext) {
 }
 ```
 
-App Functions context shape → [`salla-app-builder`](../salla-app-builder/SKILL.md)
+App Functions context shape → [`salla-app-functions`](../salla-app-functions/SKILL.md)
 
 ---
 

@@ -67,6 +67,9 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
 1. **Scopes** — read the slugs (+ per-app disabled flags) with `salla_scopes action=get`,
    `app_id`; update them with `salla_scopes action=set` (a flat
    `slug → "read" | "read_write" | ""` map) or as part of Connect below.
+   **Request least privilege:** grant only the resource slugs the app actually uses, and
+   prefer `"read"` over `"read_write"` unless the app writes that resource — don't apply a
+   broad `read_write` default across slugs.
 2. **Connect** — `salla_apps action=connect`, `app_id`, with `scopes`
    (`{ "<slug>": "read" | "read_write" }` — slug and access level are separate keys,
    e.g. `{"orders": "read_write"}`). For Easy Mode also pass `webhook_url` +
@@ -105,7 +108,15 @@ then on `app.store.authorize` **upsert** `access_token` / `refresh_token` /
 `expires * 1000` keyed by `merchant`, and return 200 immediately. Full handler code:
 [references/app-events.md](references/app-events.md).
 
-Easy Mode checklist: webhook URL set (Step 2) · OAuth authorize URL `scope` includes `offline_access` (authorize URL only — not in the `connect` scopes map) ·
+> **Secret hygiene (applies to both modes):** access/refresh tokens and the client
+> secret are secrets — store them encrypted at rest and **never log them** or echo them in
+> errors/diagnostics. Redirect and webhook URLs must be **HTTPS-only**. Authorization
+> `code`s are single-use (Custom Mode). Restrict your app to known server IPs (IP
+> whitelisting, below).
+
+Easy Mode checklist: webhook URL set (Step 2) · `offline_access` enabled for the app so
+refresh tokens are issued (in Easy Mode you build no authorize URL — confirm the granted
+`data.scope` in the `app.store.authorize` payload contains `offline_access`) ·
 `app.store.authorize` subscribed · DB stores `access_token` / `refresh_token` /
 `token_expires_at` per merchant · handler upserts (not inserts).
 
@@ -198,10 +209,13 @@ https://github.com/SallaApp/laravel-starter-kit/blob/master/app/Http/Controllers
 
 ## Step 4 — Understand the Token Lifecycle
 
-| Token         | Lifetime    | Notes                                         |
-| ------------- | ----------- | --------------------------------------------- |
-| Access token  | **14 days** | `expires` in the response is a Unix timestamp |
-| Refresh token | **1 month** | Single-use — invalidated after first use      |
+| Token         | Lifetime                                      | Notes                                                                                                                   |
+| ------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Access token  | **Per the `expires` field** (no fixed number) | `expires` in the `app.store.authorize` payload is the source of truth — a Unix timestamp. Don't assume a fixed duration |
+| Refresh token | **Always valid (no expiry)**                  | Single-use _per refresh_ — each refresh returns a new refresh token; save it. The token chain itself does not expire    |
+
+The access token's lifetime is whatever the `expires` field says — drive expiry off that
+value, never a hard-coded number. Source: https://docs.salla.dev/421413m0.md
 
 `expires` is a **Unix timestamp** (seconds), not a duration — convert before storing:
 
@@ -212,7 +226,8 @@ const expiresAt = new Date(payload.data.expires * 1000); // ms
 ```
 
 Refresh tokens are only issued when `offline_access` is in scope. **Always include
-`offline_access`** — without it, tokens expire after 14 days and the merchant must reinstall.
+`offline_access`** — without it, no refresh token is issued, so the access token cannot be
+renewed once `expires` passes and the merchant must reinstall.
 
 **Gate:** "Both tokens + a converted `expiresAt` are stored, and scope includes
 `offline_access`?"
@@ -223,10 +238,16 @@ Refresh tokens are only issued when `offline_access` is in scope. **Always inclu
 
 This is where most production bugs happen.
 
-**The fatal mistake: parallel refresh.** When a refresh token is used more than once,
-Salla's OAuth server (per RFC 6819 §5.2.2.3) invalidates the refresh token, revokes all
-access tokens obtained with it, and forces the merchant to reinstall. **There is no
-recovery.** Never call refresh from multiple processes simultaneously.
+A refresh token does **not** expire on its own — in normal single-threaded use you can keep
+refreshing indefinitely. The danger is **reusing an already-spent refresh token**: each
+refresh is single-use and returns a fresh refresh token, so the previous one is dead.
+
+**The fatal mistake: parallel refresh.** When the _same_ refresh token is used more than
+once (a double-use race), Salla's OAuth server (per RFC 6819 §5.2.2.3) treats it as a
+compromise: it invalidates the token chain, revokes the access tokens obtained with it, and
+the merchant must reinstall. That specific failure is unrecoverable — so never call refresh
+from multiple processes simultaneously. Avoid it entirely with the per-merchant mutex below;
+do not let a refresh token leave its lock without persisting the new one it returned.
 
 **Required: distributed mutex per merchant.**
 

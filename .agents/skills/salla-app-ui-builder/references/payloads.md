@@ -1,8 +1,14 @@
-# Payloads
+# Payloads (content shapes)
 
-How to turn a block's field schema into a valid `POST`/`PUT` body. The portal applies these same transforms in `ui-partners-portal-apps/src/routes/apps/[id]/builder/edit/utils/formBuilderHelpers.ts` (`prepareFormData` reading, `preparePayload` writing); the backend expects the output shapes below. Calling the API directly, you must produce them yourself.
+How a block's field values are shaped. **These are content shapes you fill in the Partners Portal's App Presentation Builder by hand — not request bodies.** There is no MCP tool or public API for editing presentation blocks today; the shapes below describe what each field expects so you can populate the builder correctly and recognize how saved values look.
 
-The payload is a flat object keyed by field `id`. Each value's shape is dictated by the field's `format` and `lingual` flag.
+Each block's content is a flat set of values keyed by field `id`. Each value's shape is dictated by the field's `format` and `lingual` flag.
+
+> Editing a block in the builder replaces the **whole block**. Carry over every value you aren't changing — especially `required` fields — or you'll trigger validation or wipe existing content. Keep already-stored images by leaving their `{ id, url }` in place.
+>
+> The values below are **illustrative shapes** (placeholder ids/URLs, not a published contract). Confirm them against the **live** field schema the Portal builder presents, and cross-check via docs (`salla-docs`). Image URLs and richtext become **public App-Store content** — only use trusted, sanitized assets/HTML; don't pass through untrusted user input.
+>
+> **Current state (for now):** manual in the Portal builder, after the publish details. The only MCP tool that applies is `salla_upload`, for uploading publication media (which also auto-fills the default template). Revisit when a `salla_app_builder` MCP tool ships.
 
 ---
 
@@ -39,16 +45,14 @@ A `collection` value is an array of items. **Each item's keys are the child fiel
 
 ### Image fields → `[{ id, url }]`
 
-Upload the file first, then reference it. An `image` field's current files come back under `items` as `[{ id, url }]`; submit the same shape. `multiple: false` still uses an array (with one entry).
+Upload the file first, then reference it. An `image` field's current files are held under `items` as `[{ id, url }]`; the value takes the same shape. `multiple: false` still uses an array (with one entry).
 
 ```jsonc
-// upload returns { id, url }:
-//   MCP (preferred): salla_upload (url or base64)        → { "id": 176983, "url": "https://…" }
-//   Direct fallback: POST /api/upload/image (multipart "file") → { "data": { "id": 176983, "url": "https://…" } }
+// upload publication media via salla_upload (pass source_url) → image id (e.g. 176983):
 "logo": [ { "id": 176983, "url": "https://salla-dev-portal.s3…/a.jpg" } ]
 ```
 
-Keep an existing image by passing its `{ id, url }` from the GET response unchanged. (The portal also accepts `[{ "url": … }]` for freshly uploaded files; including the `id` for already-stored files is safest.)
+`salla_upload` is the one MCP tool that applies here, and only for publication media (logo, screenshots) — the same media that auto-fills the default template. Keep an existing image by leaving its `{ id, url }` in place.
 
 ### Telinput → flatten to the value string
 
@@ -89,17 +93,11 @@ If a field has `conditions` (e.g. `image_orientation` shown only when `view_sect
 
 ---
 
-## End-to-end example: filling `app-features`
+## Worked example: filling `app-features` in the builder
 
-1. **Read the schema** — `GET /api/apps/{appId}/builder/blocks/2038173539` returns: lingual `title`, required dropdown `view_section`, optional `images_orientation` + `description_orientation`, two `color`s, and the `features` collection (min/max 3) with `features.image|title|description`.
+1. **Open the block** — in the Portal builder, open the `app-features` block (id `2038173539`). Its form has: lingual `title`, required dropdown `view_section`, optional `images_orientation` + `description_orientation`, two `color`s, and the `features` collection (min/max 3) with `features.image|title|description`.
 
-2. **Build the PUT body** matching every rule above:
-
-```http
-PUT /api/apps/{appId}/builder/blocks/2038173539
-Authorization: Bearer {token}
-Content-Type: application/json
-```
+2. **Fill each field** following every rule above. The resulting content takes this shape:
 
 ```json
 {
@@ -135,15 +133,15 @@ Content-Type: application/json
 }
 ```
 
-3. **Submit.** `{ "success": true, "data": null }` means saved. A 422 lists the offending fields — fix and resend.
+3. **Save in the builder.** The builder confirms a successful save; if a field is missing or malformed it flags the offending field — fix it and save again.
 
 ---
 
-## Validation errors
+## Validation feedback
 
-A 422 returns `fields` keyed by dotted paths. Map each back to a field id (and collection index/language) to correct the payload:
+The builder flags missing or malformed values per field. The cues map to dotted paths — read each back to a field id (and collection index/language) to correct the content:
 
-| Error key             | Means                                                              |
+| Cue                   | Means                                                              |
 | --------------------- | ------------------------------------------------------------------ |
 | `title.en`            | The `title` field is missing its `en` value.                       |
 | `view_section`        | The `view_section` dropdown value is missing/invalid.              |
@@ -151,4 +149,4 @@ A 422 returns `fields` keyed by dotted paths. Map each back to a field id (and c
 | `features.0.title.ar` | Item **0** of `features` is missing `features.title`'s `ar` value. |
 | `features.1.image`    | Item **1** of `features` is missing its image.                     |
 
-The portal normalizes these paths to form-field keys in `formErrorsMapper.ts`; for direct API use, the dotted path itself tells you the field id, the collection index, and the language to fix.
+The dotted path itself tells you the field id, the collection index, and the language to fix.

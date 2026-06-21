@@ -1,14 +1,20 @@
 # Webhook Operations — Reliability, Custom Headers, Local Dev
 
-Distilled from Salla Developers articles (the salla.dev/blog is a JS-rendered SPA that
-can't be fetched directly; content captured here). Source slugs:
-`best-practices-to-handle-webhooks-for-salla-applications`,
-`custom-webhook-header-is-now-available`, `salla-cli-webhook-server-laravel`.
+> **Provenance.** The retry policy and 200/201 rule below are confirmed against the
+> webhooks docs (https://docs.salla.dev/421119m0.md). The CLI / local-dev details were
+> distilled from Salla Developers blog articles (the salla.dev/blog is a JS-rendered SPA
+> that can't be fetched directly, so the text was captured by hand) — slugs
+> `best-practices-to-handle-webhooks-for-salla-applications`,
+> `custom-webhook-header-is-now-available`, `salla-cli-webhook-server-laravel`; confirm
+> those defaults against the live Portal or the Partners MCP (`salla_events action=list`)
+> before depending on them. For transport rules (signature, idempotency, fast 200) the
+> owner is the parent `SKILL.md`.
 
 ## Retry / resend mechanism
 
 Salla retries a delivery **at most 3 times** when it doesn't receive a success response,
-waiting these intervals between attempts:
+waiting these intervals between attempts (source:
+https://docs.salla.dev/421119m0.md):
 
 | Attempt     | Wait before next try |
 | ----------- | -------------------- |
@@ -16,8 +22,7 @@ waiting these intervals between attempts:
 | 2nd         | 15s                  |
 | 3rd (final) | 10s                  |
 
-A prompt success response stops further retries. (Salla's best-practices article states
-these intervals; older material quoted "~5 minutes" — treat 30/15/10s as current.)
+A prompt success response stops further retries.
 
 ## The 200/201 rule
 
@@ -38,14 +43,19 @@ This keeps responses fast (avoids retries) and isolates processing failures from
 Pairs with the idempotency guidance in `SKILL.md` (dedupe by `subscription_id` or body
 hash).
 
+> **The 2xx ack applies only to authenticated deliveries.** Verify the signature/token
+> _before_ acknowledging — a failed verification must still return **401**, never a `200`.
+> Only acknowledge (then queue) requests you've authenticated.
+
 ## Custom webhook headers
 
 Salla sends predefined headers (e.g. `user-agent`); you can also define **custom webhook
 headers** to tag events for your app:
 
 - Partner Portal → **My Apps** → your App → **Webhooks/Notifications** → **Custom Headers**
-  → **Add Custom Header**.
-- Key and value accept **letters, numbers, and dash only**.
+  → **Add Custom Header** (or via `salla_apps action=connect` `webhook_headers`).
+- Use **standard header names** and let the **Partners MCP validate** what's accepted —
+  don't assume a custom allowed-character rule.
 - Edit/delete from the row's ⋯ menu.
 
 Use these for routing/identification metadata only — verify authenticity with the
@@ -64,8 +74,13 @@ Use these for routing/identification metadata only — verify authenticity with 
   Salla delivers events) and syncs credentials into `.env`:
   `SALLA_OAUTH_CLIENT_ID`, `SALLA_OAUTH_CLIENT_SECRET`, `SALLA_OAUTH_CLIENT_REDIRECT_URI`,
   `SALLA_WEBHOOK_SECRET`, `SALLA_AUTHORIZATION_MODE` (easy|custom), `SALLA_APP_ID`.
+  > **Never commit `.env` or log these values.** The client secret and
+  > `SALLA_WEBHOOK_SECRET` are credentials — keep `.env` git-ignored and never print the
+  > webhook secret in logs or error output.
 - Portal setup to receive events: App Keys → OAuth mode; App Scope → enable **Webhooks
-  Read/Write**; Notifications/Webhooks → security strategy **Token** (default); set the
+  Read/Write**; Notifications/Webhooks → security strategy (the CLI starter scaffolds for
+  the **Token** strategy; the platform/MCP default for new webhooks is **Signature** —
+  match whichever your handler verifies); set the
   webhook URL (append your framework's route prefix, e.g. `/api/webhook`); subscribe the
   **Store Events** you need; then install on a demo store
   (see `salla-app-builder/references/demo-store-testing.md`).

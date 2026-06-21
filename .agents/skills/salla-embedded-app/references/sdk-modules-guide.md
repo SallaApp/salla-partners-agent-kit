@@ -1,6 +1,17 @@
 # Embedded SDK — Module Guide
 
-Complete method reference for all SDK modules with examples.
+Method reference for the SDK modules with examples. These are **illustrative** — the SDK has
+no public per-module URLs yet, so confirm the exact method names/shapes against the installed
+`@salla.sa/embedded-sdk` package types before calling (the surface evolves; guessed names fail
+at runtime).
+
+> **Auth first, always.** This file documents UI/SDK modules, not authentication. The SDK's
+> client-side auto-login is **trusted UX only** — `embedded.init()` verifies the short-lived
+> (5 min) token in the iframe and logs the user in — but the **frontend is never trusted for
+> authorization**. Every embedded page must run on **your app's own OAuth session**, and all
+> validation/authorization happens on the **backend** (never introspect the token on the FE).
+> See SKILL.md Step 3 → [`auth-and-session.md`](auth-and-session.md). The `auth` module below is
+> the SDK side of the handshake only. OAuth / stored merchant-token handling → `salla-app-auth`.
 
 Import the SDK using the named export:
 
@@ -58,11 +69,13 @@ const token = embedded.auth.getToken();
 // Trigger a token refresh — Salla re-renders the iframe with a new token
 // Call this when your API returns 401
 embedded.auth.refresh();
-
-// Inspect token details from the frontend (debugging/UX only — never trust for authorization;
-// always verify server-side via introspect — see auth-and-session.md)
-const info = await embedded.auth.introspect();
 ```
+
+> **Do NOT introspect/validate the SDK token on the frontend.** The SDK already verifies the
+> token client-side on `init()` and auto-logs-in the user (trusted, UX only) — that is all the
+> frontend needs. Even if the package exposes a token-introspection method, do not call it: the
+> frontend is **never** trusted for authorization. Authorization lives on the **backend**, on
+> your app's **own OAuth session** — see [`auth-and-session.md`](auth-and-session.md).
 
 **Token refresh flow:**
 `embedded.auth.refresh()` posts a message to the dashboard shell. The iframe reloads with a fresh token, and your bootstrap function runs again automatically.
@@ -212,8 +225,8 @@ SDK overview and the published guides, see https://docs.salla.dev/embedded-sdk/o
 
 | Module   | Methods covered here                                                                                                |
 | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| Auth     | `getToken` · `refresh` · `introspect` · `onInit`                                                                    |
+| Auth     | `getToken` · `refresh` · `onInit` (do NOT introspect/validate the token on the FE — authorize on the backend)       |
 | Page     | `setTitle` · `navigate` · `redirect` (height is auto-managed — `resize` is a deprecated no-op)                      |
 | Nav      | `setAction` · `onActionClick` · `clearAction` · `addNavItem` · `updateNavItem` · `removeNavItem` · `onNavItemClick` |
 | UI       | `toast` · `loading` · `confirm` · `breadcrumbs`                                                                     |
-| Checkout | in-app addon purchase flow → [salla-addon-purchase](../../salla-addon-purchase/SKILL.md)                            |
+| Checkout | in-app addon purchase flow → [salla-addon-purchase-embedded](../../salla-addon-purchase-embedded/SKILL.md)          |

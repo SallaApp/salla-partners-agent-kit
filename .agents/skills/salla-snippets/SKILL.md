@@ -32,7 +32,9 @@ in an App Function. Follow the steps in order — complete each gate before movi
 Ask before starting:
 
 1. **Which storefront event do you want to handle?**
-   (e.g. `cart.add`, `product.view`, `checkout.complete`, `search.query`)
+   (e.g. `cart::item.added`, `cart::updated`, `product::price.updated` — Twilight events
+   are `::`-namespaced; confirm names in the catalogue in
+   [`references/device-mode.md`](references/device-mode.md))
 2. **What should happen when the event fires?**
    (track analytics, sync data, trigger automation, personalize content)
 
@@ -68,9 +70,10 @@ then **inject it as a storefront snippet** with the tool:
 1. Write the snippet body — listen with the Twilight SDK and process the payload:
 
    ```js
-   salla.event.on("cart.add", (event) => {
-     // event.data contains product, quantity, price, etc.
-     analytics.track("Add to Cart", event.data);
+   // Event names are ::-namespaced — there is no `cart.add`. See the catalogue.
+   salla.event.on("cart::item.added", (e) => {
+     // e.data carries product_id + cart; there is NO top-level item price.
+     analytics.track("Add to Cart", e.data);
    });
    ```
 
@@ -86,12 +89,12 @@ then **inject it as a storefront snippet** with the tool:
    `{"snippet":{}}` (empty object) on success — call `action=list` to verify the
    change.
 
-   **Raw Partner-API deltas** (only if bypassing the tool): both create AND update send
-   the code in the obfuscated field **`c8fbt33yM0`** (update is not a plain `content`
-   field) — the `salla_snippets` tool maps `content` to it for you, but a raw `content`
-   field gets a 422; GET returns `content` plus a CDN `url` rather than guaranteed inline
-   code; DELETE responds **202**; placement `place` accepts only `"before"`, paired with
-   `tag` ("head"/"body").
+   > **MCP-only — no direct Partner API.** Snippets are managed exclusively through the
+   > Salla Partners MCP `salla_snippets` tool; there is no hand-written Partner API call
+   > here. The tool owns field mapping and validation (it maps `content` to the underlying
+   > field for you). If an operation isn't covered by an `action`, it must be done via the
+   > MCP — do not reach for a raw Partner API endpoint. Constraints to know: `place`
+   > accepts only `"before"`, paired with `tag` ("head" | "body").
 
 Device Mode setup, full event catalogue, payload shapes →
 [`references/device-mode.md`](references/device-mode.md)

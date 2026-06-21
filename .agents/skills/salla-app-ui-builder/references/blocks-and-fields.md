@@ -1,32 +1,34 @@
 # Blocks and Fields
 
-Two schemas matter: the **block** (a section in the app's view) and the **element/field** (an editable input inside a block's form). All examples below are real responses from the Partners API.
+Two schemas matter: the **block** (a section in the app's presentation page) and the **element/field** (an editable input inside a block's form). These describe **what the partner customizes by hand in the Partners Portal's App Presentation Builder** — there is no MCP tool or public API for these operations today. The examples below are **illustrative shapes** describing the builder's blocks and fields, not a published contract. Block `id`s, option lists, and field sets drift between environments and over time; treat the values here as illustrative and confirm against what the **live Portal builder** presents, and cross-check via docs (`salla-docs`). `image` and `richtext` values render as **public App-Store content** — use only trusted, sanitized assets/HTML.
+
+> **Current state (for now).** Customizing these blocks is a **manual** step in the Portal builder, done after completing the publish details. If the partner skips it, publication data fills the default template automatically. The only MCP tool that applies is `salla_upload`, for publication media. Revisit when a `salla_app_builder` MCP tool ships.
 
 ---
 
 ## BlockSchema
 
-Returned by `GET /api/apps/builder/blocks` (catalog) and `GET /api/apps/{appId}/builder/blocks` (the app's added blocks).
+The shape behind each block in the Portal builder's catalog and in the app's added blocks.
 
 | Field         | Type    | Meaning / how it gates actions                                                                                                           |
 | ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | number  | The block definition id. **Add** via `POST …/blocks/{id}`, **edit** via `PUT …/blocks/{id}`.                                             |
+| `id`          | number  | The block definition id; identifies the block in the Portal builder.                                                                     |
 | `slug`        | string  | Stable machine name (`app-features`, `app-faq`, …).                                                                                      |
-| `label`       | string  | Display name; language follows `Accept-Language`.                                                                                        |
+| `label`       | string  | Display name; language follows the request locale.                                                                                       |
 | `description` | string  | Short catalog blurb for the block (e.g. "Display information about your app").                                                           |
 | `icon`        | string  | Icon class (`sicon-*`).                                                                                                                  |
-| `order`       | number  | Position in the view. Change with `PUT …/blocks/sort`.                                                                                   |
-| `has_form`    | boolean | `false` → no editable fields; don't GET/PUT a schema.                                                                                    |
-| `is_visible`  | boolean | Whether the block shows in the rendered view.                                                                                            |
+| `order`       | number  | Position in the presentation page. Change by reordering in the Portal builder.                                                           |
+| `has_form`    | boolean | `false` → no editable fields; no schema to read or write.                                                                                |
+| `is_visible`  | boolean | Whether the block shows in the rendered page.                                                                                            |
 | `is_required` | boolean | `true` → cannot be deleted (e.g. App Information, App Plans). Backend rule — it does **not** by itself pin position or block reordering. |
-| `editable`    | boolean | `false` → no editable form (e.g. Pricing); never GET/PUT its schema.                                                                     |
+| `editable`    | boolean | `false` → no editable form (e.g. Pricing); don't read or write its schema.                                                               |
 | `preview`     | string? | Thumbnail image URL for the catalog.                                                                                                     |
 
 ---
 
 ## The catalog (7 blocks)
 
-From `GET /api/apps/builder/blocks` (live order in parentheses):
+The blocks the Portal builder offers (live order in parentheses):
 
 | Slug              | Label (EN)      | `id`       | order | required | editable | has_form |
 | ----------------- | --------------- | ---------- | ----- | -------- | -------- | -------- |
@@ -38,24 +40,24 @@ From `GET /api/apps/builder/blocks` (live order in parentheses):
 | `app-faq`         | App FAQ         | 1247874246 | 7     | —        | ✅       | ✅       |
 | `app-stats`       | App Statistics  | 1984760154 | 8     | —        | ✅       | ✅       |
 
-> `id` values come from the dev environment and are stable there, but always read them from the live catalog rather than hardcoding. `app-pricing` is required **and** non-editable — it appears in the view but has no form. `app-information` cannot be deleted (`is_required`); the **portal UI** additionally pins it to the top and excludes it from sorting via slug validation — a frontend rule (keyed on the `app-information` slug), not a backend guarantee — so keep it first when reordering through the API.
+> `id` values come from the dev environment and are stable there, but always confirm them against the live Portal builder rather than hardcoding. `app-pricing` is required **and** non-editable — it appears in the page but has no form (pricing renders automatically). `app-information` cannot be deleted (`is_required`); the **portal UI** also pins it to the top and excludes it from sorting — so it stays first.
 
-> **`app-contact-info` (was `id` 392563753) has been removed** from the catalog — that's why the catalog has 7 blocks and `order` 5 is absent. Its contact **channels** were merged into `app-information` as flat **`support_*`** fields (`support_title`, `support_description`, `support_email`, `support_telegram`, `support_whatsapp`) — the old `links` collection did **not** carry over. Read `app-information`'s live field schema (`GET …/blocks/745999872`) for the authoritative, up-to-date field list before building a payload.
+> **`app-contact-info` (was `id` 392563753) has been removed** from the catalog — that's why the catalog has 7 blocks and `order` 5 is absent. Its contact **channels** were merged into `app-information` as flat **`support_*`** fields (`support_title`, `support_description`, `support_email`, `support_telegram`, `support_whatsapp`) — the old `links` collection did **not** carry over. Confirm `app-information`'s field list against the live Portal builder before relying on it.
 
-> **Initialize before customizing.** A fresh app's builder is empty (`GET …/blocks` returns `data: []`). Call `POST …/blocks/init` **once first** — it seeds the required blocks (`app-information`, `app-pricing`). Only after init do the required blocks exist and become GET/PUT-able by id.
+> **Required blocks are always present.** `app-information` and `app-pricing` are seeded automatically (not a partner action) and are present from the start in the Portal builder; they can't be removed.
 
 ---
 
 ## Element (field) schema
 
-Returned inside `GET /api/apps/{appId}/builder/blocks/{blockId}` `data[]`. Common keys:
+The fields a block's form exposes in the Portal builder. Common keys:
 
 | Key                                   | Meaning                                                                                                                              |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `id`                                  | Field key used in the payload (`title`, `bg_color_light`, …). For collection children it is **prefixed** (`features.title`).         |
 | `type`                                | High-level kind: `string`, `number`, `items`, `collection`.                                                                          |
 | `format`                              | Specific input: `string`, `email`, `url`, `color`, `image`, `richtext`, `icon`, `number`, `telinput`, `dropdown-list`, `collection`. |
-| `label`, `placeholder`, `description` | UI text (language follows `Accept-Language`).                                                                                        |
+| `label`, `placeholder`, `description` | UI text (language follows the request locale).                                                                                       |
 | `lingual`                             | `true` → value is `{ ar, en }`.                                                                                                      |
 | `required`                            | Whether a value must be present.                                                                                                     |
 | `wide`                                | Layout hint (full-width).                                                                                                            |
@@ -166,7 +168,7 @@ The `features` collection requires **exactly 3** items (`minLength`/`maxLength` 
 
 ### Full block: image, richtext, conditional dropdown, contact fields (`app-information`)
 
-Real `GET …/blocks/745999872` response (labels shown with `Accept-Language: en`, trimmed of blank `placeholder`/`description`). After `app-contact-info` was removed, its contact channels live here as flat **`support_*`** fields (no `links` collection):
+The `app-information` block (id `745999872`) as the Portal builder presents it (labels shown in `en`, trimmed of blank `placeholder`/`description`). After `app-contact-info` was removed, its contact channels live here as flat **`support_*`** fields (no `links` collection):
 
 ```jsonc
 [
@@ -255,7 +257,7 @@ Real `GET …/blocks/745999872` response (labels shown with `Accept-Language: en
 ]
 ```
 
-Notes: `image` fields (`logo`, `screenshots`) return current files under **`items`** (`[{ id, url }]`), not `value`. `support_email` is `email`, `support_whatsapp` is a `telinput` (flatten to the dialed string — see [payloads.md](payloads.md)), and `support_telegram` is a plain string. The old `app-contact-info` `links` collection is **not** present — only these flat support fields carried over.
+Notes: `image` fields (`logo`, `screenshots`) carry current files under **`items`** (`[{ id, url }]`), not `value`. `support_email` is `email`, `support_whatsapp` is a `telinput` (flatten to the dialed string — see [payloads.md](payloads.md)), and `support_telegram` is a plain string. The old `app-contact-info` `links` collection is **not** present — only these flat support fields carried over. `logo` and `screenshots` are the same media that flow in from your publication details and auto-fill the default template; upload them via `salla_upload`.
 
 ### Collection with a saved value (shape reference)
 
@@ -287,4 +289,4 @@ Notes: `image` fields (`logo`, `screenshots`) return current files under **`item
 }
 ```
 
-The lesson holds for every collection: each item is an object whose keys are the **prefixed child ids** (`links.title`, `features.title`). Build payloads the same way — see [payloads.md](payloads.md).
+The lesson holds for every collection: each item is an object whose keys are the **prefixed child ids** (`links.title`, `features.title`). The same shape applies when filling a collection in the builder — see [payloads.md](payloads.md).

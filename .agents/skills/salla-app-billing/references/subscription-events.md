@@ -1,7 +1,17 @@
 # Subscription & Trial — Payload Reference
 
 Source: https://docs.salla.dev/421413m0.md — confirm exact fields there. The same payload
-family covers plans and addons; `item_type` distinguishes them.
+family covers plans and addons; `item_type` distinguishes them. The payloads below are
+**illustrative**; confirm the exact shapes (and any new fields) via the Partners MCP
+(`salla_events action=list`) or the docs link above before coding.
+
+> **Security — these are billing events.** A subscription/trial payload grants or revokes
+> paid access, so treat it as untrusted until proven authentic. **Verify the webhook
+> signature and enforce idempotency before mutating any entitlement** — transport security
+> (signature verification, replay protection, fast 2xx) is owned by **salla-webhooks**;
+> token/OAuth handling by **salla-app-auth**. Never grant or revoke access from a
+> client-reported plan state — only a verified server-side event (or the reconciled
+> Partners API in salla-app-billing Step 5) is authoritative.
 
 ---
 
@@ -68,5 +78,7 @@ family covers plans and addons; `item_type` distinguishes them.
 Filter on `data.item_type`:
 
 - `"plan"` → handle here (salla-app-billing).
-- `"addon"` → salla-app-billing; purchase flow in
-  salla-addon-purchase.
+- `"addon"` → **entitlement activation** (recording the addon and unlocking its
+  `features[]` from the verified event) is owned by salla-app-billing; the **purchase UX**
+  (in-app/embedded buy flow) lives in salla-addon-purchase /
+  salla-addon-purchase-embedded.

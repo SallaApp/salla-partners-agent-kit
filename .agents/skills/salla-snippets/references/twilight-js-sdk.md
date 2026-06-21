@@ -2,8 +2,11 @@
 
 The **Twilight JS SDK** is the storefront runtime API exposed on `window.salla`. The
 **Twilight theme engine auto-injects** it on **every storefront page** via the
-`body:end` hook (`{% hook 'body:end' %}`) — so the latest SDK is already present and
-initialized before your code runs. Source of truth: Twilight JS SDK Overview —
+`body:end` hook (`{% hook 'body:end' %}`) — so `window.salla` is already **loaded and
+defined** before your snippet executes (no need to gate on `typeof salla`). Loaded is not
+the same as fully initialized, though: some init-time `product::*`/`cart::*` events fire
+**during** Twilight's init, so register those listeners at module top level — don't wait for
+`onReady` (see device-mode.md). Source of truth: Twilight JS SDK Overview —
 https://docs.salla.dev/422610m0.md; per-event listing — https://docs.salla.dev/422611m0.md.
 
 This file catalogues the **methods/endpoints** (`salla.cart.addItem`, `salla.auth.login`,

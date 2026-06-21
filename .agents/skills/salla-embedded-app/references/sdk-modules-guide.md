@@ -145,19 +145,19 @@ Injects a primary action button into the dashboard top navbar, and (optionally) 
 
 `setAction(action)` fields:
 
-| Field             | Type      | Required | Description                                                      |
-| ----------------- | --------- | -------- | ---------------------------------------------------------------- |
-| `title`           | `string`  | Yes      | Button text.                                                     |
-| `value`           | `string`  | Yes      | Identifier passed to `onActionClick`.                            |
-| `icon`            | `string`  | No       | Salla icon class (e.g. `salla-icon-plus`, `sicon-...`).          |
-| `disabled`        | `boolean` | No       | Grey out / disable the button.                                   |
-| `extendedActions` | `array`   | No       | Dropdown items: `{ title, value, subTitle?, icon?, disabled? }`. |
+| Field             | Type      | Required | Description                                                                                             |
+| ----------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `title`           | `string`  | Yes      | Button text.                                                                                            |
+| `value`           | `string`  | Yes      | Identifier passed to `onActionClick`.                                                                   |
+| `icon`            | `string`  | No       | Hugeicons class — the embedded design system (e.g. `hgi hgi-stroke hgi-add-01`). See design-guidelines. |
+| `disabled`        | `boolean` | No       | Grey out / disable the button.                                                                          |
+| `extendedActions` | `array`   | No       | Dropdown items: `{ title, value, subTitle?, icon?, disabled? }`.                                        |
 
 ```ts
 embedded.nav.setAction({
   title: "Create Product",
   value: "create-product",
-  icon: "salla-icon-plus",
+  icon: "hgi hgi-stroke hgi-add-01",
 });
 
 embedded.nav.setAction({

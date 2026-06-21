@@ -280,8 +280,8 @@ after review. Read with `salla_functions action=get`, remove with `action=delete
 (`salla_functions` is operator-gated: it errors clearly if the App Builder service is not
 enabled on the MCP deployment.) Details → **`salla-app-functions`**.
 
-**Gate:** "Function saved (live on a demo store) and the app submitted for publish for
-production?"
+**Gate:** "Function saved and working on a demo store?" (Publishing to production is the
+later dedicated publish step — not here.)
 
 ---
 

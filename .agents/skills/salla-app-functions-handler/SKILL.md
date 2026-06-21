@@ -67,17 +67,18 @@ Two return styles — both valid:
 
 ```typescript
 // 1. Plain object — simplest, lowest overhead (good for sync actions, simple events)
-return { success: true, data: {} }; // data is mandatory, even if {}
+return { success: true, data: {} }; // data is optional; include it (even {}) on sync actions
 
 // 2. Response utility class — recommended for Customer Events and complex Merchant Events
-Resp.success().setData({ order_id: id }); // .setData() is MANDATORY — pass {} if empty
+Resp.success().setData({ order_id: id }); // .setData({}) is the recommended convention
 Resp.error().setMessage("Something went wrong").setStatus(500);
 ```
 
 Builder methods (the doc's full API): `Resp.success()` / `Resp.error()` start a response;
-`.setData(obj)` is **mandatory** (pass `{}`); `.setStatus(code)` is optional (default `200`);
-`.setMessage(msg)` is optional. Chainable. `Resp` is a **pre-declared runtime global** — never
-import or re-declare it.
+`.setData(obj)` is **optional but recommended** — pass `{}` even when empty, and especially on
+sync actions, where the returned `data` is merged/applied to the entity; `.setStatus(code)` is
+optional (default `200`); `.setMessage(msg)` is optional. Chainable. `Resp` is a **pre-declared
+runtime global** — never import or re-declare it.
 
 **Entity-named builders.** Some triggers expose an entity-specific builder instead of the
 generic `Resp` — same `.success()` / `.error()` shape plus entity setters. `shipment.creating`

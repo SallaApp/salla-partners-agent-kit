@@ -105,6 +105,13 @@ app.post("/webhook", (req, res) => {
 app.listen(8081);
 ```
 
+> **Two verification paths, not a contradiction.** This SDK quick-start
+> (`@salla.sa/webhooks-actions`) verifies the delivery **internally**, so parsed JSON
+> (`bodyParser.json()` + `req.body`) is fine. If you instead verify the **Signature
+> manually** (Step 3, Strategy A), HMAC must run on the **raw request body** — capture the
+> unparsed bytes before any JSON middleware. Pick one path; don't mix parsed-body with a
+> manual HMAC check.
+
 **Pattern B — File-based handlers.** Use `salla app create-webhook <event.name>` to
 scaffold handler files:
 
@@ -395,16 +402,18 @@ app.post("/webhooks/salla", express.raw({ type: "*/*" }), async (req, res) => {
 ```
 
 ```typescript
-// Idempotency — subscription_id is unique per lifecycle event; for everything else
-// hash the raw body so resource IDs (order id, product id) don't collide across updates
-async function handleWebhook(payload: WebhookPayload): Promise<void> {
+// Idempotency — prefer the stable discriminator subscription_id (unique per lifecycle
+// event); otherwise hash the RAW request body (the exact bytes Salla sent), NOT a
+// re-stringified object. JSON.stringify(payload) is brittle — key order and number/date
+// re-serialization can change the hash for the same delivery. Pass `rawBody` from the same
+// express.raw() buffer you verified the signature against.
+async function handleWebhook(
+  payload: WebhookPayload,
+  rawBody: string,
+): Promise<void> {
   const discriminator =
     (payload.data as any)?.subscription_id ??
-    crypto
-      .createHash("sha256")
-      .update(JSON.stringify(payload))
-      .digest("hex")
-      .slice(0, 16);
+    crypto.createHash("sha256").update(rawBody).digest("hex").slice(0, 16);
   const key = `${payload.merchant}:${payload.event}:${discriminator}`;
   const seen = await db.webhookEvents.exists({ key });
   if (seen) return; // already processed
@@ -413,7 +422,7 @@ async function handleWebhook(payload: WebhookPayload): Promise<void> {
 }
 ```
 
-**Gate:** "Endpoint verifies → 200s fast (well under ~30s) → processes async → dedupes with `subscription_id` or body hash (not resource id or `created_at`)?"
+**Gate:** "Endpoint verifies → 200s fast (well under ~30s) → processes async → dedupes with `subscription_id` or a hash of the raw body (not resource id, `created_at`, or a re-stringified object)?"
 
 ---
 

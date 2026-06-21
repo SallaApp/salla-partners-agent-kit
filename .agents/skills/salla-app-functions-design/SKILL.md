@@ -44,11 +44,12 @@ schema doc / `action=get` before relying on them.
 
 ### Sync budget (5 s total)
 
-A synchronously-run app function has a **5-second total timeout** for the whole function.
-Within it, keep every internal async call (each `fetch` / awaited I/O) to **under 2 s** so a
-single slow upstream can't blow the budget — bound each one with an `AbortController`
-(**salla-app-functions-handler**). Async events get **30 s** total. Stay well inside these
-limits; an overrun blocks (sync) or drops (async) the run.
+A synchronously-run app function has a **5-second total timeout** (the **hard platform
+limit**) for the whole function — but since the merchant is blocked, **< 500 ms is the
+recommended target**, not the cutoff. Within it, keep every internal async call (each `fetch`
+/ awaited I/O) to **under 2 s** so a single slow upstream can't blow the budget — bound each
+one with an `AbortController` (**salla-app-functions-handler**). Async events get **30 s**
+total. Stay well inside these limits; an overrun blocks (sync) or drops (async) the run.
 
 **Gate:** "Sync or async decided, and the timeout budget understood?"
 

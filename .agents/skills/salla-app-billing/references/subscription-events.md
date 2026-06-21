@@ -36,7 +36,7 @@ family covers plans and addons; `item_type` distinguishes them. The payloads bel
     "item_slug": null,
     "plan_name": "Yearly",
     "plan_type": "recurring",
-    "plan_period": "yearly",
+    "plan_period": "12",
     "start_date": "2022-05-23",
     "end_date": "2023-05-23",
     "renew_date": "2023-05-23",
@@ -52,22 +52,22 @@ family covers plans and addons; `item_type` distinguishes them. The payloads bel
 }
 ```
 
-| Field                   | Notes                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------ |
-| `subscription_id`       | Subscription identifier                                                              |
-| `item_type`             | `"plan"` \| `"addon"`                                                                |
-| `item_slug`             | `null` for plans; addon identifier for addons                                        |
-| `plan_name`             | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it) |
-| `plan_type`             | `free` \| `once` \| `recurring` \| `on_demand`                                       |
-| `plan_period`           | `monthly` / `yearly` / …                                                             |
-| `start_date`/`end_date` | dates (nullable depending on plan type)                                              |
-| `renew_date`            | present on `app.subscription.renewed`                                                |
-| `price`/`tax`/`total`   | amounts (no currency field in the payload)                                           |
-| `initialization_cost`   | one-time setup fee                                                                   |
-| `coupon`                | applied coupon, or `null`                                                            |
-| `quantity`              | seats / units                                                                        |
-| `features[]`            | `{ key, quantity }` entitlements granted by the plan                                 |
-| `store_type`            | `development` \| `demo` \| `live` — skip revenue logic if not live                   |
+| Field                   | Notes                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subscription_id`       | Subscription identifier                                                                                                                                                                     |
+| `item_type`             | `"plan"` \| `"addon"`                                                                                                                                                                       |
+| `item_slug`             | `null` for plans; addon identifier for addons                                                                                                                                               |
+| `plan_name`             | e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)                                                                                                        |
+| `plan_type`             | `free` \| `once` \| `recurring` \| `on_demand`                                                                                                                                              |
+| `plan_period`           | plan period **in months as a string**, e.g. `"12"`; nullable. (The monthly/yearly choice is made when **defining** the plan at app creation — the webhook payload carries the month count.) |
+| `start_date`/`end_date` | dates (nullable depending on plan type)                                                                                                                                                     |
+| `renew_date`            | present on `app.subscription.renewed`                                                                                                                                                       |
+| `price`/`tax`/`total`   | amounts (no currency field in the payload)                                                                                                                                                  |
+| `initialization_cost`   | one-time setup fee                                                                                                                                                                          |
+| `coupon`                | applied coupon, or `null`                                                                                                                                                                   |
+| `quantity`              | seats / units                                                                                                                                                                               |
+| `features[]`            | `{ key, quantity }` entitlements granted by the plan                                                                                                                                        |
+| `store_type`            | `development` \| `demo` \| `live` — skip revenue logic if not live                                                                                                                          |
 
 ---
 

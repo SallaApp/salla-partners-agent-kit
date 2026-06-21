@@ -33,7 +33,8 @@ them here.
 Two execution types (see <https://docs.salla.dev/1726818m0.md>):
 
 - ⚡ **Synchronous Action** — runs **before** the operation, **blocks the user**, must
-  respond fast (target < 500 ms). `Resp.error()` blocks the operation; `Resp.success()`
+  respond fast: **5 s is the hard platform limit; < 500 ms is the recommended target** (keep
+  each internal async call < 2 s). `Resp.error()` blocks the operation; `Resp.success()`
   with data can modify it. **Only** triggers in the `merchant_actions` category are
   synchronous: **`shipment.creating`** and **`shipment.cancelling`**. Do not infer sync
   behavior from the verb form — confirm the category via `list_triggers`.

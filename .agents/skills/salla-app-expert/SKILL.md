@@ -36,6 +36,10 @@ everything downstream:
 **Never ship guessed identifiers** (event names, DOM selectors, payload paths) — verify on a
 live demo store or the docs first.
 
+**Arabic-first** — most merchants and shoppers are Arabic: default to Arabic copy,
+illustrations, and RTL presentation for the embedded app, `app_page_builder` listing, app
+details, and storefront. → salla-embedded-ui / salla-storefront-ui
+
 ## App types
 
 | Type          | Delta                                                                                                                                                                |

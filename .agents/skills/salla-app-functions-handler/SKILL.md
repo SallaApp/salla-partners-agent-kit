@@ -1,8 +1,8 @@
 ---
 name: salla-app-functions-handler
 description: >
-  Step 3 of building a Salla App Function: write the handler from the trigger's `template`,
-  using typed contexts (`context.payload` / `merchant` / `settings`), the mandatory response
+  Step 3 of building a Salla App Function — use when writing the handler body. Build it
+  from the trigger's `template`, using typed contexts (`context.payload` / `merchant` / `settings`), the mandatory response
   contract (plain object or the `Resp` / entity `Shipment` builders), V8-isolate sandbox limits
   (no npm, no `fs`/`net`/`http` servers/`child_process`, Web Crypto only, `fetch` for HTTP),
   and AbortController-bounded fetch for the 5 s (sync) / 30 s (async) timeouts. Routed from

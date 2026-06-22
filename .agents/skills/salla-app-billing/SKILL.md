@@ -2,12 +2,12 @@
 name: salla-app-billing
 description: >
   Salla app monetization: plans and addons live in the publish payload (no pricing
-  endpoint), billed by Salla. Track plan state from app.subscription.* / app.trial.* events
-  (one family — item_type splits plan vs addon), gate features by combined plan + addon
-  entitlements, reconcile via salla_apps action=subscriptions, meter usage against the
-  balance. Verify event signatures first → salla-webhooks; tokens → salla-app-auth; event
-  wiring → salla-app-lifecycle; in-app addon purchase UI → salla-addon-purchase /
-  salla-addon-purchase-embedded.
+  endpoint), billed by Salla. Use when pricing the app, tracking plan/addon state, or
+  gating features by entitlement. Track state from app.subscription.* / app.trial.* events
+  (one family — item_type splits plan vs addon), reconcile via salla_apps
+  action=subscriptions, meter usage against the balance. Signatures → salla-webhooks;
+  tokens → salla-app-auth; wiring → salla-app-lifecycle; in-app purchase UI →
+  salla-addon-purchase / salla-addon-purchase-embedded.
 ---
 
 # Salla App Billing Flow
@@ -182,61 +182,13 @@ for the app — one entry per active plan/addon. Doc:
 https://docs.salla.dev/5401098e0.md.
 
 **Response (`200`)** — `{ status, success, data: [...] }`, each item a Subscription Detail
-(this is where you read plan state, entitlements, and the usage balance):
+(where you read plan state, entitlements, and the usage balance). Read `item_type` (filter
+to `"plan"` for plan state), `plan_type`, `start_date`/`end_date`, `features[]`
+(`{ key, quantity }`), and `subscription_balance` (the usage balance, written via Step 5b).
+A `403` means the caller lacks permission for this app.
 
-```json
-{
-  "status": 200,
-  "success": true,
-  "data": [
-    {
-      "id": "657032372",
-      "app_name": "BitoShip",
-      "description": "BitoShip Description",
-      "app_type": "app",
-      "categories": ["Others"],
-      "item_type": "plan",
-      "item_slug": null,
-      "plan_type": "recurring",
-      "plan_name": "Yearly",
-      "plan_period": "12",
-      "start_date": "2022-05-23",
-      "end_date": "2023-05-23",
-      "initialization_cost": 15,
-      "price_before_discount": 6,
-      "price": 20,
-      "tax": 3,
-      "tax_value": 3,
-      "total": 23,
-      "subscription_balance": 50,
-      "coupon": null,
-      "features": [{ "key": "Feature1", "quantity": 1 }],
-      "quantity": 1
-    }
-  ]
-}
-```
-
-| Field                                                  | Notes                                                                                                                 |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `id`                                                   | Subscription identifier (string)                                                                                      |
-| `item_type`                                            | `"plan"` \| `"addon"` — filter to `plan` for plan state (required field)                                              |
-| `item_slug`                                            | `null` for plans; addon identifier for addons                                                                         |
-| `plan_type`                                            | `free` \| `once` \| `recurring` \| `on_demand` (same values in the publish payload and in events)                     |
-| `plan_name`                                            | free string, e.g. `"Yearly"` (`"trail"` in docs samples is a sample artifact — never match on it)                     |
-| `plan_period`                                          | plan period in months as a string, e.g. `"12"`; nullable                                                              |
-| `start_date` / `end_date`                              | dates; nullable (e.g. null on Free/one-time)                                                                          |
-| `initialization_cost`                                  | one-time setup fee; nullable                                                                                          |
-| `price_before_discount` / `price`                      | amounts; nullable (null on Trial samples)                                                                             |
-| `tax` / `tax_value` / `total`                          | tax %, tax amount, total (tax included); nullable                                                                     |
-| `subscription_balance`                                 | **usage balance** the merchant owes for the app's service; number, nullable (null on Free/Trial). Written via Step 5b |
-| `coupon`                                               | applied coupon `{ name, amount }`, or `null`                                                                          |
-| `features[]`                                           | `{ key, quantity }` — entitlements granted (may be empty `[]`)                                                        |
-| `quantity`                                             | seats/units purchased (required field)                                                                                |
-| `app_name` / `description` / `app_type` / `categories` | app metadata echoed back (`app_type`: `app` \| `shipping`)                                                            |
-
-A `403` (`{ status: 403, success: false, error: { code, message } }`) means the caller
-lacks permission for this app. Use this to reconcile — not as your hot path.
+**Full response sample + every field's meaning (and the POST /apps/balance shapes):
+load [references/subscription-api.md](references/subscription-api.md).**
 
 **Gate:** "Reconciliation returns the merchant's current plan + balance and matches your stored state?"
 
@@ -316,6 +268,23 @@ subscriptions
 Map `features[]` → entitlements per the **Entitlement Gating** section above (plan +
 addon features merged into one set). Full payloads:
 **[references/subscription-events.md](references/subscription-events.md)**.
+
+---
+
+## Red Flags
+
+Billing events grant and revoke paid access, so a shortcut here either leaks paid features
+or wrongly locks a paying merchant out. If one of these is your plan, re-read the named step.
+
+| Tempting thought                                             | Why it's wrong                                                                                                                                     |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'll unlock features straight from the event payload."      | A forged/replayed webhook would hand out paid access. Verify the signature + dedupe, then gate on **stored** entitlement state (Step 3).           |
+| "Plans and addons need separate event handlers."             | They share one `app.subscription.*` family — branch on `item_type` (`item_slug` picks the addon). Separate handlers miss half the events (Step 3). |
+| "I only need the subscription events; trials are different." | Trials ride the **same** payload shape (`app.trial.*`). Skip them and trial start/expiry falls through to wrong gating (Steps 3–4).                |
+| "I'll trust the balance the client sends me."                | Compute usage server-side and `POST /apps/balance` behind your own auth; read it back to confirm. Client-reported balance is spoofable (Step 5b).  |
+| "Events are reliable — I don't need reconciliation."         | A missed webhook during downtime leaves stored state stale forever. `GET /apps/{app_id}/subscriptions` is the backstop (Step 5).                   |
+| "I'll gate at the moment the event arrives."                 | Events are late/duplicated. Drive access from stored `status` + `end_date`, recomputed idempotently (Step 4).                                      |
+| "Demo-store subscription events should bill like real ones." | Skip billing logic when `store_type !== "live"`, or development installs corrupt real plan state (Step 3).                                         |
 
 ---
 

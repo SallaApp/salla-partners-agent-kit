@@ -79,9 +79,20 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
    broad `read_write` default across slugs.
 2. **Connect** — `salla_apps action=connect`, `app_id`, with `scopes`
    (`{ "<slug>": "read" | "read_write" }` — slug and access level are separate keys,
-   e.g. `{"orders": "read_write"}`). For Easy Mode also pass `webhook_url` +
-   `webhook_security_strategy: "signature"` + `generate_secret: true`; for Custom Mode
-   pass `redirect_urls`. (Set trusted IPs here too — Part: IP whitelisting below.)
+   e.g. `{"orders": "read_write"}`). **`redirect_urls` is the auth-mode selector, not just a
+   URL registration:**
+   - **Easy Mode** — set `redirect_urls` to the app's **`easy_redirect_url`** (the Portal
+     computes it as the Salla-owned callback; read it from `salla_apps action=get`). In
+     production that's `["https://accounts.salla.sa/callback/{app_id}"]`. Pointing the OAuth
+     `redirect_uri` at Salla's own callback is what makes Salla own the exchange. Pair it with
+     `webhook_url` + `webhook_security_strategy: "signature"` + `generate_secret: true`.
+   - **Custom Mode** — set `redirect_urls` to your own callback URL. **Any non-Salla URL here
+     activates Custom Mode** — Salla redirects the merchant to your callback expecting a code
+     exchange. So "don't build a callback" (Easy Mode) and "what you put in `redirect_urls`"
+     are the **same decision**: in Easy Mode, point `redirect_urls` at the Salla callback, not
+     your app.
+
+   (Set trusted IPs here too — Part: IP whitelisting below.)
 
    > **`offline_access` does NOT go in the `connect` scopes map.** It is an OAuth2
    > token scope that enables refresh tokens and belongs only in the authorize URL
@@ -93,8 +104,12 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
 
 **Manual fallback:** Partners Portal → App Keys / Webhooks / App Scope.
 
-**Gate:** "Webhook (or redirect) set, resource scopes applied, and `app.store.authorize`
-subscribed?"
+**Gate:** "Resource scopes applied, and `redirect_urls` matches the intended mode — **Easy
+Mode** → `redirect_urls` = the app's `easy_redirect_url` (prod:
+`["https://accounts.salla.sa/callback/{app_id}"]`) **AND** `webhook_url` +
+`webhook_security_strategy` + `generate_secret` set **AND** `app.store.authorize` subscribed
+(no `webhook_url` → the event never fires and tokens never arrive); **Custom Mode** → your
+own callback URL?"
 
 ---
 

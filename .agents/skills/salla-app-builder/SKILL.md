@@ -350,15 +350,11 @@ run the public onboarding. Otherwise continue with the public `app_publish` flow
      listing-image rule, and the Portal hand-off →
      [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** (follow it
      for the mechanics).
-   - **Alternative — one-shot `salla_apps action=publish`:** a single call (`app_id`,
-     `publication` payload, `publish_action: "save"`, optional `private`/`update_note`) for
-     when you already have the full listing payload assembled.
-
-   Either way the same server-side gate runs and returns **422** with the still-missing
-   sections if it isn't ready. Listing content
-   (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
-   [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
-   [salla-app-billing](../salla-app-billing/SKILL.md).
+     The same server-side gate (`app_publish action=validate`) runs and returns **422** with the
+     still-missing sections if it isn't ready. Listing content
+     (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
+     [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
+     [salla-app-billing](../salla-app-billing/SKILL.md).
 
 4. **Guide the partner to submit in the Portal.** `validate` does **not** submit to Salla
    review — that is a deliberate one-click partner action. After a clean validate, give the

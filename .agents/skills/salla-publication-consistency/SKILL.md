@@ -30,9 +30,8 @@ submit.
 Drive off the readiness checklist returned by `open` and every `set`: it marks each section
 `complete` or, for incomplete ones, lists the exact `missing` fields. Fix the one section it
 points at, re-check, repeat. `validate` runs the same server-side gate and returns **422 +
-missing sections** if anything is incomplete. Where `app_publish` is unavailable, the legacy
-bulk `salla_apps action=publish` (with `publish_action: "save"`) is the fallback for saving
-the draft.
+missing sections** if anything is incomplete, and **saves the draft** when every section is
+complete.
 
 ## The loop (`app_publish`, base `/app/{id}/publication`)
 
@@ -189,10 +188,8 @@ been explicitly told to replace before submitting?"
 **Gate:** "All sections validated + saved as a draft, and the partner has been given the real
 `/publish` link to review and submit?"
 
-The bulk `salla_apps action=publish` (`publish_action: "save"`) still exists as a fallback
-for saving the draft, but `app_publish` is the preferred guided path. Done (for the agent)
-means `validate` returns a valid publication and the partner has the real `/publish` link —
-**not** that the app was submitted to review.
+Done (for the agent) means `validate` returns a valid publication and the partner has the
+real `/publish` link — **not** that the app was submitted to review.
 
 ## Red Flags
 

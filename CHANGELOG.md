@@ -18,8 +18,18 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - `docs/skill-anatomy.md` — contributor guide and checklist for authoring new skills
   (required sections, description-as-trigger format, red-flags tables, progressive
   disclosure, line limits).
+- **Red Flags tables** on the gated skills most exposed to rationalization shortcuts —
+  `salla-app-auth`, `salla-webhooks`, `salla-app-billing`, `salla-app-lifecycle` — each
+  pairing a tempting "skip" thought with why it breaks in production, tied to the step it
+  guards.
 
 ### Changed
+
+- **Progressive disclosure:** moved heavy code/payloads out of the largest `SKILL.md`
+  files into their `references/` sidecars, keeping steps, gates, and Red Flags inline —
+  `salla-app-auth` (`token-refresh.md`, `custom-mode.md`), `salla-webhooks`
+  (`server-setup.md`), `salla-app-billing` (`subscription-api.md`), `salla-app-builder`
+  (`onboarding-steps.md`).
 
 - Reworded skill `description` frontmatter that lacked an explicit trigger so each
   self-activates with a "Use when…" clause on hosts that read the description in isolation

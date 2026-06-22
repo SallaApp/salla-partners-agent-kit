@@ -56,101 +56,22 @@ Partners MCP** _performs actions_:
 
 ## Step 1 — Build the Webhook Server
 
-### Option A: `@salla.sa/webhooks-actions` (Node.js / Express) ✅ Recommended
+Two supported paths, both with a single POST endpoint and the secret loaded from env:
 
-Handles signature verification and event routing for you.
+- **Node.js / Express with `@salla.sa/webhooks-actions`** ✅ recommended — the SDK verifies
+  the delivery internally and routes events to `on(<event>, …)` listeners (or file-based
+  `Actions/<domain>/<event>.js` handlers scaffolded by `salla app create-webhook`). With the
+  SDK's internal verification, a parsed JSON body is fine.
+- **Laravel / PHP via Salla CLI** (`salla app create`) — scaffolds the server; verify
+  manually with `hash_hmac('sha256', $rawBody, $secret)` + `hash_equals` if you don't use
+  the scaffold.
 
-```bash
-npm install @salla.sa/webhooks-actions
-```
+The decision that matters: if you verify the **Signature manually** (Step 3), the HMAC must
+run on the **raw request body** — capture the unparsed bytes before any JSON middleware.
+Don't mix a parsed body with a manual HMAC check on the same route.
 
-`.env` (created automatically by Salla CLI):
-
-```bash
-SALLA_OAUTH_CLIENT_ID=xxxxx
-SALLA_OAUTH_CLIENT_SECRET=xxxxx
-SALLA_WEBHOOK_SECRET=xxxxx
-SALLA_AUTHORIZATION_MODE=easy
-SALLA_APP_ID=123456789
-```
-
-**Pattern A — Listener functions (inline):**
-
-```js
-const express = require("express");
-const bodyParser = require("body-parser");
-const SallaWebhook = require("@salla.sa/webhooks-actions");
-require("dotenv").config();
-
-const app = express();
-app.use(bodyParser.json());
-
-SallaWebhook.setSecret(process.env.SALLA_WEBHOOK_SECRET);
-
-SallaWebhook.on("app.store.authorize", (eventBody, userArgs) => {
-  // Save access_token + refresh_token to DB
-});
-SallaWebhook.on("order.created", (eventBody, userArgs) => {
-  // Handle new order
-});
-SallaWebhook.on("all", (eventBody, userArgs) => {
-  // Catch-all — good for logging unhandled events
-});
-
-app.post("/webhook", (req, res) => {
-  SallaWebhook.checkActions(req.body, req.headers.authorization, {});
-  res.status(200).end();
-});
-
-app.listen(8081);
-```
-
-> **Pick ONE verification path.** Either let this SDK verify the delivery **internally**
-> (then parsed JSON via `bodyParser.json()` + `req.body` is fine), or verify the
-> **Signature manually** (Step 3, Strategy A) and run HMAC on the **raw request body** —
-> capturing the unparsed bytes before any JSON middleware. Use one path per route.
-
-**Pattern B — File-based handlers.** Use `salla app create-webhook <event.name>` to
-scaffold handler files:
-
-```text
-Actions/
-├── app/{installed.js, store.authorize.js}
-├── order/{created.js, cancelled.js}
-├── customer/{created.js, updated.js}
-└── store/branch.created.js
-```
-
-```js
-// Actions/order/created.js
-module.exports = async (eventBody, userArgs) => {
-  const order = eventBody.data;
-  // process order...
-};
-```
-
-### Option B: Laravel/PHP via Salla CLI
-
-```bash
-salla app create                       # scaffold a Laravel app with webhook server
-salla app create-webhook order.created # add a new event handler file
-```
-
-Manual PHP verification (if not using the CLI scaffold):
-
-```php
-function verifySignature(string $payload, string $signature, string $secret): bool {
-    $expected = hash_hmac('sha256', $payload, $secret);
-    return hash_equals($expected, $signature); // timing-safe
-}
-
-$payload   = file_get_contents('php://input');
-$signature = $_SERVER['HTTP_X_SALLA_SIGNATURE'] ?? '';
-if (!verifySignature($payload, $signature, getenv('SALLA_WEBHOOK_SECRET'))) {
-    http_response_code(401);
-    exit;
-}
-```
+**Full scaffolding (env vars, Express Pattern A/B, the file-handler tree, PHP verify):
+load [references/server-setup.md](references/server-setup.md).**
 
 **Gate:** "Server up, single POST endpoint receives events, secret loaded from env?"
 
@@ -455,6 +376,23 @@ Subscribe to all of these — they keep your app in sync with merchant state:
 ```
 
 Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-app-auth**.
+
+---
+
+## Red Flags
+
+Shortcuts that look harmless on a webhook server and cause silent data loss or security
+holes in production. If one of these is your plan, re-read the named step.
+
+| Tempting thought                                                | Why it's wrong                                                                                                                                           |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'll verify the signature after I parse the JSON."             | HMAC must run on the **raw bytes** Salla sent. `express.json()` first and the body is already mutated — verification breaks. Capture raw first (Step 3). |
+| "`===` is fine for comparing the signature."                    | String compare is timing-attackable. Use a timing-safe comparison every time (Step 3).                                                                   |
+| "An App Function trigger exists, but a webhook is what I know." | App Functions run in Salla's sandbox with built-in auth, settings, and synchronous control — prefer them when a trigger exists (top of skill).           |
+| "I'll do the DB write / email, then return 200."                | Salla waits ~30s then marks the delivery failed and **retries 3×**. Ack first, process async (Step 5).                                                   |
+| "Each event is delivered once, so I can skip idempotency."      | Webhooks can arrive more than once. Dedupe on `subscription_id` or a raw-body hash — not the resource id or `created_at` (Step 5).                       |
+| "I'll read the store id from `payload.data.merchant`."          | `merchant` is **top-level** in the envelope. `data.merchant.id` is `undefined`, so you persist the wrong/empty store (Step 5).                           |
+| "Verification returns 401 — must be a code bug."                | First suspect is secret parity: deployed `SALLA_WEBHOOK_SECRET` ≠ Portal secret after a `generate_secret`/reconnect rejects every delivery (Step 8).     |
 
 ---
 

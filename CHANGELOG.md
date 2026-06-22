@@ -20,8 +20,9 @@ versions the **skill content as a whole** — the `version` field in `package.js
   disclosure, line limits).
 - `.github/pr-branch-labeler.yml` — config for the existing **Label PRs** workflow, which
   was failing with `404 Not Found` on every PR because the file it reads
-  (`ffittschen/pr-branch-labeler`) did not exist in the repo. Maps the CI-allowed branch
-  prefixes (`feature`/`bugfix`/`hotfix`) to existing repo labels.
+  (`ffittschen/pr-branch-labeler`) did not exist in the repo. Mirrors the Salla company
+  standard (`SallaApp/.CI/pr-branch-labeler`): branch prefix → label
+  (`feature`/`bugfix`/`hotfix`/`documentation`).
 
 ### Changed
 

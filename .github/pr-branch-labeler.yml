@@ -1,9 +1,11 @@
-# Config for the "Label PRs" workflow (ffittschen/pr-branch-labeler).
-# Maps PR head-branch name globs → labels. Labels must already exist in the repo.
-# The lint-branch CI restricts branch prefixes to: feature | bugfix | hotfix —
-# so only those prefixes are mapped here (a docs/* entry would be dead config).
-enhancement:
+# Salla company standard — mirrors SallaApp/.CI/pr-branch-labeler.
+# Maps PR head-branch prefix → label (used for auto semantic versioning).
+feature:
   - "feature/*"
-bug:
+bugfix:
   - "bugfix/*"
+  - "fix/*"
+hotfix:
   - "hotfix/*"
+documentation:
+  - "docs/*"

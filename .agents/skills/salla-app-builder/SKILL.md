@@ -291,7 +291,7 @@ Integrates a carrier or fulfillment provider:
 
 ---
 
-## Step 8 — Test & Publish
+## Step 8 — Test, Validate the Draft & Hand Off to the Partner
 
 1. **Test on a demo store.** List the company's demo stores with
    `salla_apps action=demo_stores`, `app_id`. Each store returns:
@@ -307,32 +307,40 @@ Integrates a carrier or fulfillment provider:
    `https://portal.salla.partners/apps/{app_id}`.
 
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
-3. **Publish.** Two paths — use the guided one by default:
+3. **Validate + save the draft.** The agent's terminal publish action is **validate**, not
+   submit — it validates every section, **saves a DRAFT**, and stops there. Use the guided
+   path:
 
    - **Primary — guided, stepwise `app_publish`:** `open` → (set `<section>` →
-     `readiness`)\* → `submit`. `open` creates the draft (and unlocks `app_page_builder`
+     `readiness`)\* → `validate`. `open` creates the draft (and unlocks `app_page_builder`
      for the listing page); then for each of the 5 sections (`basic_information`,
      `features`, `pricing`, `contact_information`, `service_trial`) call `set`, re-check
      `readiness`, and fix one section at a time off the returned `missing` list until every
-     section reads `complete`; then `submit`. `withdraw` pulls a pending submission back.
-     **Section fields, the readiness gate, and ordering →
-     [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** (follow it
-     for the mechanics).
+     section reads `complete`; then run `app_publish action=validate` to validate and save
+     the draft. **Section fields, the readiness gate, the listing-image rule, and the Portal
+     hand-off → [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**
+     (follow it for the mechanics).
    - **Alternative — one-shot `salla_apps action=publish`:** a single call (`app_id`,
-     `publication` payload, `publish_action: "save" | "submit"`, optional
-     `private`/`update_note`) for when you already have the full listing payload assembled.
+     `publication` payload, `publish_action: "save"`, optional `private`/`update_note`) for
+     when you already have the full listing payload assembled.
 
-   Either way `submit` hits the same server-side gate, which returns **422** with the
-   still-missing sections if it isn't ready. Listing content
+   Either way the same server-side gate runs and returns **422** with the still-missing
+   sections if it isn't ready. Listing content
    (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
    [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
    [salla-app-billing](../salla-app-billing/SKILL.md).
 
-4. Once approved the app is live on https://apps.salla.sa/en.
+4. **Guide the partner to submit in the Portal.** `validate` does **not** submit to Salla
+   review — that is a deliberate one-click partner action. After a clean validate, give the
+   partner their real `/publish` link with the app's actual id substituted (never the
+   placeholder): `https://portal.salla.partners/apps/{app_id}/publish` (e.g.
+   `.../apps/1234567/publish`). Tell them to review the draft there and click submit. Once
+   they submit and the app is approved it is live on https://apps.salla.sa/en.
 
 Testing guide: references/demo-store-testing.md
 
-**Gate:** "Published — `salla_apps action=get` shows the expected status."
+**Gate:** "All sections validated + saved as a draft, and the partner has been given the real
+`/publish` link to review and submit?"
 
 ---
 

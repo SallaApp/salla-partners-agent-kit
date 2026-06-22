@@ -31,7 +31,7 @@ Editing a block's element values **writes the shared listing content directly in
 app_publish action=open
 ```
 
-The publish/draft lifecycle (open, fill the publication sections, submit) is owned by **salla-publication-consistency** — read that skill for the full flow. `app_page_builder` writes the shared listing content into the draft once it exists.
+The publish/draft lifecycle (open, fill the publication sections, validate + save the draft, then the partner submits in the Portal) is owned by **salla-publication-consistency** — read that skill for the full flow. `app_page_builder` writes the shared listing content into the draft once it exists.
 
 ## The 9 actions
 
@@ -86,8 +86,23 @@ brand, then upload and set it:
 4. **Set** it via the field's tool: builder fields (`logo`, `screenshots`, benefit images) via
    `app_page_builder`; `banner` / `embedded_image` via `app_publish` features section.
 
-If **no image-generation tool is available**, ask the merchant to supply the assets — use
-real assets, not throwaway placeholders.
+## Listing images must be real — ask first, placeholder only with a heads-up
+
+A complete listing needs **real** images: `logo` + **≥3 screenshots** (App Information),
+`banner` + `embedded_image` (App Features, per the table above). The discipline when any are
+missing:
+
+1. **Ask the user to provide all the required images.** Don't invent a real-looking image
+   and don't silently skip a field — this is verify-don't-invent. (If an image-generation
+   tool is available and the user wants generated art, use the generate-then-upload recipe
+   above.)
+2. **If the user skips or declines, proceed with clearly-marked default placeholders** so the
+   draft still validates — then **explicitly tell the partner to replace the placeholders in
+   the Portal before the one-click submit** (the submit step → salla-publication-consistency).
+   Never present a placeholder image as final.
+
+**Gate:** "Every listing image is a real partner asset — or a placeholder the partner has
+been explicitly told to replace before submitting?"
 
 ## Auto-fill: the default template
 
@@ -111,6 +126,14 @@ See [Blocks and Fields](references/blocks-and-fields.md) for the block/element m
 > - **Lingual elements** carry both Arabic and English (`{ "ar": "…", "en": "…" }`).
 > - **Collection** element children are keyed with the collection id as a prefix (`features.title`). See [payloads.md](references/payloads.md).
 > - **`image` and `richtext` values render as public App-Store content** — use only trusted, sanitized assets/HTML.
+
+## Red Flags
+
+| Tempting thought                                                            | Why it's wrong                                                                                                                         |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| "No logo/screenshot given — I'll generate a real-looking one and ship it."  | That invents an asset the partner never approved. Ask the user for the real images first (verify-don't-invent).                        |
+| "The user didn't provide images, so I'll drop in placeholders and move on." | Placeholders are fine **only** if you mark them clearly and tell the partner to replace them in the Portal before they submit.         |
+| "I'll quietly skip the missing image so readiness passes."                  | Silently shipping a placeholder as final is the failure. The partner must know which images are stand-ins before the one-click submit. |
 
 ## Cross-links
 

@@ -10,6 +10,29 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.5] — 2026-06-22
+
+### Changed
+
+- **Publish flow now stops at a validated draft.** `app_publish` no longer submits to admin
+  review — its terminal action is `validate`, which validates every section and **saves a
+  DRAFT**, returning a valid publication. After a clean validate, the agent guides the
+  **partner** to review and submit in one click at
+  `https://portal.salla.partners/apps/{app_id}/publish` (with the app's **real** id
+  substituted). The agent never submits to Salla review itself. Updated
+  `salla-publication-consistency` (loop table, sequence, gates, Red Flags),
+  `salla-app-builder` (Step 8), and the `salla-app-expert` routing/MCP tables.
+
+### Added
+
+- **Listing-image asset rule** (owned by `salla-app-ui-builder`, referenced from
+  `salla-publication-consistency`): the listing needs real `logo` + ≥3 screenshots (App
+  Information) and `banner` + `embedded_image` (App Features). Ask the user to provide the
+  required images; if they decline, proceed with clearly-marked placeholders **and**
+  explicitly tell the partner to replace them in the Portal before the one-click submit.
+  Never invent a real-looking image or silently ship a placeholder as final. Added as a
+  positive recipe plus Red Flags rows on both skills.
+
 ## [1.0.3] — 2026-06-22
 
 ### Added

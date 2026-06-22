@@ -36,6 +36,12 @@ result. **The install link is time-limited (~1 hour)**, so generate it immediate
 testing and use it right away. If install seems to do nothing (an expired link fails
 silently or redirects to login), re-run `salla_apps action=demo_stores` for a fresh link.
 
+> **Pre-publish, you test on a demo store — always use the `install_url` from
+> `salla_apps action=demo_stores`.** The public App-Store link
+> `https://s.salla.sa/apps/install/{app_id}` only works **after the app is published**; it
+> won't install an unpublished app. Don't hand-build that link for testing — the demo-store
+> `install_url` auto-installs the app on the company's demo store.
+
 **Three distinct URLs, three purposes:**
 
 | Field           | Points at          | Use it to                                                          |

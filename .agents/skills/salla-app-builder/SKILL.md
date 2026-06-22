@@ -317,9 +317,13 @@ Integrates a carrier or fulfillment provider:
      `features`, `pricing`, `contact_information`, `service_trial`) call `set`, re-check
      `readiness`, and fix one section at a time off the returned `missing` list until every
      section reads `complete`; then run `app_publish action=validate` to validate and save
-     the draft. **Section fields, the readiness gate, the listing-image rule, and the Portal
-     hand-off → [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**
-     (follow it for the mechanics).
+     the draft. **First-time publish is a guided onboarding, not a blind fill:** the sections
+     carry the partner's business decisions (listing copy, categories, pricing, contact) —
+     ask the partner per section, suggest Salla-grounded options, and fill from their
+     answers; never auto-invent them. **Section fields, the guided-onboarding rule, the
+     listing-image rule, and the Portal hand-off →
+     [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** (follow it
+     for the mechanics).
    - **Alternative — one-shot `salla_apps action=publish`:** a single call (`app_id`,
      `publication` payload, `publish_action: "save"`, optional `private`/`update_note`) for
      when you already have the full listing payload assembled.

@@ -121,6 +121,32 @@ draft is saved and are matched against the live state, so finalize the external 
 - After changing any external piece (scopes, webhook, events, settings, builder content),
   re-run `readiness` (re-`open` if needed) and `validate` again before handing off.
 
+## First-time publish — guided onboarding, not a blind fill
+
+The publication sections carry the partner's **business decisions** — listing copy,
+categories, pricing/plans/trial, contact, supported countries, screenshots/benefits. For a
+**first-time publish**, walk the partner through the sections **one at a time**; fill each
+from **their answers**, never invent or auto-fill. At each section:
+
+- **Ask the right questions** for that section, e.g.:
+  - `basic_information` → value prop / short description, main category + sub-categories,
+    supported countries, a demo/video URL?
+  - `pricing` → free or paid? one-time, subscription plans, or addons? a trial?
+  - `contact_information` → support email/phone, policy + FAQ URLs?
+  - App Information (`app_page_builder`) → name, description, logo, ≥3 screenshots, benefits?
+- **Suggest valid options grounded in Salla** so the partner picks from real choices, not
+  guesses: real categories from `salla_reference action=categories`; the pricing models
+  Salla billing supports (free / one-time / subscription plans + addons + trial →
+  **salla-app-billing**); supported-country options from `salla_reference action=countries`.
+- **Fill from the answers**, then run `app_publish action=readiness` to see what's still
+  missing, and move to the next section.
+
+This composes with the **image-asset rule** below (ask for images; on skip → clearly-marked
+placeholders + tell the partner to replace them).
+
+**Gate:** "Each section filled from the partner's answers — listing copy, categories,
+pricing, contact — not auto-invented?"
+
 ## Listing images — ask first, placeholder only with a heads-up
 
 The listing needs **real** images: `logo` + **≥3 screenshots** (App Information),
@@ -167,8 +193,9 @@ means `validate` returns a valid publication and the partner has the real `/publ
 
 ## Red Flags
 
-| Tempting thought                                                                  | Why it's wrong                                                                                                                                   |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "Validate succeeded, so I'll submit it to Salla review to finish the job."        | `validate` only saves a draft. Submitting to review is the partner's one-click decision after they review it (Step 7) — the agent never submits. |
-| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                     |
-| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.           |
+| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Validate succeeded, so I'll submit it to Salla review to finish the job."        | `validate` only saves a draft. Submitting to review is the partner's one-click decision after they review it (Step 7) — the agent never submits.                              |
+| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                  |
+| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                        |
+| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate. |

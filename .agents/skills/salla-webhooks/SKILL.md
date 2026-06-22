@@ -100,14 +100,15 @@ load [references/server-setup.md](references/server-setup.md).**
 
 1. Set the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
    `webhook_security_strategy` (**required** — `signature` | `token` | `none`),
-   `generate_secret: true` (optional `webhook_headers`).
+   optional `webhook_headers`. (The signing secret is created/rotated in the Portal, not here.)
    - Set the strategy **explicitly every time**. Omitting it is treated as **`none`** —
      Salla then delivers with **no `Authorization` header and no signature**, so there is
      nothing to verify and your guard silently passes everything (Red Flags).
    - `signature` → HMAC; `token` → plain header equality; `none` → no verification (Step 3).
 
-   > **Secret-sync gate:** `generate_secret` mints a NEW secret, and the secret can be
-   > rotated between sessions. **Immediately before deploying, read the live value with
+   > **Secret-sync gate:** the signing secret is created/rotated **in the Partner Portal**
+   > (`https://portal.salla.partners/apps/{app_id}`, real id substituted), not by the MCP — a
+   > rotation invalidates the old value. **Immediately before deploying, read the live value with
    > `salla_apps action=get` (the `webhook_secret` field)** — never reuse a secret from an
    > earlier session or assume your local/env value still matches Salla's. Tie verification
    > to that live value and update **every** deployment environment (prod, staging, preview).
@@ -433,7 +434,7 @@ holes in production. If one of these is your plan, re-read the named step.
 | "I'll do the DB write / email, then return 200."                | Salla waits ~30s then marks the delivery failed and **retries 3×**. Ack first, process async (Step 5).                                                                                                                              |
 | "Each event is delivered once, so I can skip idempotency."      | Webhooks can arrive more than once. Dedupe on `subscription_id` or a raw-body hash — not the resource id or `created_at` (Step 5).                                                                                                  |
 | "I'll read the store id from `payload.data.merchant`."          | `merchant` is **top-level** in the envelope. `data.merchant.id` is `undefined`, so you persist the wrong/empty store (Step 5).                                                                                                      |
-| "Verification returns 401 — must be a code bug."                | First suspect is secret parity: deployed `SALLA_WEBHOOK_SECRET` ≠ Portal secret after a `generate_secret`/reconnect rejects every delivery (Step 8).                                                                                |
+| "Verification returns 401 — must be a code bug."                | First suspect is secret parity: deployed `SALLA_WEBHOOK_SECRET` ≠ Portal secret after a Portal secret rotation (or reconnect) rejects every delivery (Step 8).                                                                      |
 
 ---
 
@@ -471,7 +472,7 @@ it, via the read-schema → build → validate → fix → retry loop in **salla
 When webhooks aren't arriving:
 
 - [ ] **Every delivery returns 401 → check secret parity FIRST.** Deployed
-      `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a `generate_secret`/reconnect mints
+      `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a Portal rotation (or reconnect) mints
       a new one. This single mismatch rejects every webhook.
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")

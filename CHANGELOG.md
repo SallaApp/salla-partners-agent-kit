@@ -32,6 +32,15 @@ versions the **skill content as a whole** — the `version` field in `package.js
   explicitly tell the partner to replace them in the Portal before the one-click submit.
   Never invent a real-looking image or silently ship a placeholder as final. Added as a
   positive recipe plus Red Flags rows on both skills.
+- **Public app vs Private app publish decision** (owned by `salla-app-builder`, Step 8): a
+  type-based rule — `type: private` → direct one-shot `salla_apps action=publish_private`
+  (`POST /app/{id}/private-publish`, body just `update_note` on updates; no public listing,
+  no stepwise onboarding, no readiness sections; prerequisites: `type: private` +
+  DEVELOPMENT, ID-verified company, not already submitted, `private_apps_limit` /
+  `free_private_apps_disabled` 403 guard). Public apps → the stepwise `app_publish`
+  onboarding (hand off to `salla-publication-consistency`). Scoped
+  `salla-publication-consistency` to **public** apps with a one-line hand-off to
+  `publish_private`. Added a publishing Red Flags table on `salla-app-builder`.
 
 ## [1.0.3] — 2026-06-22
 

@@ -293,6 +293,32 @@ Integrates a carrier or fulfillment provider:
 
 ## Step 8 — Test, Validate the Draft & Hand Off to the Partner
 
+### Public app vs Private app — how each publishes
+
+**Decide the path by app type before publishing — they do not share a flow:**
+
+- **If `type` is `private`** (installed only by specific merchant(s) via a private
+  request) → **direct one-shot publish**: call `salla_apps action=publish_private`
+  (`app_id`; `update_note` **required only when it's an update**) →
+  `POST /app/{id}/private-publish`. This snapshots the app's current config (snippets,
+  webhooks, scopes) and publishes to the target merchant(s). There is **no public listing,
+  no stepwise onboarding, and no readiness sections** — skip Steps 3–7's publication
+  sections entirely. **Prerequisites (Portal-enforced):** the app must be `type: private`
+  and in **DEVELOPMENT**, the company must be **ID-verified**, and the app must not already
+  be submitted. Free private apps may be capped by a `private_apps_limit` — exceeding it
+  returns `free_private_apps_disabled` (403). Let `publish_private` validate these and act
+  on the error.
+- **Else (a public app — App Store, any merchant can discover/install)** → the **stepwise
+  `app_publish` onboarding** in sub-steps 1–4 below: `open` → guided `set` per section →
+  `app_publish action=validate` (validates + saves a DRAFT) → guide the partner to submit
+  one-click in the Portal. This needs the full public listing (categories, pricing,
+  screenshots, benefits, contact, etc.). Mechanics → **follow
+  [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**.
+
+**Gate:** "Is `type` `private`? → publish with `salla_apps action=publish_private`
+(`update_note` on updates), confirm ID-verification + DEVELOPMENT status, and STOP — do not
+run the public onboarding. Otherwise continue with the public `app_publish` flow below."
+
 1. **Test on a demo store.** List the company's demo stores with
    `salla_apps action=demo_stores`, `app_id`. Each store returns:
    - `connected` — `true` means the app is already installed on that store.
@@ -345,6 +371,14 @@ Testing guide: references/demo-store-testing.md
 
 **Gate:** "All sections validated + saved as a draft, and the partner has been given the real
 `/publish` link to review and submit?"
+
+### Red Flags — publishing
+
+| Tempting thought                                                                      | Why it's wrong                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "It's a private app, I'll run the public `app_publish` onboarding to publish it."     | Private apps don't use the stepwise listing flow. Publish with `salla_apps action=publish_private` (one call, `update_note` on updates) — no sections, no listing.                                           |
+| "I'll `app_publish action=submit` / push the private app through the readiness gate." | A private app has no public listing to validate. The private path is `publish_private` → `POST /app/{id}/private-publish`; the public `validate` gate doesn't apply.                                         |
+| "Private publish keeps failing — I'll retry."                                         | Check the prerequisites: `type: private` + DEVELOPMENT, company **ID-verified**, not already submitted; a `free_private_apps_disabled` 403 means the `private_apps_limit` is hit. Act on the specific error. |
 
 ---
 

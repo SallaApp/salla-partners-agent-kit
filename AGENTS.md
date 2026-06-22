@@ -96,7 +96,13 @@ agent). One routing brain, three surfaces — keep them in sync.
 ## Editing rules
 
 - Skill `description` frontmatter is the routing interface — keep it ≤80 words,
-  self-routing, with explicit hand-offs to other skills. No keyword dumps.
+  self-routing, with an explicit `Use when…` trigger and hand-offs to other skills. No
+  keyword dumps.
 - One owner per topic: lifecycle events → `salla-app-lifecycle`; settings →
   `salla-app-settings`; webhook transport → `salla-webhooks`. Route, don't duplicate.
+- Number steps; end each critical step with a `Gate:`, and defend the gates with a
+  **Red Flags** table ("tempting thought → why it's wrong"). Push heavy code/payloads/tables
+  into the skill's `references/` sidecar and point at it from the step.
+- New or changed skills: follow **`docs/skill-anatomy.md`**, add a `CHANGELOG.md` entry, and
+  bump the version in `package.json` + `.claude-plugin/plugin.json`.
 - Format Markdown with Prettier before committing: `pnpx prettier . --write`.

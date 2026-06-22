@@ -2,12 +2,12 @@
 name: salla-app-billing
 description: >
   Salla app monetization: plans and addons live in the publish payload (no pricing
-  endpoint), billed by Salla. Track plan state from app.subscription.* / app.trial.* events
-  (one family — item_type splits plan vs addon), gate features by combined plan + addon
-  entitlements, reconcile via salla_apps action=subscriptions, meter usage against the
-  balance. Verify event signatures first → salla-webhooks; tokens → salla-app-auth; event
-  wiring → salla-app-lifecycle; in-app addon purchase UI → salla-addon-purchase /
-  salla-addon-purchase-embedded.
+  endpoint), billed by Salla. Use when pricing the app, tracking plan/addon state, or
+  gating features by entitlement. Track state from app.subscription.* / app.trial.* events
+  (one family — item_type splits plan vs addon), reconcile via salla_apps
+  action=subscriptions, meter usage against the balance. Signatures → salla-webhooks;
+  tokens → salla-app-auth; wiring → salla-app-lifecycle; in-app purchase UI →
+  salla-addon-purchase / salla-addon-purchase-embedded.
 ---
 
 # Salla App Billing Flow

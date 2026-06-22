@@ -39,7 +39,10 @@ Partners MCP** _performs actions_:
 > (`signature` | `token` | `none`) — the Partners MCP now requires it on
 > `salla_apps action=connect`. Picking **`none`** disables verification: Salla then sends
 > deliveries with **no `Authorization` header and no signature**, so there is nothing to
-> verify (Step 3). Store-level management base URL (merchant token):
+> verify (Step 3). Because `none` runs **no** verification, a wrong or missing verify (e.g.
+> HMAC-ing a `token` webhook) stays **invisible** under it — confirm the active strategy is
+> `token`/`signature`, not `none`, before trusting that "verification works." Store-level
+> management base URL (merchant token):
 > `https://api.salla.dev/admin/v2`; register is `POST /webhooks/subscribe`.
 > Docs: https://docs.salla.dev/421119m0.md · Conditional: https://docs.salla.dev/421120m0.md ·
 > Node/Express repo: https://github.com/SallaApp/webhook-actions-js

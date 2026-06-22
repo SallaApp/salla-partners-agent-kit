@@ -5,8 +5,10 @@ installed an earlier kit can use this to tell whether their skills are stale aft
 platform change.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This kit
-versions the **skill content as a whole** — the version in `package.json`,
-`.claude-plugin/plugin.json`, and `.claude-plugin/marketplace.json` move together.
+versions the **skill content as a whole** — the `version` field in `package.json`,
+`.claude-plugin/plugin.json`, `.plugin/plugin.json`, `.hermes-plugin/plugin.yaml`, and
+`gemini-extension.json` moves together (the structural validator enforces this).
+`.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
 ## [Unreleased]
 

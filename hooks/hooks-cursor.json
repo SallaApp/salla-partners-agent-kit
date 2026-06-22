@@ -5,6 +5,17 @@
       {
         "command": "./hooks/run-hook.cmd session-start"
       }
+    ],
+    "userPromptSubmit": [
+      {
+        "command": "./hooks/run-hook.cmd prompt-router-nudge"
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "mcp__salla-partners__.*",
+        "command": "./hooks/run-hook.cmd pretool-skill-inject"
+      }
     ]
   }
 }

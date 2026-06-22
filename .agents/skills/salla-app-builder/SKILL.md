@@ -1,13 +1,13 @@
 ---
 name: salla-app-builder
 description: >
-  End-to-end flow to create, configure, and publish a Salla app via the Salla Partners
-  MCP — create, connect OAuth scopes + webhook, subscribe events, then branch to the
-  owning skill and publish. Use for "create a new Salla app" or any create-to-publish
-  step. Hand off mechanics: snippets → salla-snippets, embedded pages → salla-embedded-app,
-  App Functions → salla-app-functions, settings → salla-app-settings, tokens/OAuth →
-  salla-app-auth, webhook verification → salla-webhooks, billing → salla-app-billing.
-  Type deltas: salla-shipping-app, salla-communication-app.
+  Use when creating a new Salla app or driving any create-to-publish step via the Salla
+  Partners MCP — "create a new Salla app", configure scopes/webhooks, or publish. The
+  spine; it hands off mechanics to the owning skill: snippets → salla-snippets, embedded
+  pages → salla-embedded-app, App Functions → salla-app-functions, settings →
+  salla-app-settings, OAuth/tokens → salla-app-auth, webhooks → salla-webhooks, billing →
+  salla-app-billing, publish checks → salla-publication-consistency. Type deltas:
+  salla-shipping-app, salla-communication-app.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Hazem Khaled
@@ -57,7 +57,9 @@ These are **two independent choices** ([docs.salla.dev/421410m0.md](https://docs
 **Public** apps appear in the [Salla App Store](https://apps.salla.sa/en) for any merchant
 to browse, download, or purchase; **Private** apps are built for specific merchants and
 never surface in the store's listings or search. **Category** (General vs Shipping) is the
-separate axis — a Shipping app may be Public _or_ Private (Communication apps are Public).
+separate axis — a Shipping app may be Public _or_ Private, while Communication apps are
+typically Public. Visibility is Portal-enforced per type, so let `create`/publish validate
+the combination rather than assuming it.
 
 Use the answers to tailor Steps 1, 4–7.
 
@@ -75,22 +77,25 @@ Use the answers to tailor Steps 1, 4–7.
 2. **Upload the logo.** Call `salla_upload` with a public image `source_url`. The logo
    must be a **square (1:1) image, ≥ 250×250 px** — ensure the source image satisfies
    that **before** uploading. The result returns only `{id, url}` (no dimensions are
-   echoed), so use the returned `id`.
+   echoed), so use the returned `id`. If there's no logo at creation and an
+   image-generation tool is available, generate one (**1:1, ≥ 250×250**) and upload it —
+   full canonical recipe (and every other listing/publication image field + its dimensions)
+   → [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md#generating-missing-listing-images-canonical-recipe).
 3. **Create the app.** The basic info Salla requires at create is **icon, name, category,
    description, app website, and support email**
    ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)); via the MCP these
    map to the fields below. Call `salla_apps` with `action: "create"` and:
 
-| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name` + `name_ar`           | The app name **must be Arabic** and **must be globally unique** (a name that does not already exist across **all** Salla apps). Plain Arabic letters with NO diacritics/tashkeel (e.g. هريفاي, not هرّفاي). **Do not pre-validate uniqueness client-side** — submit `create` and handle the Portal's validation error (rename and resubmit if the name is taken). |
-| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                      |
-| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                         |
-| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                               |
-| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                     |
-| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                     |
-| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                        |
-| `is_paid`                    | optional, boolean                                                                                                                                                                                                                                                                                                                                                 |
+| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name` + `name_ar`           | Salla expects the app name in Arabic, in plain letters with no diacritics/tashkeel (e.g. هريفاي, not هرّفاي), and unique across Salla apps. Treat these as Portal-enforced — let `create` validate: submit, then act on the error (rename and resubmit if the name is taken or invalid) rather than pre-checking client-side. Confirm the exact constraints from the `create` response when in doubt. |
+| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                                                          |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                                                             |
+| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
+| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
+| `is_paid`                    | optional, boolean                                                                                                                                                                                                                                                                                                                                                                                     |
 
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
@@ -140,16 +145,16 @@ app's valid scope slugs and current selection:
    - `webhook_url` — your webhook receiver (**HTTPS-only**, must authenticate inbound
      requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
-   - `generate_secret: true` — mints + returns the webhook signing secret. An app
-     already has a secret from creation, so this **rotates** it — don't regenerate if
-     the current secret is already deployed and in use.
+   - `generate_secret: true` — mints + returns the webhook signing secret. An app already
+     has a secret from creation, so this **rotates** it; only pass it when you intend to
+     replace the current secret (rotating a secret already live on production traffic
+     breaks in-flight verification).
    - `trusted_ips`, `webhook_headers`
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
 Store the returned **webhook secret** in a secret manager (never in source/repo); it
-verifies the HMAC-SHA256 signature on every webhook. Don't `generate_secret` again once a
-secret is live on production traffic — rotating it breaks in-flight verification.
+verifies the HMAC-SHA256 signature on every webhook.
 Signature verification + idempotency → **`salla-webhooks`** skill. Token handling
 (Easy vs Custom mode, storage, refresh) → **`salla-app-auth`** skill. (Route, don't
 reimplement here.)
@@ -260,6 +265,9 @@ changed later.
   - `Resp.success()` lets onboarding **continue**; `Resp.error()` **stops** progression
     and shows validation feedback. `.setFields(message, { field_id: [msg, …] })` renders
     the error directly under that field; validation runs in real time, so keep it fast.
+  - **Handling credentials.** When a step collects secrets (email + password, API keys),
+    validate them provider-side in the handler, then store only an encrypted/hashed form —
+    never plaintext — and keep the sensitive field values out of logs and error messages.
   - **Completion payload (`context`)** — `payload` carries `event`, `merchant`,
     `created_at`, and `data`, where `data` is
     `{ id, app_name, app_description, app_type, step: { slug, sort }, fields: { … } }`
@@ -277,15 +285,15 @@ Ask: "Does your app need serverless handlers triggered by Salla events?"
 
 - **Yes** → follow the **`salla-app-functions`** skill for the App Function source,
   context shape, `Resp` API, and timeouts. App Functions handle **store-event automation**
-  (where a trigger exists); **lifecycle/auth events stay on webhooks** (Step 3) and are
-  owned by **`salla-app-lifecycle`** / **`salla-app-auth`** — don't route them here.
+  (where a trigger exists); lifecycle/auth events stay on webhooks (Step 3, owned by
+  **`salla-app-lifecycle`** / **`salla-app-auth`**).
 
 **Save the function with `salla_functions action=save` (`app_id`, `trigger`, `content`,
-`name`) — an upsert (create or update).** Saving is live on the app's demo stores
-immediately; submit the app with `salla_apps action=publish` to release it to real stores
-after review. Read with `salla_functions action=get`, remove with `action=delete`.
-(`salla_functions` is operator-gated: it errors clearly if the App Builder service is not
-enabled on the MCP deployment.) Details → **`salla-app-functions`**.
+`name`) — an upsert (create or update).** A saved function is live on the app's demo
+stores immediately; it reaches real stores only after the app is published (Step 8). Read
+with `salla_functions action=get`, remove with `action=delete`. (`salla_functions` is
+operator-gated: it errors clearly if the App Builder service is not enabled on the MCP
+deployment.) Details → **`salla-app-functions`**.
 
 **Gate:** "Function saved and working on a demo store?" (Publishing to production is the
 later dedicated publish step — not here.)
@@ -316,7 +324,8 @@ Sends messages on behalf of merchants (WhatsApp, SMS, email):
 
 Integrates a carrier or fulfillment provider:
 
-- Must be **Public** — Shipping Apps cannot be Private.
+- Typically **Public**; if you target Private, let `create`/publish validate the
+  visibility rather than assuming it is allowed.
 - Follow the **`salla-shipping-app`** skill (it uses `salla_shipping` for zones/settings
   and `salla_apps` for the full lifecycle).
 
@@ -338,28 +347,27 @@ Integrates a carrier or fulfillment provider:
    `https://portal.salla.partners/apps/{app_id}`.
 
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
-3. Submit for review: `salla_apps action=publish`, `app_id` (set `private: true` for a
-   private-publish; optional `update_note`). Pass the listing payload in `publication`.
-   The Portal's publication flow covers **Basic Information, App Configurations, App
-   Features, Pricing, Contact Information, and Service Trial**
-   ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)) — the `publication`
-   payload spans the same ground. The example shapes below are **illustrative** — confirm
-   exact field names/shapes via the Partners MCP tool schema or docs before relying on them:
-   - **`publish_action` is always required** (separate from the tool's `action: "publish"`):
-     `"save"` drafts the publication, `"submit"` sends it for full-validation review.
-   - **`save` is NOT fully lenient** — it still requires `name: {en, ar}` and
-     `short_description: {en, ar}` (bilingual nested objects). Heavier fields (logo id,
-     screenshots, plans, etc.) are only required at `submit`.
-   - `name`, `short_description`, and other user-facing text are bilingual nested objects:
-     `{en: "…", ar: "…"}` — not flat strings.
-   - Upload media first via `salla_upload` → integer image IDs: `logo` and
-     `screenshots` as `[{image: id}]`.
-   - `categories` and `main_category_id` are **main** categories (`type=app` from
-     `salla_reference`), distinct from the `sub_category_id` used at create time.
-   - Plans **and** addons are defined **inside the publish payload** (`plan_type`,
-     `plans`, `addons`) — there is no separate pricing endpoint. In the Portal's
-     publication flow, **addons appear under Pricing**. → **`salla-app-billing`**.
-   - `support_email` is required when `contact_method = "email"`.
+3. **Publish.** Two paths — use the guided one by default:
+
+   - **Primary — guided, stepwise `app_publish`:** `open` → (set `<section>` →
+     `readiness`)\* → `submit`. `open` creates the draft (and unlocks `app_page_builder`
+     for the listing page); then for each of the 5 sections (`basic_information`,
+     `features`, `pricing`, `contact_information`, `service_trial`) call `set`, re-check
+     `readiness`, and fix one section at a time off the returned `missing` list until every
+     section reads `complete`; then `submit`. `withdraw` pulls a pending submission back.
+     **Section fields, the readiness gate, and ordering →
+     [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** (follow it
+     for the mechanics).
+   - **Alternative — one-shot `salla_apps action=publish`:** a single call (`app_id`,
+     `publication` payload, `publish_action: "save" | "submit"`, optional
+     `private`/`update_note`) for when you already have the full listing payload assembled.
+
+   Either way `submit` hits the same server-side gate, which returns **422** with the
+   still-missing sections if it isn't ready. Listing content
+   (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
+   [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
+   [salla-app-billing](../salla-app-billing/SKILL.md).
+
 4. Once approved the app is live on https://apps.salla.sa/en.
 
 Testing guide: references/demo-store-testing.md

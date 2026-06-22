@@ -14,11 +14,10 @@ description: >
 
 A Communication App is an **App Function that takes over message delivery** for SMS, Email,
 or WhatsApp. When a store event fires (order status change, OTP request, abandoned cart, …),
-Salla calls your function with the composed message instead of sending it itself. Your
-function reads provider credentials from `context.settings`, calls the provider
-(Twilio / SendGrid / 360dialog / Unifonic / any), and returns the result via the `Resp`
-utility. **Salla never touches the delivery layer** — you own routing and delivery; Salla
-owns the trigger. ([Overview](https://docs.salla.dev/2006115m0.md))
+Salla calls your function with the composed message. Your function reads provider credentials
+from `context.settings`, calls the provider (Twilio / SendGrid / 360dialog / Unifonic / any),
+and returns the result via the `Resp` utility. **You own routing and delivery; Salla owns the
+trigger.** ([Overview](https://docs.salla.dev/2006115m0.md))
 
 Prerequisite: a working grasp of App Functions
 ([salla-app-functions](../salla-app-functions/SKILL.md)) — the runtime, `Resp`, and the
@@ -121,16 +120,9 @@ typed shape, real examples, and handling patterns:
 Only fall back to webhook subscriptions for these events if delivery must run on your
 own infrastructure ([salla-webhooks](../salla-webhooks/SKILL.md)).
 
-**Secret & PII hygiene** (this app sends real customer messages):
-
-- Never log message `content`, recipients (`notifiable`), or provider credentials
-  (`api_key`, tokens, sender IDs). Redact them from any error report or trace.
-- Treat provider endpoints and API keys as untrusted input read from settings —
-  validate the endpoint (allowed host/scheme) before calling it.
-- Handle provider auth failures safely: surface a generic error, don't echo the
-  provider's raw response or your credentials back to Salla or the merchant.
-- If you handle the merchant's own OAuth token (e.g. to call the Admin API), token
-  storage/refresh rules live in [salla-app-auth](../salla-app-auth/SKILL.md).
+This app sends real customer messages, so keep `content`, `notifiable`, and `settings`
+credentials out of logs and validate the provider endpoint before calling it — full
+secret & PII rules in [references/communication-events.md](references/communication-events.md).
 
 ## Step 5 — Test
 

@@ -1,29 +1,23 @@
 ---
 name: salla-app-functions-handler
 description: >
-  Step 3 of building a Salla App Function: write the handler from the trigger's `template`,
-  using typed contexts (`context.payload` / `merchant` / `settings`), the mandatory response
-  contract (plain object or the `Resp` / entity `Shipment` builders), V8-isolate sandbox limits
-  (no npm, no `fs`/`net`/`http` servers/`child_process`, Web Crypto only, `fetch` for HTTP),
-  and AbortController-bounded fetch for the 5 s (sync) / 30 s (async) timeouts. Routed from
-  salla-app-functions; validate next with salla-app-functions-validate.
+  Step 3 of building a Salla App Function: write the handler body from the trigger's
+  `template`. Use when coding the logic — reading typed `context` (payload/merchant/settings),
+  returning the response contract via the `Resp` (or entity `Shipment`) builder, staying
+  inside the V8-isolate sandbox (web-standard APIs, `fetch` for HTTP), and bounding each
+  `fetch` to the sync/async timeout. Routed from salla-app-functions; validate next with
+  salla-app-functions-validate. Token-handling → salla-app-auth; API details → salla-api-core.
 ---
 
 # App Functions — Write the Handler
 
 Start from the trigger's default `template` and its `types` — fetch both with
-`salla_functions action=get`, `app_id`, `trigger`. **The `template` is the source of truth:
-copy it verbatim and fill in only the body.**
+`salla_functions action=get`, `app_id`, `trigger`. Copy the `template` verbatim and write all
+your code inside the body. Keep the wrapper's first and last lines exactly as given (full rule
+plus local type-check → **salla-app-functions-validate**).
 
-> Decide sync-vs-async and what `Resp.success` / `Resp.error` mean for this trigger class
-> **before** writing the body — that's **salla-app-functions-design** (a sync `merchant_actions`
-> trigger blocks/modifies the operation; an async event is fire-and-forget). This skill assumes
-> that decision is made.
-
-> **Never change the template wrapper** — its **first line** (signature) or its **last line**
-> (the close) — and put ALL code INSIDE the body — no `const` / `function` / `import` above or
-> below the wrapper. `save` validates **only** those two lines and rejects a mismatch. Full
-> rule + local type-check: **salla-app-functions-validate**.
+This skill assumes sync-vs-async is already decided in **salla-app-functions-design** (a sync
+`merchant_actions` trigger blocks/modifies the operation; an async event is fire-and-forget).
 
 ```typescript
 export default async (context: Shipments): Promise<Resp> => {
@@ -44,11 +38,12 @@ context.payload; // { event, created_at, merchant, data: { … } } — data vari
 context.settings; // per-merchant App Settings; optional (undefined/null until configured)
 ```
 
-Salla Admin API calls made **inside** a function are **pre-authenticated**: call the Admin
-API straight from the handler with **no `Authorization` header** — Salla injects the
-merchant's credentials for you, so you never store, refresh, or attach a token. For the call
-itself — base URL, endpoints, scopes, error shapes — see **salla-api-core**. Settings:
-`context.settings?.apiKey` (optional chaining — undefined until configured).
+Calling the Salla Admin API from inside a function typically needs no token wiring — confirm
+the exact auth the runtime injects from the trigger's `types` / function context, then call
+the Admin API directly. Request the **minimum OAuth scopes** for the endpoints you call
+(scope setup and token handling → **salla-app-auth**); base URL, endpoints, and error shapes
+→ **salla-api-core**. Settings: `context.settings?.apiKey` (optional chaining — undefined
+until configured).
 
 ## The response contract (mandatory return)
 
@@ -70,21 +65,22 @@ Two return styles — both valid:
 return { success: true, data: {} }; // data is optional; include it (even {}) on sync actions
 
 // 2. Response utility class — recommended for Customer Events and complex Merchant Events
-Resp.success().setData({ order_id: id }); // .setData({}) is the recommended convention
-Resp.error().setMessage("Something went wrong").setStatus(500);
+return Resp.success().setData({ order_id: id }); // .setData({}) is the recommended convention
+return Resp.error().setMessage("Something went wrong").setStatus(500);
 ```
 
-Builder methods (the doc's full API): `Resp.success()` / `Resp.error()` start a response;
-`.setData(obj)` is **optional but recommended** — pass `{}` even when empty, and especially on
-sync actions, where the returned `data` is merged/applied to the entity; `.setStatus(code)` is
-optional (default `200`); `.setMessage(msg)` is optional. Chainable. `Resp` is a **pre-declared
-runtime global** — never import or re-declare it.
+Builder methods (chainable): `Resp.success()` / `Resp.error()` start a response; `.setData(obj)`
+is optional but recommended — pass `{}` even when empty, and especially on sync actions, where
+the returned `data` is merged/applied to the entity; `.setStatus(code)` is optional (default
+`200`); `.setMessage(msg)` is optional. `Resp` is a pre-declared runtime global — use it
+directly, no import.
 
 **Entity-named builders.** Some triggers expose an entity-specific builder instead of the
 generic `Resp` — same `.success()` / `.error()` shape plus entity setters. `shipment.creating`
 **requires** the `Shipment` class (context type `Shipments`, return type `Promise<Shipment>`):
-`Shipment.success().setShipmentNumber(id)` (always call `.setShipmentNumber()` on success),
-`Shipment.error().setMessage("…")`. Confirm the exact builder + setters from the trigger's
+`return Shipment.success().setShipmentNumber(id)` (always call `.setShipmentNumber()` on
+success), `return Shipment.error().setMessage("…")`. Confirm the exact builder + setters from
+the trigger's
 `types` (see **salla-app-functions-validate**) before relying on them.
 
 ### Sync actions: what the return does
@@ -116,11 +112,11 @@ App Functions run in a **V8 isolate**, not a Node.js runtime
 
 ## Bound every external `fetch` to the timeout
 
-Budget: a **sync** action has a **hard 5 s total** limit; keep each internal async call
-**under 2 s** so one slow upstream can't blow it. The merchant is **blocked** for the whole
-run, so the doc **recommends responding in < 500 ms** — that's a UX target, not the limit
-(5 s is the cutoff, < 500 ms is the goal). An **async** event gets **30 s**. (Budget rationale
-→ **salla-app-functions-design**.)
+Bound each `fetch` with an `AbortController` so one slow upstream can't blow the budget. Keep
+each call well under the trigger's budget — a sync action targets < 500 ms total, an async
+event has up to 30 s (confirm the exact limits → **salla-app-functions-design**). Validate and
+shape the response before applying it: extract the specific fields you need and return only
+those, so a malformed or hostile upstream body never flows into the entity.
 
 ```typescript
 const controller = new AbortController();
@@ -130,7 +126,13 @@ try {
     signal: controller.signal,
   });
   if (!res.ok) return Resp.error().setMessage("Upstream error").setStatus(502);
-  return Resp.success().setData(await res.json());
+
+  const body = await res.json();
+  // Validate the shape and extract only the fields you trust — don't return raw JSON.
+  if (typeof body?.tracking_number !== "string") {
+    return Resp.error().setMessage("Invalid upstream response").setStatus(502);
+  }
+  return Resp.success().setData({ tracking_number: body.tracking_number });
 } catch (error) {
   return Resp.error().setMessage("Upstream timeout").setStatus(504);
 } finally {
@@ -138,10 +140,17 @@ try {
 }
 ```
 
-Outbound-call safety: check `res.ok` before returning upstream data (don't forward an error
-body as success); call only known, hard-coded endpoints — never a merchant-supplied URL
-without an allowlist; never log `context.settings` or tokens. If a call needs a merchant
-access token or OAuth, that's **salla-app-auth**, not here.
+Outbound-call safety:
 
-**Gate:** "Returns `Resp.success().setData(...)` on every path, no npm/unsupported core,
-every `fetch` bounded, `res.ok` checked, no secrets logged?" → **salla-app-functions-validate**.
+- **Validate before applying** — check `res.ok`, then validate the body's shape and return
+  only the fields you need (above), so an error body or extra fields never reach the entity.
+- **Trust your own endpoints** — call hard-coded URLs; when a URL comes from settings, match
+  it against an allowlist of hosts you control before the `fetch`.
+- **Sanitize merchant input** — `context.settings` is merchant-controlled. Validate type and
+  format, and encode/escape each value for its target (path/query encoding, header value)
+  before placing it in an outbound request.
+- **Keep secrets out of logs** — never log `context.settings` or tokens.
+
+**Gate:** "Returns `Resp.success().setData(...)` on every path, no npm/unsupported core, every
+`fetch` bounded, response validated/shaped before use, settings sanitized, no secrets logged?"
+→ **salla-app-functions-validate**.

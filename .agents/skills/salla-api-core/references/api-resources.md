@@ -1,13 +1,11 @@
 # Admin API — Resource Index
 
 A navigation map: every Admin API resource group → its docs landing page. Use it to
-**find the right doc**, then read the per-resource page (or the live API) for exact paths,
-fields, scopes, and CRUD shapes — those are not duplicated here on purpose.
+**find the right doc**, then read that landing page (or make a live call) for the resource's
+create / details / update / list endpoints, fields, scopes, and schemas — these drift, so
+the doc (or a live call) is the source of truth and they are not duplicated here.
 
 - **Base URL:** `https://api.salla.dev/admin/v2` (all resource paths are relative to it).
-- **CRUD shapes:** read the linked landing doc, which lists the resource's create / details
-  / update / list endpoints and schemas. They drift, so treat the doc (or a live call) as
-  the source of truth.
 - **Webhooks management** (register, subscribe, verify, versions) is owned by
   **salla-webhooks** — the row below points only at the Admin API resource reference.
 - **Get Started overview** (all groups with descriptions): https://docs.salla.dev/421117m0.md

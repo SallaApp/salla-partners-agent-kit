@@ -1,25 +1,16 @@
 # Subscription & Trial — Payload Reference
 
-Source: https://docs.salla.dev/421413m0.md — confirm exact fields there. The same payload
-family covers plans and addons; `item_type` distinguishes them. The payloads below are
-**illustrative**; confirm the exact shapes (and any new fields) via the Partners MCP
-(`salla_events action=list`) or the docs link above before coding.
+Source: https://docs.salla.dev/421413m0.md — confirm exact fields there. These are the
+**webhook event** payloads (same family for plans and addons; `item_type` distinguishes
+them); the shapes below are **illustrative** — confirm them via `salla_events action=list`
+or the docs link before coding. To **read** the current subscription detail use
+`GET /apps/{app_id}/subscriptions` and to **write** the usage balance use
+`POST /apps/balance` — see salla-app-billing Steps 5 and 5b.
 
-> These are the **webhook event** payloads. To **read** a merchant's current subscription
-> detail (plan state, entitlements, `subscription_balance`) the authoritative API is the
-> App Subscription Details endpoint `GET /apps/{app_id}/subscriptions`
-> (https://docs.salla.dev/5401098e0.md); to **write** the usage balance, the Update
-> Subscription Balance endpoint `POST /apps/balance`
-> (https://docs.salla.dev/5401099e0.md), both on `https://api.salla.dev/admin/v2`. See
-> salla-app-billing Steps 5 and 5b.
-
-> **Security — these are billing events.** A subscription/trial payload grants or revokes
-> paid access, so treat it as untrusted until proven authentic. **Verify the webhook
-> signature and enforce idempotency before mutating any entitlement** — transport security
-> (signature verification, replay protection, fast 2xx) is owned by **salla-webhooks**;
-> token/OAuth handling by **salla-app-auth**. Never grant or revoke access from a
-> client-reported plan state — only a verified server-side event (or the reconciled
-> Partners API in salla-app-billing Step 5) is authoritative.
+> **Security — these are billing events.** Verify the webhook signature and enforce
+> idempotency before mutating any entitlement; grant or revoke access only from a verified
+> server event (or the reconciled Partners API), never a client-reported plan. Full trust
+> model and ownership (salla-webhooks / salla-app-auth) → salla-app-billing Step 3.
 
 ---
 

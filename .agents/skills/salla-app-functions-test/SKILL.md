@@ -9,49 +9,47 @@ description: >
 
 # App Functions — Test on a Demo Store (preview)
 
-**Test through the MCP — `salla_functions action=preview` — not the preview URL.** `save`
-(and `deploy_status`) hands back a `preview` URL, but **ignore it**: it is authenticated and
-cannot be called client-side, so you can't hit it from your code or a browser to test. The
-**only** supported way to run a saved function is `salla_functions action=preview`, which
-invokes it server-side against a demo store and returns the response. Use it after `save` to
-verify behavior before publishing — no Portal needed.
+Run a saved function with `salla_functions action=preview`: it invokes the function
+server-side against a demo store and returns the response. Use it after `save` to verify
+behavior before publishing — no Portal needed.
+
+`save` and `deploy_status` also hand back a `preview` URL. Ignore it: it is authenticated and
+not client-callable, so `action=preview` is the way to run the function — it holds the auth
+that URL needs.
 
 ## 1. Wait for the deploy
 
 `save` returns a deploy `job`. The function isn't runnable until that deploy finishes:
 
 - Poll `salla_functions action=deploy_status`, `job_id` → `status` `COMPLETED` means ready;
-  `FAILED` → read `failure_reason` and fix. (`deploy_status` also returns a `preview` URL on
-  completion — ignore it; it's authenticated and not client-callable. Test via
-  `action=preview`, below.)
+  `FAILED` → read `failure_reason` and fix.
 - Or just call `salla_functions action=preview` — it returns "still deploying … retry in
   ~30s" until it's ready.
 
 ## 2. Gather the form inputs (real ids)
 
-`preview` needs the trigger's **form fields** (the function's `form`). Two kinds:
+`preview` needs the trigger's **form fields** (the function's `form`). Confirm the exact
+field names via `salla_functions` before invoking, rather than assuming `order_id` /
+`shipment_id`. Two kinds:
 
 - **`store_id`** (always required) — an installed demo store. List them with
   `salla_apps action=demo_stores` and pick a `connected` store.
-- **Resource ids** (`order_id`, `shipment_id`, …) — must be **real** records. Fetch or
-  create them via the **Salla Admin API with that store's access token**. See
-  **salla-api-core**. Don't invent ids — preview runs the real function against real data.
-  Confirm the trigger's exact form-field names before invoking — verify the function's
-  `form` via `salla_functions` (don't assume `order_id`/`shipment_id`).
+- **Resource ids** (`order_id`, `shipment_id`, …) — must be **real** records, since preview
+  runs the real function against real data. Fetch or create them via the **Salla Admin API
+  with that store's access token** (see **salla-api-core**).
 
 Token handling is in **salla-app-auth** (the token arrives via the `app.store.authorize`
 webhook; the app must hold scopes matching the resources you fetch — request only those).
 Webhook signature verification + idempotency are in **salla-webhooks**. Route there; don't
 duplicate that logic here.
 
-**Secret/PII hygiene:** the store access token is a live merchant credential. Never log,
-hard-code, paste into third-party tools, or reuse it outside the demo store it belongs to.
-Prefer a demo store with synthetic records over real merchant PII; restore any real config
-you changed for testing afterward.
+**Secret/PII hygiene:** the store access token is a live merchant credential — keep it in
+memory, scoped to the demo store it belongs to. Use a demo store with synthetic records, and
+restore any config you changed for testing afterward.
 
 ## 3. Invoke
 
-Illustrative — ids are placeholders; substitute real ones (don't copy these literally):
+Illustrative — substitute real ids for the placeholders below:
 
 ```text
 salla_functions action=preview
@@ -61,14 +59,12 @@ salla_functions action=preview
   payload  = { shipment_id: 12312 }   # the form fields, minus store_id
 ```
 
-The tool runs the function server-side (it holds the auth the preview URL needs — you never
-touch that URL yourself) and returns the function's response **as-is** (`http_status` +
-`response`). A `success:false` / `Resp.error()` result is a real function outcome — inspect
-it, don't assume a tool failure.
+The tool runs the function server-side and returns its response **as-is** (`http_status` +
+`response`). A `success:false` / `Resp.error()` result is a real function outcome to inspect,
+not a tool failure.
 
 This mirrors the Portal's **Save and Preview** panel
-([Testing](https://docs.salla.dev/1726816m0.md)), which runs the function against the demo
-store and surfaces the same things you should check in the returned `response`: execution
+([Testing](https://docs.salla.dev/1726816m0.md)). Check in the returned `response`: execution
 status (success/failure), the response data, execution time, your `console.log()` output, and
 any errors. Test multiple scenarios — happy path, edge cases (null/empty fields), and error
 cases (API failures, timeouts). Changes stay in the sandbox until you publish.

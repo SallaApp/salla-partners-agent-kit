@@ -13,18 +13,18 @@ description: >
 
 An addon is a purchasable extra that **Salla bills** on top of the app's plan. This skill
 owns its **billing lifecycle** — define → activate → renew → cancel/expire → gate. The
-merchant buys it **inside the embedded app** (the purchase UX is part of that flow →
+merchant buys it **inside the embedded app** (purchase UX →
 [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md)); Salla then
-drives every state change through webhooks. **Activation is webhook-driven — never unlock on
-a redirect.**
+drives every state change through webhooks. **Activation is webhook-driven: unlock features
+only when `app.subscription.started` arrives, signature-verified.**
 
 ## Tools & MCPs
 
-Use the Salla Partners MCP: `salla_events action=subscribe` for the subscription events
-below (a `webhook_url` must be set via `salla_apps action=connect`). The addon itself is
-defined at publish (`salla_apps action=publish`, `addons[]`).
+Use the Salla Partners MCP: define the addon at publish (`salla_apps action=publish`,
+`addons[]`), set a `webhook_url` via `salla_apps action=connect`, then `salla_events
+action=subscribe` to the subscription events below.
 
-> Salla owns billing — you never charge. Purchase UX (iframe) →
+> Salla owns billing — you never charge. Hand-offs: purchase UX (iframe) →
 > **salla-addon-purchase-embedded** · pricing/entitlement primitives & gating →
 > **salla-app-billing** · webhook signature/idempotency → **salla-webhooks** · OAuth scopes
 > & merchant token storage for any API call you make off these events → **salla-app-auth**.
@@ -33,10 +33,8 @@ defined at publish (`salla_apps action=publish`, `addons[]`).
 
 ## Step 1 — Define the Addon
 
-Addons live in the `addons[]` array of the publish payload (`salla_apps action=publish`) —
-there is no separate pricing endpoint; after publishing they surface in the addon/plans
-section of the app's Portal page (verify the exact location against the current Partners
-Portal). Each addon has an `item_slug` you match on for every lifecycle event. Full payload
+Addons live in the `addons[]` array of the publish payload — there is no separate pricing
+endpoint. Each addon has an `item_slug` you match on for every lifecycle event. Full payload
 shape → **salla-app-billing** Step 1.
 
 **Gate:** "Addon in the publish payload, published, and you know its `item_slug`?"
@@ -61,10 +59,9 @@ Confirm exact slugs via `salla_events action=list` / the App Events doc before c
 
 ## Step 3 — Activate on `app.subscription.started` (source of truth)
 
-Do **not** unlock features because a purchase redirect returned — wait for Salla's webhook.
-Field names below (`item_type`, `item_slug`, `subscription_id`, `end_date`, `features`) are
-illustrative — confirm the exact payload shape via `salla_events action=list` or the App
-Events doc before relying on them:
+This webhook is the activation trigger. Field names below (`item_type`, `item_slug`,
+`subscription_id`, `end_date`, `features`) are illustrative — confirm the exact payload shape
+via `salla_events action=list` or the App Events doc before relying on them:
 
 ```typescript
 // Runs only AFTER the request is signature-verified and de-duplicated — see salla-webhooks.
@@ -96,7 +93,7 @@ signature-verified and idempotent?"
 Keep the stored entitlement in step with Salla — each event is the source of truth:
 
 - **`renewed`** → extend `end_date` (recurring addons; track recurring vs one-time).
-- **`canceled`** → mark canceled but keep access **until `end_date`** (don't cut off early).
+- **`canceled`** → mark canceled, keep access **until `end_date`**.
 - **`expired`** → revoke the entitlement and re-gate the addon's features.
 
 Persistence patterns, recurring vs one-time, and stacking the addon on the plan →
@@ -108,9 +105,9 @@ Persistence patterns, recurring vs one-time, and stacking the addon on the plan 
 
 ## Step 5 — Gate Features by Addon Entitlement
 
-Gate addon-only features on the **persisted entitlement**, never on the purchase redirect or
-client state. Gating pattern → **salla-app-billing**. Reflect activation back in the embedded
-UI → **salla-addon-purchase-embedded**.
+Gate addon-only features on the **persisted entitlement** (the source of truth). Gating
+pattern → **salla-app-billing**. Reflect activation back in the embedded UI →
+**salla-addon-purchase-embedded**.
 
 **Gate:** "Addon features are gated on the stored entitlement, re-checked after each event?"
 

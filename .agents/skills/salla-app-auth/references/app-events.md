@@ -49,9 +49,8 @@ request.
 **Validate before persisting.** Guard against a missing `data`, missing tokens, a
 malformed `expires`, or an unexpected `token_type` rather than writing garbage to the DB.
 
-**Secret hygiene.** Treat `access_token` / `refresh_token` as secrets: store them
-encrypted at rest, transport over HTTPS only, and **never** write token or secret values
-to logs, error messages, or diagnostics — redact them.
+**Secret hygiene** (store encrypted, HTTPS-only, never log token/secret values): see the
+SKILL.md secret-hygiene callout.
 
 ```typescript
 if (payload.event === "app.store.authorize") {

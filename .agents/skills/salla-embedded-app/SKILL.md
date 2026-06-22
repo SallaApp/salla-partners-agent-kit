@@ -20,30 +20,21 @@ app. Follow the steps in order — complete each gate before moving to the next.
 The official Salla model is **Trust-but-Verify**: Salla passes a short-lived token in the
 iframe URL; your frontend captures it with `embedded.auth.getToken()` and hands it to **your
 backend**, which **verifies it with Salla's Introspection API** and then mints its own session.
-The frontend is a courier — it never makes authorization decisions.
+The frontend is a courier — it never makes authorization decisions. Step 3 is the recipe;
+[`references/auth-and-session.md`](references/auth-and-session.md) is the authoritative source.
 
-## Security guidelines (binding — no exceptions)
+## Security rules (binding)
 
-- **Every merchant dashboard interface MUST be authenticated.** Authorization happens on the
-  **backend**, after it verifies the Salla token and mints its own session — never on the
-  frontend.
-- **The token is short-lived and arrives in the iframe URL.** Read it with
-  `embedded.auth.getToken()`. The frontend's only job is to send it to your backend; do **not**
-  make authz decisions on the frontend, and do **not** trust the token unverified.
-- **Verify on the BACKEND via Salla's Introspection API.**
-  `POST https://api.salla.dev/exchange-authority/v1/introspect`, header `S-Source: <YOUR_APP_ID>`,
-  body `{ "token": "em_tok_..." }`. A success response returns `{ merchant_id, user_id, exp }`.
-  Your backend then mints its own session (JWT / secure cookie) and authorizes every request
-  against that.
-- **Validate the `S-Source` header** (your own App ID) on the introspect call — this prevents
-  another app from verifying tokens against your identity.
-- **`embedded.auth.introspect()` (Client Introspect) is dev/debug ONLY.** The docs are explicit:
-  it "should not be used as a primary authentication method." Never use it for production authz.
-- **Never expose a merchant page outside Salla's native embedded-app support** — no standalone
-  `/dashboard?store_id=…` URL, and no page that trusts a query param or referer for identity.
-- **Protect every route, not just the page.** Each API the page calls must require the session
-  your backend minted, scoped to the `merchant_id` introspection returned — never derive the
-  merchant from client-supplied input.
+- **Authenticate every page on the backend.** The backend verifies the Salla token (introspect),
+  mints its own session, and authorizes each request against that session — the frontend only
+  ferries the token.
+- **Verify via the backend introspect**
+  (`POST https://api.salla.dev/exchange-authority/v1/introspect`, header `S-Source: <YOUR_APP_ID>`).
+  `embedded.auth.introspect()` (Client Introspect) is dev/debug only — the docs say it "should not
+  be used as a primary authentication method." Full request/response → Step 3 + `auth-and-session.md`.
+- **Identity comes only from introspection.** Scope every route and query to the `merchant_id`
+  introspection returned; reach the dashboard exclusively through Salla's native embedded-app
+  support (no standalone `/dashboard?store_id=…` URL that trusts a query param or referer).
 
 ## Tools
 
@@ -88,11 +79,29 @@ verify the change. Use `update` / `delete` to change or remove a page.
 
 **Manual fallback:** Portal → **App Details → Embedded Pages → Add page**.
 
-> Add the **Embedded App Banner** (`1420×520 px`) in your App Card before publishing
-> (My Apps → App → App Details → Start publishing → App Features → Embedded App Banner).
-
 **Gate:** "`salla_embedded_pages action=list` returns the page — can you see it in the
 merchant dashboard sidebar?"
+
+### Embedded app images (set at publish)
+
+An embeddable app carries two App-Store images, both written through the publication, not the
+SDK. Set them while publishing (Step 6 → **salla-publication-consistency**):
+
+| Image                                      | Where set                                             | Dimensions / limit                                                              | Shows                                          |
+| ------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Embedded App Banner** (`embedded_image`) | `app_publish` features section                        | min 710×260 px (recommended 1420×520), max 512 KB                               | the app's embedded/iframe presentation         |
+| **Salla promotional image**                | `app_publish` features section (promotional/featured) | confirm dimensions via `app_publish` readiness / `salla-docs` before generating | Salla's promotional / featured (build) section |
+
+The Salla promotional image is a **second** image (in addition to the Embedded App Banner) used
+in Salla's promotional/featured section — supply it whenever the app is featured there.
+
+**Image-generation enrichment** applies to both: when either is missing (or it's the first
+publication) and an image-generation tool is available → confirm the dimensions above, generate,
+`salla_upload`, then set via `app_publish` features section; otherwise ask the merchant for a real
+asset. Don't duplicate the steps — the canonical recipe (and every other listing image field)
+lives in
+[salla-app-ui-builder](../salla-app-ui-builder/SKILL.md#generating-missing-listing-images-canonical-recipe).
+Manual fallback: My Apps → App → App Details → Start publishing → App Features.
 
 ---
 
@@ -129,13 +138,11 @@ const { layout } = await embedded.init({ debug: false });
 
 **Two things block a first embedded app even when the SDK calls are correct:**
 
-1. **Embeddability** — your host must let Salla frame the page. Set
-   `Content-Security-Policy: frame-ancestors https://s.salla.sa` and remove any
-   `X-Frame-Options` on the iframe responses, or the dashboard shows a blank/"refused" pane
-   (Next.js/Vercel/Helmet deny framing by default).
-2. **Dev loop** — you can't open the page in a plain tab (it needs the dashboard handshake for a
-   token). Tunnel localhost → point `iframe_url` at the tunnel via `salla_embedded_pages update`
-   → install on a demo store → **Run App**.
+1. **Embeddability** — your host must let Salla frame the page (set
+   `Content-Security-Policy: frame-ancestors https://s.salla.sa`, drop `X-Frame-Options`), or the
+   dashboard shows a blank/"refused" pane.
+2. **Dev loop** — the page needs the dashboard handshake for a token, so you can't open it in a
+   plain tab. Tunnel localhost, point `iframe_url` at the tunnel, install on a demo store, **Run App**.
 
 Headers, dev loop, framework gotchas (React/Next, Vue), a full worked example, and a copy-paste
 starter → [`references/implementation-guide.md`](references/implementation-guide.md)
@@ -154,8 +161,10 @@ The flow, in order:
 3. **Send the token to YOUR backend.** The frontend is a courier — do **not** make authz
    decisions here.
 4. **Backend verifies** via `POST https://api.salla.dev/exchange-authority/v1/introspect`,
-   header `S-Source: <YOUR_APP_ID>`, body `{ "token": "..." }` → success returns
-   `{ merchant_id, user_id, exp }`. Backend mints its own session (JWT / secure cookie).
+   header `S-Source: <YOUR_APP_ID>`, body `{ "token": "..." }` → success nests the claims
+   under `data`: read `data.merchant_id` / `data.user_id` / `data.exp` (`data.exp` is an
+   ISO-8601 datetime string, not a Unix timestamp). Backend mints its own session
+   (JWT / secure cookie).
 5. **`embedded.ready()`** — call **only** after the backend confirms **and** your data is
    loaded. The dashboard shows a loading overlay until you do.
 6. **On failure** — call `embedded.destroy()` to exit gracefully rather than leaving the
@@ -252,7 +261,11 @@ embedded.page.navTo("/orders"); // auto-picks navigate vs redirect
 **Nav — action button + sub-nav items:**
 
 ```ts
-embedded.nav.setAction({ title: "Save", value: "save", icon: "sicon-check" }); // icon optional
+embedded.nav.setAction({
+  title: "Save",
+  value: "save",
+  icon: "hgi hgi-stroke hgi-tick-02",
+}); // icon optional (Hugeicons class)
 const off = embedded.nav.onActionClick((value) => {
   if (value === "save") saveChanges();
 });

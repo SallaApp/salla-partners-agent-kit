@@ -25,17 +25,18 @@ But snippets are NOT themes — some SDK affordances are theme-development const
 
 **App-snippet rules (these differ from themes):**
 
-- **Do NOT call `salla.init()`.** The theme already initialized the SDK via `body:end`.
-  `salla.init()` is only for **standalone / non-theme HTML** that loads `twilight.js`
-  itself (Overview shows it under the "HTML" tab, not the "Twilight Themes" tab). Calling
-  it from a snippet re-inits an already-initialized SDK.
-- **Gate on `salla.onReady(cb)`** for code that reads store-loaded state; **register
-  `salla.event.*` listeners at module top level** for init-time events (Twilight emits
-  product/cart events during init, before `onReady` — see device-mode.md). Never gate on
-  `typeof salla !== 'undefined'`.
-- You **canNOT** define Twig `{% hook %}`s, ship `<salla-*>` web components, use theme
-  settings / `twilight.json`, or the Twilight CLI — those are **THEME-development**
-  constructs, out of scope for snippets.
+- **The SDK is already initialized for you — do not call `salla.init()`.** The theme inits it
+  via `body:end`. `salla.init()` is only for standalone / non-theme HTML that loads
+  `twilight.js` itself (Overview shows it under the "HTML" tab, not "Twilight Themes");
+  calling it from a snippet re-inits an already-running SDK.
+- **Reach the SDK at runtime, not via theme constructs.** Twig `{% hook %}`s, `<salla-*>`
+  web components, theme settings / `twilight.json`, and the Twilight CLI are
+  theme-development constructs that snippets cannot use. Get dynamic values from
+  `salla.config.get(...)`, event payloads, and `salla.lang.get(...)` instead.
+- **Bootstrap and event-timing, the pure-JS CDN file format, and the no-Twig rule** are in
+  [device-mode.md](device-mode.md) — gate store-state reads on `salla.onReady`, register
+  init-time `salla.event.*` listeners at module top level, and write plain JS (no `<script>`
+  wrapper, no HTML). Snippets render before `</body>` (`place: "before"`, `tag: "body"`).
 
 **Availability key per method below:**
 
@@ -56,7 +57,7 @@ But snippets are NOT themes — some SDK affordances are theme-development const
   webhook ([salla-webhooks](../../salla-webhooks/SKILL.md)).
 - Do a customer-side action/listen here; for a **server reaction** (persist, sync, call the
   Admin API, react reliably) route to salla-app-functions / salla-webhooks. Native visible
-  UI → [salla-ui-compliance](../../salla-ui-compliance/SKILL.md).
+  UI → [salla-storefront-ui](../../salla-storefront-ui/SKILL.md).
 
 > Almost all methods return a **Promise** resolving to `{ status, success, message?, data }`.
 > Each module also exposes alias events (`salla.event.<module>.on…` / `salla.<module>.event.on…`)
@@ -87,7 +88,10 @@ App snippet ✅ (read). `set` is mainly for standalone init.
 
 - `salla.config.get(path)` — dot-path read, e.g. `salla.config.get('user.id')`,
   `salla.config.get('store.id')`, `salla.config.get('currencies.SAR.code')`,
-  `salla.config.get('page.slug')`. (Store-context paths: see device-mode.md.)
+  `salla.config.get('page.slug')`. App settings are read via `salla.config.get('app.<key>')`
+  (`public: true` settings only). Store-context paths, the app-settings bridge, and the
+  defensive-read patterns (gate on `salla.onReady`, null-check, fallback chain) → device-mode.md
+  (_Store context & language_).
 - `salla.config.set(key, value)` / `salla.config.set({...})` — set config (standalone/init
   use; the theme already configured the SDK).
 - `salla.config.currencies()` → Promise — full currencies list.
@@ -103,7 +107,7 @@ App snippet ✅. Cross-browser local storage (Store.js). Token/cart/wishlist liv
 
 ### Notify — https://docs.salla.dev/422610m0.md (Notify)
 
-App snippet ✅ (prefer a theme-native notifier — see salla-ui-compliance).
+App snippet ✅ (prefer a theme-native notifier — see salla-storefront-ui).
 
 - `salla.notify.success(message, data?)` · `salla.notify.info(message, data?)` ·
   `salla.notify.error(message, data?)`

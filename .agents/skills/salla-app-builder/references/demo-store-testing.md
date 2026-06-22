@@ -6,6 +6,14 @@ changed — verify the current flow against the Portal/docs before relying on ex
 For MCP-driven install + live checks, see the `salla-live-testing` skill — this covers the
 manual Portal + webhook.site flow.
 
+## 0. Confirm the deployed domain first
+
+Before installing, make sure the app's **deployed** domain matches its **configured** URLs
+(webhook URL, OAuth redirect/callback, embedded-page URL). A mismatch — the app configured
+with one host but actually running on another — **fails silently**: OAuth redirects
+nowhere, webhooks 404, the iframe won't load, with no clear error. Reconcile them before
+generating any install link.
+
 ## 1. Create a demo store
 
 Partner Portal → **Demo Stores** (left menu) → **Create Demo Store** → enter **Store Name**,
@@ -17,6 +25,16 @@ Stores list.
 Partner Portal → **My Apps** → your App → scroll to **Test Your App** → **Install App** next
 to the target store → **Authorize App** on the consent screen. The app then shows on the
 demo store's home page.
+
+> **Install links expire (~1 hour).** A link from the Portal (or `salla_apps
+action=demo_stores`) is time-limited — generate it immediately before each test and use
+> it right away. An expired link fails silently or redirects to login instead of
+> installing, so if install seems to do nothing, generate a fresh link first.
+
+Three demo-store URLs map to three different test surfaces — keep them distinct:
+**install link** → triggers OAuth + install; the **storefront URL** → where you test the
+snippet; the **dashboard URL** → the merchant admin where you test the embedded app and
+settings.
 
 ## 3. Test events with a throwaway webhook endpoint
 

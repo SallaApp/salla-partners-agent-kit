@@ -17,18 +17,17 @@ An app has **one function, keyed by its trigger**, so `get` / `save` / `delete` 
 **and** `trigger`. `save` is an **upsert** for that trigger's function.
 
 - **Save:** `salla_functions action=save`, `app_id`, `trigger`, `content` (the whole function
-  as a string), `name`. Keep the template's first line exactly — save **rejects** a change.
-  Returns a deploy `job`; the function deploys to demo stores (poll
-  `salla_functions action=deploy_status`, `job_id` until `COMPLETED`). Operator-gated: if the
-  App Builder service is off, it returns a clear "disabled" error.
+  as a string), `name`. Keep the template's first line exactly. Returns a deploy `job` and
+  triggers an **async deploy to the app's demo stores** — poll
+  `salla_functions action=deploy_status`, `job_id` until `COMPLETED`, then test it
+  (**salla-app-functions-test**). One save covers deploy; there is no separate deploy action
+  or versioning.
 - **Read:** `salla_functions action=get`, `app_id`, `trigger` → `template` + `types` (.d.ts
   URLs) + the app's saved `content` (or `null`).
 - **Remove:** `salla_functions action=delete`, `app_id`, `trigger`.
 
-Saving triggers an **async deploy** to the app's demo stores — poll `deploy_status` (the
-save `job`) until `COMPLETED`, then test it (**salla-app-functions-test**). You don't call a
-separate deploy action or manage versions. (Param names/job shape above are illustrative —
-confirm exact fields with `salla_functions` before relying on them.)
+Param names and job shape above are illustrative — confirm exact fields with `salla_functions`
+before relying on them.
 
 > Note: if you later change app config that the publication snapshot captured, re-open
 > publish to refresh it — see **salla-publication-consistency**. The function deploy itself
@@ -38,13 +37,13 @@ confirm exact fields with `salla_functions` before relying on them.)
 
 Run it on a demo store with `salla_functions action=preview` — see
 **salla-app-functions-test**. (Manual alternative: the Portal preview panel → pick a demo
-store, enter a real record id, **Save and Preview**.) **Never log secrets** — preview logs
-are visible.
+store, enter a real record id, **Save and Preview**.) Preview logs are visible, so keep
+secrets out of them — covered by the pre-publish scan below.
 
 ## Publish (production)
 
-Do **not** re-run `save` to publish (that just queues another deploy). The already-saved
-function reaches **real merchant stores only after the publish request is approved**:
+The already-saved function reaches **real merchant stores only after the publish request is
+approved** — publish via `salla_apps`, not by re-running `save`:
 
 - **Publish:** `salla_apps action=publish`, `app_id`, **`publish_action`** (`"save"` drafts
   the publication, `"submit"` sends for review) with the `publication` payload; optional

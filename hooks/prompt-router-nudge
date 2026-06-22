@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# UserPromptSubmit hook for the Salla Partners Agent Kit — SOFT, when-needed nudge.
+# When a prompt first looks like a Salla app task, gently suggest routing via
+# salla-app-expert. Fires at most ONCE per context window: SessionStart clears the
+# marker, so it re-arms on a new session / clear / compaction (i.e. when the routing
+# context has actually decayed) rather than nagging on every prompt. Always exits 0.
+
+set -uo pipefail
+
+MARKER="${TMPDIR:-/tmp}/salla-prompt-nudge.on"
+
+emit_noop() {
+  if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then printf '{}\n'; else printf '{"continue": true}\n'; fi
+  exit 0
+}
+
+# Read the hook payload from stdin (never block on an empty/closed stdin).
+payload=$(cat 2>/dev/null || true)
+
+# Pull the user's prompt text out of the payload; fall back to the raw payload so
+# a tight grep still works on malformed input.
+prompt=$(printf '%s' "$payload" \
+  | sed -n 's/.*"prompt"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' 2>/dev/null)
+[ -z "$prompt" ] && prompt="$payload"
+
+# Tight Salla-intent regex (mirrors session-start-context.md keywords). No match → quiet.
+SALLA_RE='salla|merchant|storefront|app[ _-]?function|snippet|webhook|partner[ _-]?portal|embedded|oauth|addon|shipping[ _-]?app|publish[ ]?(app|listing)?'
+printf '%s' "$prompt" | grep -Eiq "$SALLA_RE" || emit_noop
+
+# When-needed: if we already nudged this context window, stay quiet. SessionStart
+# removes the marker, so the nudge re-arms only after the context actually resets.
+[ -e "$MARKER" ] && emit_noop
+(umask 077; : >"$MARKER") 2>/dev/null || true
+
+# Same skill-invocation language the Vercel plugin hooks use, per platform.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{"additional_context": "%s"}\n' 'Load the /salla-app-expert skill.'
+else
+  printf '{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "%s"}}\n' 'You must run the Skill(salla-app-expert) tool.'
+fi
+
+exit 0

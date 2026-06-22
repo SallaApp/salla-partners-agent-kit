@@ -17,22 +17,35 @@ your `tracker.js` script embedded in the storefront.
 
 ---
 
-## Installation
+## A snippet is a pure-JS CDN file
 
-Add `tracker.js` to your storefront. Salla loads it automatically when your App Snippet is
-active.
+Write the body as plain, valid JavaScript and send it as `content` via `salla_snippets`. On
+save Salla stores it verbatim and serves it from a CDN as a real `.js` file, loaded into
+every storefront page via `<script src>` (cacheable / edge-cached). Use `salla` /
+`salla.onReady` / `salla.config.get(...)` directly — there is nothing to wrap or scope
+yourself:
 
-```html
-<!-- Added via App Snippet — injected into every storefront page -->
-<script src="https://your-app.com/tracker.js"></script>
+```js
+(function () {
+  salla.onReady(function () {
+    // your code — use salla / salla.onReady / salla.config.get directly
+  });
+})();
 ```
 
-> **Deploy guard:** never ship a literal `https://YOUR_APP_URL` / placeholder. Templatize it
-> at build/deploy and fail the build if the placeholder survives — a shipped placeholder
-> silently breaks every event POST.
->
-> **No secrets in `tracker.js`:** it is served to every shopper — keep it free of app
-> secrets, tokens, and keys (full trust-boundary note under _Sending data to your backend_).
+What goes in the body:
+
+- **Browser JS only.** A snippet is not a theme template and there is no server-side render
+  pass, so Twig (`{{ … }}` / `{% … %}`) and any `{}` interpolation ship as literal text and
+  break the script. Pull every dynamic value at runtime from the SDK
+  (`salla.config.get(...)`, event payloads) — see _Store context & language_ below.
+- **External scripts** (e.g. a third-party tracker): load them from your JS at runtime
+  (`document.createElement('script')` / dynamic `import`).
+- **Resolve every URL at deploy time.** Templatize any app URL and fail the build if a
+  placeholder like `https://YOUR_APP_URL` survives — a shipped placeholder silently breaks
+  every event POST.
+- **No secrets.** The file is served to every shopper, so keep it free of app secrets,
+  tokens, and keys (full trust-boundary note under _Sending data to your backend_).
 
 ---
 
@@ -40,10 +53,12 @@ active.
 
 Two rules you MUST follow:
 
-1. **Bootstrap with `salla.onReady(cb)`** — never gate on `typeof salla !== 'undefined'`.
-2. **Register `product::*` and `cart::*` listeners at the module top level, NOT inside the
-   `onReady` callback.** Twilight emits product events **during init, before** `onReady`
-   fires — listeners attached inside `onReady` miss them.
+1. **Bootstrap with `salla.onReady(cb)`** for any code that reads store-loaded state.
+   `window.salla` is already defined when your snippet runs, so gate on readiness, not on
+   `typeof salla`.
+2. **Register `product::*` and `cart::*` listeners at the module top level**, outside
+   `onReady`. Twilight emits product events **during init, before** `onReady` fires — a
+   listener attached inside `onReady` misses them.
 
 ```js
 // ✅ top level — registered before Twilight finishes init
@@ -97,10 +112,17 @@ below must be checked there.** The names below are confirmed examples (a subset)
 `document::request.failed`, `currency::fetched`,
 `advertisement::advertisement.fetched`.
 
-### Not for app logic
+### `::` event bus vs the Pixels analytics catalogue
 
-Capitalized names (`"Product Viewed"`, `"Product Added"`, `"Cart Updated"`) are the
-analytics/GTM tracking layer — don't build feature logic on them.
+Two distinct event surfaces coexist — keep them separate:
+
+- **`::`-namespaced events** (`cart::item.added`, `product::price.updated`) are the
+  **Twilight SDK event bus**. Subscribe with `salla.event.on(...)`; build feature logic on
+  these.
+- **Capitalized names** (`"Product Added"`, `"Product Viewed"`, `"Cart Updated"`,
+  `"Signed In"`) are the **Pixels analytics catalogue** (also the GTM tracking layer),
+  consumed through the analytics module — not via `salla.event.on`. Use them for analytics
+  /attribution, not for feature logic. Full Pixels model → [_Pixels_](#pixels) below.
 
 ### No event for these — detect another way
 
@@ -219,12 +241,36 @@ documented in the Twilight Web Components reference above — confirm the exact 
 
 ```js
 salla.config.get("store.id"); // ✅ works (e.g. 1963287162)
+salla.config.get("store.username"); // ✅ store handle
+salla.config.get("user.id"); // ✅ logged-in user id
 salla.config.get("customer.id"); // ✅ null for guests (expected)
+salla.config.get("customer.email"); // ✅ logged-in customer email
 salla.config.get("store.currency"); // 'SAR'
 salla.config.get("store.lang"); // ⚠️ may be null — use a fallback chain
+salla.config.get("store"); // whole object · salla.config.get("user")
 ```
 
-Language fallback (don't trust `store.lang` alone):
+> **Read your app's settings with `salla.config.get("app.<key>")`** — the one and only way to
+> read a merchant's App Settings in a storefront snippet (e.g.
+> `salla.config.get("app.rewards_enabled")`, `salla.config.get("app.point_value_halalah")`).
+> Only settings marked **`public: true`** are visible here; private settings (`public: false`)
+> stay server-side. This is the bridge from a merchant's settings form to the storefront —
+> define the keys (and which are `public`) in
+> [salla-app-settings](../../salla-app-settings/SKILL.md).
+
+> **Treat every `salla.config.get()` read defensively.** A nested read like
+> `salla.config.get('store.lang')` can return `null`/`undefined`, the value may be unset on a
+> fresh install, and the call can be disrupted by Cloudflare rocket-loader wrapping (see
+> _console noise_) or by running before init. Safe patterns:
+>
+> - **Gate reads on `salla.onReady(cb)`** — config is only guaranteed populated once the
+>   store is loaded. Keep module top level for event listeners only (see _Bootstrap &
+>   event-timing_).
+> - **Null-check every read** and resolve a single read at a time, rather than chaining logic
+>   on one unchecked path.
+> - **Use a fallback chain** for anything load-bearing (the lang fallback below is the model).
+
+Language fallback (don't trust `store.lang` alone — the pattern for any config read):
 
 ```js
 const lang =
@@ -251,29 +297,88 @@ salla.event.on("cart::item.added", async (e) => {
 });
 ```
 
-> **Same deploy guard as the snippet URL:** `https://your-app.com/track` is a placeholder —
-> templatize it and fail the build if it survives, or every event POST silently goes nowhere.
+`https://your-app.com/track` is a placeholder — apply the same deploy guard as the snippet
+URL (templatize, fail the build if it survives).
 
-> **Trust boundary (snippet code runs in the shopper's untrusted browser):**
+> **Trust boundary — snippet code runs in the shopper's untrusted browser:**
 >
-> - **Never embed secrets in snippet/tracker.js** — no app secret, OAuth/merchant access
->   token, API key, or signing secret. Anything in storefront JS is fully public. Token and
->   OAuth handling belong on your server → **salla-app-auth**.
+> - **Keep secrets out of snippet/tracker.js** — no app secret, OAuth/merchant access token,
+>   API key, or signing secret; storefront JS is fully public. Token and OAuth handling
+>   belong on your server → **salla-app-auth**.
 > - **Treat every POST as untrusted.** A shopper can forge, replay, or tamper with the body
->   (`store_id`, `product_id`, prices). Re-validate server-side; never trust client-supplied
->   prices/totals — re-derive them from the Admin API.
-> - **Authenticate and validate the tracking endpoint** — don't accept anonymous writes.
->   Verify the request (e.g. origin/session check) and validate the payload schema before
->   acting; rate-limit it.
+>   (`store_id`, `product_id`, prices). Re-validate server-side and re-derive
+>   prices/totals from the Admin API rather than trusting client-supplied values.
+> - **Authenticate the tracking endpoint** — verify the request (e.g. origin/session check),
+>   validate the payload schema before acting, and rate-limit it.
 
 ---
 
 ## UI compliance (storefront)
 
-Injected UI must follow `salla-ui-compliance`: use `<salla-button>` (not raw `<button>`),
-Salla icons `sicon-*` (not emoji), and theme variables like `--color-primary` (not hardcoded
-hex). Hook points for the single product page: `product:single.form.start` /
-`product:single.form.end`.
+Injected UI must follow [salla-storefront-ui](../../salla-storefront-ui/SKILL.md) — inherit
+theme tokens, use Salla icons, match the surrounding page (full checklist in SKILL.md). The
+theme's single-product insertion points are `product:single.form.start` /
+`product:single.form.end`; target near those when placing UI on the product page.
+
+---
+
+## Pixels
+
+**Pixels** are Salla's analytics-integration product — how an app receives e-commerce
+events for analytics, attribution, and personalization. A Pixel delivers events in one of
+two modes; only one is a snippet:
+
+| Mode            | Where it runs                                                           | In a snippet?                                                                                      |
+| --------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Device Mode** | Shopper's browser (client-side JS)                                      | **Yes** — this is the snippet (`tracker.js`)                                                       |
+| **Cloud Mode**  | Salla servers → your backend, server-to-server, via an **App Function** | **No** — server-side, no client script ([salla-app-functions](../../salla-app-functions/SKILL.md)) |
+
+So: **Device Mode (+ custom events) belongs in a snippet; Cloud Mode does not** — it is an
+App Function delivering events server-to-server, independent of any storefront script.
+
+### Device Mode (in the snippet)
+
+Device Mode is exactly the snippet model already in this file: a pure-JS CDN file (your
+`tracker.js`) injected via `salla_snippets`, listening in the shopper's browser. The Pixels
+event catalogue uses the **Capitalized** names (the analytics layer above), grouped:
+
+| Group           | Events                                                                                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cart & Checkout | `Product Added`, `Product Removed`, `Cart Viewed`, `Cart Updated`, `Checkout Started`, `Checkout Step Viewed`, `Checkout Step Completed`, `Payment Info Entered`, `Order Completed` |
+| Product         | `Products Searched`, `Product List Viewed`, `Product List Filtered`, `Product List Sorted`, `Product Viewed`, `Product Clicked`, `Product Shared`, `Product Reviewed`               |
+| Account         | `Signed In`, `Signed Up`, `Signed Out`, `Profile Updated`                                                                                                                           |
+
+These differ from the `::` SDK bus (see _`::` event bus vs the Pixels analytics catalogue_)
+and from the Cart/Product `::` catalogues above — confirm exact names/payloads in the docs
+below before relying on one.
+
+### Custom events
+
+For anything beyond the standard catalogue (widget interactions, bespoke journeys), fire a
+custom event with the analytics module. Gate on `salla.onReady` so analytics is initialized:
+
+```js
+salla.onReady(() => {
+  Salla.analytics.track("Event Name", {
+    property_key: "value",
+  });
+});
+```
+
+Custom events can be fired from app snippets, themes, or GTM. The app-settings bridge and
+deploy/trust-boundary rules in this file apply unchanged.
+
+### Pixels docs
+
+| Topic                         | Link                                |
+| ----------------------------- | ----------------------------------- |
+| Pixels Overview               | https://docs.salla.dev/1724365m0.md |
+| Device Mode                   | https://docs.salla.dev/1724504m0.md |
+| Cloud Mode (App Function)     | https://docs.salla.dev/1724667m0.md |
+| Custom Events                 | https://docs.salla.dev/2007114m0.md |
+| Device Mode — Cart & Checkout | https://docs.salla.dev/1804461m0.md |
+| Device Mode — Product         | https://docs.salla.dev/1804467m0.md |
+| Device Mode — Account         | https://docs.salla.dev/1804481m0.md |
 
 ---
 

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# PreToolUse hook for the Salla Partners Agent Kit.
+# When the agent is about to call a Salla MCP action tool, point it at that tool's
+# owning skill using the same load-directive the Vercel plugin hooks use, once per
+# (session, tool). Acts ONLY on Salla tools — never on Read/Edit/Bash/etc. Always
+# exits 0; never blocks the tool call.
+
+set -uo pipefail
+
+# Read the hook payload from stdin (never block on empty/closed stdin).
+payload=$(cat 2>/dev/null || true)
+
+emit_noop() {
+  if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+    printf '{}\n'
+  else
+    printf '{"continue": true}\n'
+  fi
+  exit 0
+}
+
+# Extract the tool name. Claude: {"tool_name":"..."}; Cursor: {"tool_name":"..."}.
+tool=$(printf '%s' "$payload" \
+  | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' 2>/dev/null)
+[ -z "$tool" ] && emit_noop
+
+# Normalize: strip the MCP prefix (mcp__salla-partners__salla_settings → salla_settings).
+short="${tool##*__}"
+
+# Map each Salla tool → its owning skill. Fall through to no-op for anything else.
+case "$short" in
+  salla_settings) skill='salla-app-settings' ;;
+  salla_functions) skill='salla-app-functions' ;;
+  salla_snippets) skill='salla-snippets' ;;
+  salla_events) skill='salla-webhooks' ;;
+  app_publish) skill='salla-publication-consistency' ;;
+  app_page_builder) skill='salla-app-ui-builder' ;;
+  salla_apps) skill='salla-app-builder' ;;
+  *) emit_noop ;;
+esac
+
+# Dedup per (session, tool): inject each tool's rules once per session.
+session=$(printf '%s' "$payload" \
+  | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' 2>/dev/null)
+[ -z "$session" ] && session="nosession"
+
+# Sanitize key components so they can't escape the marker path.
+safe_session=$(printf '%s' "$session" | tr -c 'A-Za-z0-9._-' '_')
+safe_tool=$(printf '%s' "$short" | tr -c 'A-Za-z0-9._-' '_')
+
+marker_dir="${TMPDIR:-/tmp}/salla-pretool-inject"
+mkdir -p "$marker_dir" 2>/dev/null || true
+chmod 0700 "$marker_dir" 2>/dev/null || true
+marker="${marker_dir}/${safe_session}.${safe_tool}"
+
+if [ -e "$marker" ]; then
+  emit_noop
+fi
+( umask 077; : > "$marker" ) 2>/dev/null || true
+
+# Same skill-invocation language the Vercel plugin hooks use, per platform.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{"additional_context": "%s"}\n' "Load the /${skill} skill."
+else
+  printf '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": "%s"}}\n' "You must run the Skill(${skill}) tool."
+fi
+
+exit 0

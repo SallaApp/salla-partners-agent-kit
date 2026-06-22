@@ -48,6 +48,78 @@ plugin system."_
   installer reuses the Claude plugin cache (`~/.claude/plugins`), so Cursor is served by
   `.claude-plugin/` above. That's why there is no `.cursor-plugin/` file.
 
+## `gemini-extension.json` — Gemini CLI
+
+**Source:** Gemini CLI _Extensions_ and _MCP servers_ docs —
+https://github.com/google-gemini/gemini-cli/blob/main/docs/extensions/index.md and
+https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md
+
+- `name`, `version` — the two documented core fields of a Gemini extension.
+  `version` matches `package.json`.
+- `"contextFileName": "AGENTS.md"` — the docs define `contextFileName` as _"the name
+  of the file that contains the context for the extension."_ Pointing it at the
+  repo's `AGENTS.md` loads the ambient master router (the "invoke
+  `salla-app-expert` first" routing) at session start, replacing the per-host
+  SessionStart hook used by Claude/Codex/Cursor.
+- `"mcpServers"` — the docs state _"all MCP server configuration options are
+  supported except for `trust`."_ For a remote streamable-HTTP server Gemini uses
+  the `httpUrl` field (`url` is reserved for SSE), so `.mcp.json`'s
+  `{ "type": "http", "url": "https://partners.mcp.salla.dev" }` maps to
+  `{ "httpUrl": "https://partners.mcp.salla.dev" }`. Gemini extensions inline the
+  server config rather than referencing a file.
+- **Skills:** Gemini auto-discovers the canonical `.agents/skills/` tree, so no
+  skills field is needed in the extension.
+
+## `.hermes-plugin/` — Hermes
+
+**Source:** the Hermes plugin format (`plugin.yaml` + `install.sh` +
+`__init__.py`).
+
+- **`plugin.yaml`** — `name`, `version` (matches `package.json`), `description`,
+  `author`, `license`, `homepage`, and `provides_skills:` listing all 25 skill
+  names. Hermes loads them on demand via
+  `skill_view("salla-partners:<skill-name>")`. No CLI passthrough — partners act
+  through the remote Salla Partners MCP, not a local CLI. `mcp_servers:` mirrors
+  `.mcp.json` (`transport: http`, `url: https://partners.mcp.salla.dev`).
+- **`install.sh`** — POSIX bash installer: clones/pulls the repo into
+  `~/.hermes/repos/salla-partners-agent-kit` and symlinks `.hermes-plugin/` into
+  `~/.hermes/plugins/salla-partners/`, so the manifest sits next to the shared
+  `.agents/skills/` tree. The symlink is created at install time **in the user's
+  home**, never tracked in the repo (CI `scripts/check-no-symlinks.sh` forbids
+  tracked symlinks).
+- **`__init__.py`** — Hermes `register(ctx)` entry point: discovers every
+  `<skill>/SKILL.md` under `../.agents/skills/` (resolves the symlink before
+  walking up) and registers it. No CLI passthrough.
+
+## `hooks/` — flow hooks (routing + skill-rules)
+
+**Source:** Claude Code _Hooks reference_ — https://code.claude.com/docs/en/hooks;
+Codex hooks — https://developers.openai.com/codex/hooks; Cursor hooks —
+https://cursor.com/docs/hooks.
+
+All three hooks run through the polyglot `run-hook.cmd` wrapper, swallow errors, always
+exit 0, and emit the host's continue/no-op shape (Claude/Codex `hookSpecificOutput`
+with `additionalContext`; Cursor `additional_context`).
+
+- **SessionStart** (`session-start`, `session-start-codex`) injects the routing rule
+  (`session-start-context.md`) so any Salla app task starts with `salla-app-expert`.
+  Registered on Claude Code (`SessionStart`, `hooks.json`), Codex (`SessionStart`,
+  `hooks-codex.json`), and Cursor (`sessionStart`, `hooks-cursor.json`).
+- **UserPromptSubmit** (`prompt-router-nudge`) re-arms routing mid-session: matches the
+  prompt against the Salla-intent regex (the keywords from `session-start-context.md`)
+  and, on a hit, emits one line nudging the agent to invoke `salla-app-expert` first —
+  countering SessionStart decay after compaction. No match → no-op. Registered as
+  `UserPromptSubmit` (Claude/Codex) and `userPromptSubmit` (Cursor).
+- **PreToolUse** (`pretool-skill-inject`) fires only on the Salla MCP tools (matcher
+  `mcp__salla-partners__.*`) and injects ≤2 lines of that tool's hard rules + its
+  owning skill, deduped once per `(session_id, tool_name)` via a 0600 marker under
+  `${TMPDIR:-/tmp}`. Any non-Salla tool → no-op. Registered as `PreToolUse`
+  (Claude/Codex) and `preToolUse` (Cursor). Codex's hook schema supports both
+  `UserPromptSubmit` and `PreToolUse` (GA 2026-05-14) with the same
+  `hookSpecificOutput.additionalContext` shape, so both are wired for Codex too.
+- **Gemini / Hermes** get no command hooks — Gemini primes the router via
+  `contextFileName: AGENTS.md`; Hermes carries it in each `SKILL.md`.
+
 ## `.mcp.json` — shared MCP server
 
 **Source:** Claude Code MCP config (`.mcp.json` in the plugin root) —

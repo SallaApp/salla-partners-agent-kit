@@ -44,48 +44,63 @@ Ask before starting:
 
 ## Step 1 — Design the Settings Schema
 
-Salla renders the merchant form from a **form-builder schema** (`type` **+** `format`).
-Loose aliases (`toggle`, bare `text` / `number` / `select`) **save fine but fail to
-render** — the merchant sees broken or empty form-builder output. Always use a real
-`type`+`format` pair from the table below. Rules:
+Salla renders the merchant form from a **form-builder schema**: every field uses a real
+`type` **+** `format` pair from the taxonomy below. Use a real pair (a bare alias like
+`toggle` / `text` / `select` is not Portal-safe). Rules:
 
 - **Flat only** — no nested objects.
-- **`id` is snake_case** (`stock_threshold`, not `stockThreshold`). camelCase ids are
-  accepted by the API but the installed-app save path is brittle with them.
-- **Every required field needs a default `value`** — without one, first activation/save
-  can fail.
+- **`id` is snake_case** (`stock_threshold`, not `stockThreshold`) — the installed-app save
+  path is reliable only with snake_case.
+- **Every required field carries a default `value`** — required for first activation/save.
 - **Arabic-first labels.** Most Salla merchants are Arabic — write `label` / `description`
-  in Arabic; set `multilanguage: true` to also provide English. Never leave Arabic blank.
-- `public: true` marks a value safe to read client-side (storefront / snippet).
-- **Secrets stay private and protected.** API keys, passwords, and tokens use
-  `format: "password"` and MUST keep `public: false` — never expose them to storefront /
-  client code. At runtime, store secret-typed values **encrypted**, and never log raw
-  settings (a settings object can carry credentials). OAuth/merchant access tokens are not
-  settings — handle those via [salla-app-auth](../salla-app-auth/SKILL.md), and request
-  only the minimum scopes you need.
-- **Scopes for settings.** You do **not** need a settings scope just to render a form or
-  receive `app.settings.updated`. A settings scope is only required when your app reads or
-  writes settings values via the Admin API **and** activation happens partner-side (not
-  from the merchant dashboard). Separately, the **Webhooks** scope **IS required** if your
-  app listens to any store events.
+  in Arabic; set `multilanguage: true` to also provide English. `multilanguage` applies to
+  string `text` / `textarea` fields only (the builder gates it via
+  `supportsMultilanguage`).
+- `public: true` marks a value safe to read client-side. A storefront snippet reads a
+  public setting via `salla.config.get('app.<key>')`; `public: false` values stay
+  server-side only. → [salla-snippets](../salla-snippets/SKILL.md).
+- **Secrets** (API keys, passwords, tokens) use `format: "password"`, stored encrypted at
+  runtime and read only server-side or via `context.settings`. A password field is
+  inherently non-public — the builder's password control carries `hide: true`, which removes
+  the public option, so a secret can never be exposed to the storefront (keep `public: false`
+  to make the intent explicit). OAuth/merchant access tokens are not settings — handle those
+  via [salla-app-auth](../salla-app-auth/SKILL.md).
+- **Scopes.** Rendering a form or receiving `app.settings.updated` needs no settings scope;
+  a settings scope is required only to read/write values via the Admin API when activation
+  happens partner-side (not from the merchant dashboard). The **Webhooks** scope is
+  required if your app listens to any store events.
 
-| Control                 | Schema                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------- |
-| Switch                  | `type: "boolean"`, `format: "switch"`, `value: true`, `icon: "sicon-toggle-off"` |
-| Checkbox                | `type: "boolean"`, `format: "checkbox"`                                          |
-| Text / email / password | `type: "string"`, `format: "text" \| "email" \| "password"`                      |
-| Integer / float         | `type: "number"`, `format: "integer" \| "float"` (+ `minimum`, `maximum`)        |
-| Single choice           | `type: "items"`, `format: "radio-list" \| "dropdown-list"` (+ `options`)         |
-| Multi choice            | `type: "items"`, `format: "checkbox-list"` (+ `options`)                         |
+Use this **curated core** of `type` + `format` pairs:
+
+| `type`                   | `format` (core)                                        |
+| ------------------------ | ------------------------------------------------------ |
+| `boolean`                | `checkbox` (a `switch` is the same boolean, toggle UI) |
+| `string`                 | `text`, `textarea`, `password`, `url`, `email`         |
+| `string` (value pickers) | `color`, `image`, `date`, `time`, `datetime`           |
+| `number`                 | `integer`, `float`                                     |
+| `items`                  | `dropdown-list`, `radio-list`, `checkbox-list`         |
+
+**Prefer the simplest type that fits the data.** A `number` (with `minimum` / `maximum` /
+`step`) covers what a slider or unit-input would do — don't reach for those. `checkbox`
+covers on/off (a `switch` is the same boolean). Use `textarea` for multi-line text.
+
+**Advanced formats exist but add complexity — avoid unless genuinely required:** `richtext`
+(use `textarea` unless rich formatting is essential), `code`, `icon`, the nested
+`collection` type (repeatable sub-field groups), and `static` display blocks
+(`title` / `description` / `line`). Prefer the core; only use these when the use case truly
+needs them.
 
 Common props: `id` (snake_case), `type`, `format`, `label`, `value` (default),
-`required`, `public`, `icon`, `placeholder`, `labelHTML`, `multilanguage`. Example switch:
+`required`, `public`, `icon`, `placeholder`, `labelHTML`, `multilanguage`. Numbers carry
+`minimum` / `maximum` / `step`; strings carry `minLength` / `maxLength`; `items` carry
+`options` plus a scalar default `value`. `multilanguage` applies to string `text` /
+`textarea` only. Example checkbox:
 
 ```json
 {
   "id": "hurrify_enabled",
   "type": "boolean",
-  "format": "switch",
+  "format": "checkbox",
   "label": "تفعيل هيرفاي",
   "icon": "sicon-toggle-off",
   "value": true,
@@ -96,6 +111,11 @@ Common props: `id` (snake_case), `type`, `format`, `label`, `value` (default),
 
 Field-object reference → [`references/form-builder.md`](references/form-builder.md)
 
+Where the field schema is documented (the OpenAPI block in its `docs.salla.dev/<id>.md`
+page — find it via **salla-docs**), validate each field object against it — `type`/`format`
+pairs, `required`, enums — and fix before `define_form`, via the read-schema → build →
+validate → fix → retry loop in **salla-api-core**.
+
 **Gate:** "Every field uses `type`+`format`, snake_case ids, Arabic labels, and a default
 value on each required field?"
 
@@ -105,15 +125,14 @@ value on each required field?"
 
 1. Call `salla_settings` with `action: "define_form"`, the `app_id`, and `settings` (the
    array of field objects from Step 1). Give each field a plain-string `label`; set
-   `multilanguage: true` on any field whose text should be translated.
-2. **Optional Validation URL — public validation ONLY, not storage.** If you want to
-   reject bad input before Salla saves it, call `salla_settings` with
-   `action: "set_validation_url"`, `app_id`, and `validation_url`. Salla POSTs the values
-   there before saving; you respond with field errors (to block) or `200 OK` (to allow).
-   There is **NO signature on this request** — treat it as a public endpoint, validate
-   only, and never use it as your storage trigger. To **store** settings, rely on the
-   `app.settings.updated` webhook (Step 4), which is the source of truth
-   ([docs](https://docs.salla.dev/421413m0.md)). Contract →
+   `multilanguage: true` on a string `text` / `textarea` field whose text should be
+   translated.
+2. **Optional Validation URL — validation only, not storage.** To reject bad input before
+   Salla saves it, call `salla_settings` with `action: "set_validation_url"`, `app_id`, and
+   `validation_url`. Salla POSTs the proposed values there before saving; respond with field
+   errors (to block) or `200 OK` (to allow). It is a **public endpoint with no signature** —
+   validate the values and respond, nothing more. Storage happens via the
+   `app.settings.updated` webhook (Step 4). Contract →
    [`references/form-builder.md`](references/form-builder.md).
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
@@ -122,6 +141,14 @@ value on each required field?"
 (`salla_apps action=demo_stores` → open a store's `install_url`, then `dashboard_url`),
 open its settings page, **change a value and SAVE**, and confirm it persists. The Portal
 accepting the schema is NOT proof the installed-app form saves — test the real save."
+
+**Validate config usage (this skill owns the contract).** The **public** fields you define
+here ARE the keys a storefront snippet can read via `salla.config.get('app.<key>')`. After
+every `define_form`, confirm: (a) the field schema is valid (the `type`+`format` /
+snake_case / required-default checks in Step 1), and (b) every `salla.config.get('app.<key>')`
+your snippets read maps to a field defined here with `public: true` — a missing or private
+key reads `undefined` on the storefront. Settings own the contract; the browser-side check
+of those reads lives in [salla-snippets](../salla-snippets/SKILL.md).
 
 ---
 
@@ -145,10 +172,10 @@ the merchant's `access_token`. When `app.store.authorize` fires on install, seed
 required defaults so the merchant starts with a working configuration.
 
 > **`app.settings.updated` is the storage source of truth**
-> ([docs](https://docs.salla.dev/421413m0.md)). It fires when the merchant saves the
-> form, **activates** the app, and carries the full settings in `data.settings` — persist
-> THAT on every activation/update (don't rely solely on a GET; the webhook is authoritative
-> and you may not hold a token yet). Payload:
+> ([docs](https://docs.salla.dev/421413m0.md)). It fires when the merchant saves the form,
+> **activates** the app, and carries the full settings in `data.settings` — persist THAT on
+> every activation/update. It is authoritative (and may arrive before you hold a token), so
+> rely on it rather than a GET. Payload:
 >
 > ```json
 > {

@@ -11,8 +11,9 @@ agent act for you.
 ## 1. Prerequisites
 
 - A **Salla Partner account** — https://salla.partners
-- A supported AI client: Claude Code, Cursor, Claude Desktop, or any HTTP MCP client
-- **Node.js 18+** (for `npx plugins`)
+- A supported AI client: Claude Code, Cursor, Codex, Copilot, Gemini CLI, Hermes,
+  Claude Desktop, or any HTTP MCP client
+- **Node.js 18+** (for `npx plugins`); **git** (for the Gemini CLI / Hermes installers)
 
 ---
 
@@ -24,11 +25,35 @@ agent act for you.
 claude plugin marketplace add SallaApp/salla-partners-agent-kit
 ```
 
-**All other agents** (Cursor, Copilot, Codex, etc.):
+**Cursor, Copilot, Codex:**
 
 ```bash
 npx plugins add SallaApp/salla-partners-agent-kit
 ```
+
+**Gemini CLI:**
+
+```bash
+gemini extensions install https://github.com/SallaApp/salla-partners-agent-kit
+```
+
+The `gemini-extension.json` wires everything in one step: it loads the `.agents/skills/`
+tree, the routing rules via `contextFileName: AGENTS.md`, and the Partners MCP
+(`httpUrl: https://partners.mcp.salla.dev`) — so **no separate MCP setup is needed** for
+Gemini. Manage it later with `gemini extensions list` / `gemini extensions update salla-partners`.
+
+**Hermes:**
+
+```bash
+# Download, review, then run — avoid piping a remote script straight into a shell
+curl -fsSL https://raw.githubusercontent.com/SallaApp/salla-partners-agent-kit/master/.hermes-plugin/install.sh -o salla-hermes-install.sh
+bash salla-hermes-install.sh   # review the script first
+```
+
+This clones the repo to `~/.hermes/repos/` and symlinks `.hermes-plugin/` into
+`~/.hermes/plugins/` next to the shared `.agents/skills/` tree; the MCP is wired by
+`plugin.yaml` (no separate setup). Re-run `bash salla-hermes-install.sh` to update; launch
+`hermes` and run `/plugins` to verify `✓ salla-partners`.
 
 **Manual** — the skills are one real tree at `.agents/skills/` (no symlinks). Point your
 agent at that directory (GitHub Copilot discovers `.agents/skills/` natively; Claude Code
@@ -120,7 +145,7 @@ Use a skill by name when you want a specific flow: _"use the salla-shipping-app 
 | Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
 | App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                          |
 | Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded`          |
-| Quality & release        | `salla-ui-compliance` · `salla-live-testing` · `salla-publication-consistency`                                  |
+| Quality & release        | `salla-storefront-ui` · `salla-embedded-ui` · `salla-live-testing` · `salla-publication-consistency`            |
 
 ---
 

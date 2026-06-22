@@ -28,8 +28,8 @@ every lifecycle payload shape. The **Salla Partners MCP** _performs actions_:
 | `salla_events` | `list` / `subscribe` | Discover + subscribe to lifecycle events     |
 
 > All events arrive on your single webhook endpoint inside the standard envelope
-> (`event`, `merchant`, `created_at`, `data`). **Verify the signature, respond `200`
-> within 3 s, then process asynchronously. Always upsert keyed by `merchant`.**
+> (`event`, `merchant`, `created_at`, `data`). **Verify the signature, acknowledge fast
+> with `200`, then process asynchronously. Always upsert keyed by `merchant`.**
 > Prerequisites: signature + idempotency + fast 200 → **salla-webhooks**; token
 > persistence from `app.store.authorize` → **salla-app-auth**.
 
@@ -95,8 +95,14 @@ your endpoint returns 200?"
 
 ## Step 2 — Handle the Install Flow
 
-On first install Salla fires **`app.installed`** and **`app.store.authorize`**. Don't
-assume an order — make each handler independent and idempotent.
+On first install Salla fires **`app.installed`** and **`app.store.authorize`**. Treat
+each handler as independent and idempotent; arrival order is not guaranteed.
+
+> **Upsert the per-`merchant` record (create-or-update) in every handler.** Any lifecycle
+> event — e.g. `app.trial.started` — can land **before** `app.store.authorize`, so the row
+> may not exist yet. Each handler creates the merchant row if missing and updates it if
+> present, keyed by `merchant`. This keeps every handler safe in any arrival order and on
+> re-install.
 
 ```typescript
 if (payload.event === "app.installed") {
@@ -134,6 +140,10 @@ if (payload.event === "app.store.authorize") {
   });
 }
 ```
+
+> **Manage the merchant/token tables with a versioned migration tool** (versioned
+> `ALTER TABLE`s). This keeps the schema in lockstep with the code as you add or change
+> columns, where a create-on-boot step would skip an already-existing table.
 
 **Gate:** "Install of a demo store creates the merchant row and persists tokens, in any
 arrival order?"
@@ -208,13 +218,12 @@ on `item_type`?"
 Non-negotiable for every handler above:
 
 - **Verify the signature first** (HMAC-SHA256, timing-safe) — reject otherwise.
-- **Respond `200` within 3 s**, then process async. Salla retries failed deliveries
-  (non-2xx / timeout) **3 times** (waits 30s, 15s, 10s) — see salla-webhooks.
-- **Be idempotent** — `created_at` is second-resolution, so
-  `${merchant}:${event}:${created_at}` collides if the same merchant fires two same-type
-  events in one second. Add a stronger discriminator when the payload offers one
-  (e.g. `subscription_id`) or hash the raw body.
-- **Upsert, never insert-only** — the same merchant re-installs and re-authorizes.
+- **Acknowledge fast** with `200`, then process async — Salla retries failed deliveries;
+  the timeout + retry policy is owned by [salla-webhooks](../salla-webhooks/SKILL.md).
+- **Be idempotent** — key on a stable discriminator from the payload (e.g.
+  `subscription_id`) or a hash of the raw body. (`created_at` is second-resolution, so
+  `${merchant}:${event}:${created_at}` alone can collide.)
+- **Upsert** so the same merchant can re-install and re-authorize.
 - **Handle async-job failure** — the `200` is already sent, so a throw in the queued
   worker is invisible to Salla. Route failed jobs to a dead-letter queue, retry with
   backoff (idempotent), and alert on exhausted retries so a dropped install/uninstall

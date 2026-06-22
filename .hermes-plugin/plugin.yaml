@@ -1,0 +1,49 @@
+name: salla-partners
+version: 1.0.2
+description: >
+  Build Salla Partner apps end to end on Hermes — 25 skills covering create,
+  hook events, build UI, monetize, and publish, paired with the Salla Partners
+  MCP action tools (salla_apps, salla_events, …). Start broad with
+  salla-app-expert, which routes each step to the right skill.
+author: Salla Dev Team
+license: LicenseRef-Salla-Proprietary
+homepage: https://github.com/SallaApp/salla-partners-agent-kit
+
+# Skills are the single canonical tree at ../.agents/skills/, shared with the
+# Claude, Cursor, Codex, and Gemini client manifests. Hermes loads them on
+# demand via skill_view("salla-partners:<skill-name>").
+provides_skills:
+  - salla-addon-purchase
+  - salla-addon-purchase-embedded
+  - salla-api-core
+  - salla-app-auth
+  - salla-app-billing
+  - salla-app-builder
+  - salla-app-expert
+  - salla-app-functions
+  - salla-app-functions-design
+  - salla-app-functions-handler
+  - salla-app-functions-release
+  - salla-app-functions-test
+  - salla-app-functions-validate
+  - salla-app-lifecycle
+  - salla-app-settings
+  - salla-app-ui-builder
+  - salla-communication-app
+  - salla-docs
+  - salla-embedded-app
+  - salla-embedded-ui
+  - salla-live-testing
+  - salla-publication-consistency
+  - salla-shipping-app
+  - salla-snippets
+  - salla-storefront-ui
+  - salla-webhooks
+
+# Salla Partners MCP — a remote streamable-HTTP server. Mirrors ../.mcp.json,
+# shared by every host. The partner authenticates over HTTP (see
+# docs/getting-started.md); there is no local CLI to shell out to.
+mcp_servers:
+  salla-partners:
+    transport: http
+    url: https://partners.mcp.salla.dev

@@ -1,60 +1,73 @@
-# Blocks and Fields
+# Blocks and Elements
 
-Two schemas matter: the **block** (a section in the app's presentation page) and the **element/field** (an editable input inside a block's form). These describe **what the partner customizes by hand in the Partners Portal's App Presentation Builder** — there is no MCP tool or public API for these operations today. The examples below are **illustrative shapes** describing the builder's blocks and fields, not a published contract. Block `id`s, option lists, and field sets drift between environments and over time; treat the values here as illustrative and confirm against what the **live Portal builder** presents, and cross-check via docs (`salla-docs`). `image` and `richtext` values render as **public App-Store content** — use only trusted, sanitized assets/HTML.
+The listing page has two layers: the **block** (a section of the listing page) and the **element** (an editable key → value input inside a block). Block types come from `action=catalog`; a block's element keys come from `action=show`. Ids, option lists, and element sets drift between environments and over time, so confirm them at call time (cross-check via `salla-docs`) — the examples below are illustrative.
 
-> **Current state (for now).** Customizing these blocks is a **manual** step in the Portal builder, done after completing the publish details. If the partner skips it, publication data fills the default template automatically. The only MCP tool that applies is `salla_upload`, for publication media. Revisit when a `salla_app_builder` MCP tool ships.
-
----
-
-## BlockSchema
-
-The shape behind each block in the Portal builder's catalog and in the app's added blocks.
-
-| Field         | Type    | Meaning / how it gates actions                                                                                                           |
-| ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | number  | The block definition id; identifies the block in the Portal builder.                                                                     |
-| `slug`        | string  | Stable machine name (`app-features`, `app-faq`, …).                                                                                      |
-| `label`       | string  | Display name; language follows the request locale.                                                                                       |
-| `description` | string  | Short catalog blurb for the block (e.g. "Display information about your app").                                                           |
-| `icon`        | string  | Icon class (`sicon-*`).                                                                                                                  |
-| `order`       | number  | Position in the presentation page. Change by reordering in the Portal builder.                                                           |
-| `has_form`    | boolean | `false` → no editable fields; no schema to read or write.                                                                                |
-| `is_visible`  | boolean | Whether the block shows in the rendered page.                                                                                            |
-| `is_required` | boolean | `true` → cannot be deleted (e.g. App Information, App Plans). Backend rule — it does **not** by itself pin position or block reordering. |
-| `editable`    | boolean | `false` → no editable form (e.g. Pricing); don't read or write its schema.                                                               |
-| `preview`     | string? | Thumbnail image URL for the catalog.                                                                                                     |
+Prerequisite and standard sequence: [SKILL.md](../SKILL.md#prerequisite-open-a-draft-first).
 
 ---
 
-## The catalog (7 blocks)
+## Block shape
 
-The blocks the Portal builder offers (live order in parentheses):
+What `action=list` / `action=catalog` / `action=show` return for a block.
 
-| Slug              | Label (EN)      | `id`       | order | required | editable | has_form |
-| ----------------- | --------------- | ---------- | ----- | -------- | -------- | -------- |
-| `app-information` | App Information | 745999872  | 1     | ✅       | ✅       | ✅       |
-| `app-features`    | App Features    | 2038173539 | 2     | —        | ✅       | ✅       |
-| `app-pricing`     | App Plans       | 625478135  | 3     | ✅       | ❌       | ❌       |
-| `app-reviews`     | App Reviews     | 1131548349 | 4     | —        | ✅       | ✅       |
-| `app-brands`      | App Brands      | 1617628556 | 6     | —        | ✅       | ✅       |
-| `app-faq`         | App FAQ         | 1247874246 | 7     | —        | ✅       | ✅       |
-| `app-stats`       | App Statistics  | 1984760154 | 8     | —        | ✅       | ✅       |
+| Field         | Type    | Meaning                                                                                     |
+| ------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `id`          | number  | Block id — used in `action=show`, `action=remove`, and the ordered list for `action=sort`.  |
+| `slug`        | string  | Stable machine name (`app-information`, `app-features`, `app-faq`, …).                      |
+| `order`       | number  | Position in the listing page. Change it with `action=sort` (pass the full ordered id list). |
+| `is_required` | boolean | `true` → cannot be removed (e.g. `app-information`).                                        |
+| `editable`    | boolean | `true` → has an editable element form. `false` → display-only (no element keys to `set`).   |
+| `is_visible`  | boolean | `true` → rendered on the listing page.                                                      |
+| `label`       | string? | Display name; language follows the request locale.                                          |
 
-> `id` values come from the dev environment and are stable there, but always confirm them against the live Portal builder rather than hardcoding. `app-pricing` is required **and** non-editable — it appears in the page but has no form (pricing renders automatically). `app-information` cannot be deleted (`is_required`); the **portal UI** also pins it to the top and excludes it from sorting — so it stays first.
-
-> **`app-contact-info` (was `id` 392563753) has been removed** from the catalog — that's why the catalog has 7 blocks and `order` 5 is absent. Its contact **channels** were merged into `app-information` as flat **`support_*`** fields (`support_title`, `support_description`, `support_email`, `support_telegram`, `support_whatsapp`) — the old `links` collection did **not** carry over. Confirm `app-information`'s field list against the live Portal builder before relying on it.
-
-> **Required blocks are always present.** `app-information` and `app-pricing` are seeded automatically (not a partner action) and are present from the start in the Portal builder; they can't be removed.
+`action=show` additionally returns the block's **element keys** — the keys `action=set` accepts. Always read `show` before `set`.
 
 ---
 
-## Element (field) schema
+## Discovering block types (`action=catalog`)
 
-The fields a block's form exposes in the Portal builder. Common keys:
+`action=catalog` returns the block types you can `add`. The known set (slugs are stable; confirm ids with `catalog`):
+
+| Slug              | Label (EN)      | is_required | editable | Notes                                        |
+| ----------------- | --------------- | ----------- | -------- | -------------------------------------------- |
+| `app-information` | App Information | ✅          | ✅       | Seeded by `init`; stays first; can't remove. |
+| `app-features`    | App Features    | —           | ✅       | The `features`/`benefits` collection.        |
+| `app-reviews`     | App Reviews     | —           | ✅       |                                              |
+| `app-brands`      | App Brands      | —           | ✅       |                                              |
+| `app-faq`         | App FAQ         | —           | ✅       |                                              |
+| `app-stats`       | App Statistics  | —           | ✅       |                                              |
+
+> Contact details live in the publication's **`contact_information`** section (salla-publication-consistency). Some support/contact channels may surface on `app-information` as flat `support_*` elements — confirm with `action=show`.
+>
+> `app-information` is the one pinned block: `init` seeds it and `remove` rejects it (`is_required: true`). The other required/optional blocks are revealed dynamically by `init` / `catalog` — confirm the live set and each block's `is_required` / `editable` / `is_visible` at call time. **App Plans always renders on the listing as a placeholder** (even when the app has no plans) but is **not an editable builder block** — populate it via the publish flow's pricing step (salla-publication-consistency / salla-app-billing).
+
+---
+
+## The shared listing fields
+
+Editing block elements writes these **shared listing fields** into the draft publication. They are the fields this tool owns:
+
+| Field         | Typical element / block | Value shape (confirm via `show`)         | Dimensions / count (server-enforced)            |
+| ------------- | ----------------------- | ---------------------------------------- | ----------------------------------------------- |
+| `name`        | App Information         | lingual `{ ar, en }`                     | required                                        |
+| `description` | App Information         | lingual richtext `{ ar, en }`            | —                                               |
+| `logo`        | App Information         | image `[{ id, url }]` (upload first)     | 1:1, ≥ 250×250 px (JPG/JPEG/PNG); required      |
+| `screenshots` | App Information         | image `[{ id, url }, …]` (multiple)      | 263×350 px each; required, **≥ 3**              |
+| `benefits`    | App Features            | collection (array of prefixed-key items) | benefit image per `benefits.image`; **3** items |
+
+> The dimensions/counts column is **enforced server-side on save** — `action=set` returns `error.fields` when a value is off. Confirm the live requirement per field via `action=show`; treat the numbers above as the expected values, not builder-FE guarantees.
+> `short_description` belongs to the publication `basic_information` section, not here → salla-publication-consistency.
+> `banner` / `embedded_image` are publication media (not builder fields) → salla-publication-consistency. The image-generation recipe for ALL these fields lives in [SKILL.md](../SKILL.md#generating-missing-listing-images-canonical-recipe).
+
+---
+
+## Element shape
+
+`action=show` returns a block's elements. Common keys (illustrative — confirm per element):
 
 | Key                                   | Meaning                                                                                                                              |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`                                  | Field key used in the payload (`title`, `bg_color_light`, …). For collection children it is **prefixed** (`features.title`).         |
+| `id`                                  | Element key used in `action=set` (`name`, `bg_color_light`, …). Collection children are **prefixed** (`benefits.title`).             |
 | `type`                                | High-level kind: `string`, `number`, `items`, `collection`.                                                                          |
 | `format`                              | Specific input: `string`, `email`, `url`, `color`, `image`, `richtext`, `icon`, `number`, `telinput`, `dropdown-list`, `collection`. |
 | `label`, `placeholder`, `description` | UI text (language follows the request locale).                                                                                       |
@@ -64,35 +77,36 @@ The fields a block's form exposes in the Portal builder. Common keys:
 | `value`                               | Current saved value (shape depends on `format`).                                                                                     |
 | `items`                               | For `image`: current uploaded files as `[{ id, url }]`.                                                                              |
 | `options`                             | For `dropdown-list`: `[{ value, label, key }]`.                                                                                      |
-| `source`                              | For `dropdown-list`: option source (e.g. `"Manual"`).                                                                                |
-| `fields`                              | For `collection`: the child field schemas.                                                                                           |
+| `fields`                              | For `collection`: the child element schemas.                                                                                         |
 | `itemLabel`                           | For `collection`: singular label per item.                                                                                           |
 | `minLength`/`maxLength`               | String length **or** collection item-count bounds.                                                                                   |
 | `min`/`max`                           | Numeric bounds.                                                                                                                      |
 | `multiple`                            | For `image`: allow multiple files.                                                                                                   |
-| `conditions`                          | Conditional visibility: `[{ id, operation, value }]` — shown only when another field matches.                                        |
+| `conditions`                          | Conditional visibility: `[{ key, operation, value }]` — shown only when the element named by `key` matches.                          |
 
 ### `type` / `format` combinations
 
-| `type`       | `format`        | Value shape in payload                | Notes                                                               |
-| ------------ | --------------- | ------------------------------------- | ------------------------------------------------------------------- |
-| `string`     | `string`        | `"text"` or `{ ar, en }` if `lingual` | Plain text.                                                         |
-| `string`     | `email`         | `"x@y.com"`                           | Email validation.                                                   |
-| `string`     | `url`           | `"https://…"`                         | URL validation.                                                     |
-| `string`     | `color`         | `"#a3ffe5"`                           | Hex; portal defaults empty to `#a3ffe5`.                            |
-| `string`     | `image`         | `[{ id, url }]`                       | Upload first; see [payloads.md](payloads.md). `multiple` allows >1. |
-| `string`     | `richtext`      | `{ ar: "<p>…</p>", en: "<p>…</p>" }`  | HTML; lingual.                                                      |
-| `string`     | `icon`          | `"hgi-mail-01"`                       | Icon picker (hugeicons).                                            |
-| `number`     | `number`        | `5`                                   | Respects `min`/`max`.                                               |
-| `number`     | `telinput`      | `"+9665…"`                            | Flattened from `{ value, code }`.                                   |
-| `items`      | `dropdown-list` | `"images"` (an option `value`)        | Choose from `options`.                                              |
-| `collection` | `collection`    | `[ { "<id>.child": … }, … ]`          | Array of items; child keys prefixed.                                |
+| `type`       | `format`        | Value shape in `set`                  | Notes                                                  |
+| ------------ | --------------- | ------------------------------------- | ------------------------------------------------------ |
+| `string`     | `string`        | `"text"` or `{ ar, en }` if `lingual` | Plain text.                                            |
+| `string`     | `email`         | `"x@y.com"`                           | Email validation.                                      |
+| `string`     | `url`           | `"https://…"`                         | URL validation.                                        |
+| `string`     | `color`         | `"#a3ffe5"`                           | Hex; empty defaults to `#a3ffe5`.                      |
+| `string`     | `image`         | `[{ id, url }]`                       | Upload via `salla_upload` first. `multiple` allows >1. |
+| `string`     | `richtext`      | `{ ar: "<p>…</p>", en: "<p>…</p>" }`  | HTML; lingual.                                         |
+| `string`     | `icon`          | `"hgi-mail-01"`                       | Icon picker (hugeicons).                               |
+| `number`     | `number`        | `5`                                   | Respects `min`/`max`.                                  |
+| `number`     | `telinput`      | `"+9665…"`                            | Flattened from `{ value, code }`.                      |
+| `items`      | `dropdown-list` | `"images"` (an option `value`)        | Choose from `options`.                                 |
+| `collection` | `collection`    | `[ { "<id>.child": … }, … ]`          | Array of items; child keys prefixed.                   |
 
 ---
 
-## Real examples
+## Examples (confirm via `action=show`)
 
 ### Lingual string + dropdown + color + collection (`app-features`)
+
+The `benefits`/`features` collection on `app-features` (element keys as `action=show` would return them):
 
 ```jsonc
 [
@@ -111,7 +125,6 @@ The fields a block's form exposes in the Portal builder. Common keys:
     "format": "dropdown-list",
     "required": true,
     "options": [{ "value": "images", "label": "صور الميزات", "key": "images" }],
-    "source": null,
   },
 
   {
@@ -128,7 +141,7 @@ The fields a block's form exposes in the Portal builder. Common keys:
   },
 
   {
-    "id": "features",
+    "id": "benefits",
     "type": "collection",
     "format": "collection",
     "required": false,
@@ -138,13 +151,13 @@ The fields a block's form exposes in the Portal builder. Common keys:
     "maxLength": 3,
     "fields": [
       {
-        "id": "features.image",
+        "id": "benefits.image",
         "format": "image",
         "required": true,
         "multiple": false,
       },
       {
-        "id": "features.title",
+        "id": "benefits.title",
         "format": "string",
         "lingual": true,
         "required": true,
@@ -152,7 +165,7 @@ The fields a block's form exposes in the Portal builder. Common keys:
         "maxLength": 255,
       },
       {
-        "id": "features.description",
+        "id": "benefits.description",
         "format": "string",
         "lingual": true,
         "required": true,
@@ -164,11 +177,11 @@ The fields a block's form exposes in the Portal builder. Common keys:
 ]
 ```
 
-The `features` collection requires **exactly 3** items (`minLength`/`maxLength` = 3), each with a prefixed `features.image`, `features.title`, `features.description`.
+The collection requires the item count within `minLength`..`maxLength`, each item with a prefixed `benefits.image`, `benefits.title`, `benefits.description`.
 
-### Full block: image, richtext, conditional dropdown, contact fields (`app-information`)
+### App Information elements (`app-information`)
 
-The `app-information` block (id `745999872`) as the Portal builder presents it (labels shown in `en`, trimmed of blank `placeholder`/`description`). After `app-contact-info` was removed, its contact channels live here as flat **`support_*`** fields (no `links` collection):
+The block that carries `name`, `description`, `logo`, `screenshots` (labels in `en`, blanks trimmed). Confirm the exact element keys with `action=show`:
 
 ```jsonc
 [
@@ -176,7 +189,6 @@ The `app-information` block (id `745999872`) as the Portal builder presents it (
     "id": "view_section",
     "type": "items",
     "format": "dropdown-list",
-    "source": "Manual",
     "options": [
       { "value": "scroll", "label": "Scroll Images" },
       { "value": "grid", "label": "Grid Images" },
@@ -188,26 +200,19 @@ The `app-information` block (id `745999872`) as the Portal builder presents it (
     "id": "image_orientation",
     "type": "items",
     "format": "dropdown-list",
-    "conditions": [{ "id": "view_section", "operation": "=", "value": "grid" }],
+    "conditions": [
+      { "key": "view_section", "operation": "=", "value": "grid" },
+    ],
     "options": [
       { "value": "start", "label": "Left" },
       { "value": "end", "label": "Right" },
       { "value": "below", "label": "Bottom" },
     ],
   },
-  {
-    "id": "description_orientation",
-    "type": "items",
-    "format": "dropdown-list",
-    "options": [
-      { "value": "below", "label": "Below Images" },
-      { "value": "above", "label": "Above Images" },
-    ],
-  },
 
   // Logo must be 250x250 (JPG/JPEG/PNG):
   { "id": "logo", "format": "image", "required": true, "multiple": false },
-  // Main Title:
+  // Main Title → the shared `name` field:
   {
     "id": "name",
     "format": "string",
@@ -215,14 +220,14 @@ The `app-information` block (id `745999872`) as the Portal builder presents it (
     "required": true,
     "value": { "en": "", "ar": "" },
   },
-  // Images — appropriate size 263 x 350:
+  // Images — appropriate size 263 x 350 → the shared `screenshots` field:
   {
     "id": "screenshots",
     "format": "image",
     "required": true,
     "multiple": true,
   },
-  // App Details (optional):
+  // App Details → the shared `description` field:
   {
     "id": "description",
     "format": "richtext",
@@ -231,62 +236,25 @@ The `app-information` block (id `745999872`) as the Portal builder presents it (
     "value": { "en": "", "ar": "" },
   },
 
-  // Support / contact section (formerly the app-contact-info block):
+  // Some support/contact channels may appear here as flat support_* elements —
+  // confirm with action=show. Primary contact details live in the publication
+  // contact_information section (salla-publication-consistency).
   {
     "id": "support_title",
     "format": "string",
     "lingual": true,
     "required": false,
   },
-  {
-    "id": "support_description",
-    "format": "string",
-    "lingual": true,
-    "required": false,
-    "wide": true,
-  },
-  { "id": "support_email", "format": "email", "required": false }, // icon hgi-mail-01
-  { "id": "support_telegram", "format": "string", "required": false }, // icon hgi-telegram, "@username"
+  { "id": "support_email", "format": "email", "required": false },
   {
     "id": "support_whatsapp",
     "type": "number",
     "format": "telinput",
     "required": false,
-    "wide": true,
-  }, // icon hgi-whatsapp
+  },
 ]
 ```
 
-Notes: `image` fields (`logo`, `screenshots`) carry current files under **`items`** (`[{ id, url }]`), not `value`. `support_email` is `email`, `support_whatsapp` is a `telinput` (flatten to the dialed string — see [payloads.md](payloads.md)), and `support_telegram` is a plain string. The old `app-contact-info` `links` collection is **not** present — only these flat support fields carried over. `logo` and `screenshots` are the same media that flow in from your publication details and auto-fill the default template; upload them via `salla_upload`.
+Note: `image` elements (`logo`, `screenshots`) carry current files under **`items`** (`[{ id, url }]`), not `value`; upload new ones via `salla_upload` first. Contact details live in the publication `contact_information` section (salla-publication-consistency), not on this block.
 
-### Collection with a saved value (shape reference)
-
-> Illustrates how **any** populated collection serializes. This is the former `app-contact-info` `links` collection — that block is now removed, so treat it purely as a shape reference; the live collection today is `features` on `app-features` (above). Always confirm field ids against the live schema.
-
-```jsonc
-{
-  "id": "links",
-  "type": "collection",
-  "format": "collection",
-  "itemLabel": "الرابط",
-  "minLength": 1,
-  "maxLength": 10,
-  "value": [
-    {
-      "links.title": { "ar": "جديد", "en": "new" },
-      "links.url": "https://asddasd.com",
-    },
-  ],
-  "fields": [
-    {
-      "id": "links.title",
-      "format": "string",
-      "lingual": true,
-      "required": true,
-    },
-    { "id": "links.url", "format": "url", "required": true },
-  ],
-}
-```
-
-The lesson holds for every collection: each item is an object whose keys are the **prefixed child ids** (`links.title`, `features.title`). The same shape applies when filling a collection in the builder — see [payloads.md](payloads.md).
+Each collection value serializes as an array of items keyed by **prefixed child ids** (`benefits.title`, not `title`). Full `set` value shapes → [payloads.md](payloads.md).

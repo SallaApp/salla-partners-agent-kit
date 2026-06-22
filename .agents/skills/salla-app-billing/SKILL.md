@@ -18,45 +18,38 @@ you never charge cards yourself. Follow the steps in order; complete each gate b
 moving on. Steps 1, 2 and 5 **perform actions** with the Salla Partners MCP; Steps 3–4 and
 6 are the runtime logic you write.
 
-## Tools & MCPs
+## Source of truth
 
-Confirm payloads and the subscriptions schema in the App Events reference
-(https://docs.salla.dev/421413m0.md) before coding. The **Salla Partners MCP**
-_performs actions_:
+Plan state is **event-driven** — drive it from verified `app.subscription.*` /
+`app.trial.*` webhooks, then reconcile against the **Admin (Merchant) API** on
+`https://api.salla.dev/admin/v2` (OAuth, `offline_access`). Two real endpoints back this
+skill:
 
-| Tool           | Action               | What it does                                                       |
-| -------------- | -------------------- | ------------------------------------------------------------------ |
-| `salla_apps`   | `publish`            | Submit the app for publishing (pricing is set in the publish flow) |
-| `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`                  |
-| `salla_apps`   | `subscriptions`      | Read-only: the app's subscription details (reconciliation)         |
+- **`GET /apps/{app_id}/subscriptions`** — read plan state, entitlements,
+  `subscription_balance` (reconciliation; Step 5).
+- **`POST /apps/balance`** — write back the Pay-As-You-Go usage balance (Step 5b).
 
-> Plan state is **event-driven** (`app.subscription.*` / `app.trial.*`) and reconcilable +
-> read from the **Admin (Merchant) API** on `https://api.salla.dev/admin/v2` (OAuth,
-> `offline_access`). Two real endpoints back this skill:
->
-> - **`GET /apps/{app_id}/subscriptions`** — App Subscription Details (read plan state,
->   entitlements, `subscription_balance`).
-> - **`POST /apps/balance`** — Update Subscription Balance (adjust the Pay-As-You-Go
->   usage balance).
->
-> Treat events as the source of truth, the GET endpoint as reconciliation, and the POST
-> endpoint as the way to write back the usage balance. Docs:
-> https://docs.salla.dev/5401098e0.md (App Subscription Details, GET) ·
-> https://docs.salla.dev/5401099e0.md (Update Subscription Balance, POST) ·
-> https://docs.salla.dev/421413m0.md (App Events). Related: salla-app-lifecycle (event
-> wiring) · salla-addon-purchase (in-app purchase UI).
+Confirm payloads and field shapes via the App Events reference
+(https://docs.salla.dev/421413m0.md) or `salla_events action=list` before coding. The
+**Salla Partners MCP** performs the actions:
 
-### Plans vs Addons (reference)
+| Tool           | Action               | What it does                                       |
+| -------------- | -------------------- | -------------------------------------------------- |
+| `salla_apps`   | `publish`            | Submit the app (pricing lives in the publish flow) |
+| `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`  |
+| `salla_apps`   | `subscriptions`      | Read-only: the app's subscription details          |
+
+### Plans vs Addons
 
 | Concept | What it is                                  | `item_type` | `item_slug`      |
 | ------- | ------------------------------------------- | ----------- | ---------------- |
 | Plan    | The merchant's main subscription to the app | `"plan"`    | `null`           |
 | Addon   | An extra purchased on top of a plan         | `"addon"`   | addon identifier |
 
-Both flow through the same `app.subscription.*` events. **This skill owns plans, addons,
-entitlement gating, and usage billing.** Buying addons in-app → salla-addon-purchase.
-`plan_type` values: `free` · `once` (one-time) · `recurring` (monthly/yearly) ·
-`on_demand` (Pay As You Go).
+Both flow through the same `app.subscription.*` / `app.trial.*` events. **This skill owns
+plans, addons, entitlement gating, and usage billing.** Buying addons in-app →
+salla-addon-purchase. `plan_type` values: `free` · `once` (one-time) ·
+`recurring` (monthly/yearly) · `on_demand` (Pay As You Go).
 
 ---
 
@@ -119,14 +112,14 @@ be set — see salla-app-lifecycle Step 1):
 
 ## Step 3 — Track Plan State from Events
 
-> **Security — events grant paid access.** These webhooks drive entitlements, so a forged
-> or replayed one can hand out (or revoke) paid features. **Verify the webhook signature
-> and enforce idempotency before mutating plan/entitlement state** — that transport layer
-> (signature verification, replay protection, fast 2xx) is owned by **salla-webhooks**;
-> token/OAuth by **salla-app-auth**. Treat entitlement changes as authoritative only from a
-> verified server event (or the reconciled Partners API, Step 5) — **never** from a
-> client-reported plan. Keep entitlement-state reads/writes behind your own authenticated
-> admin path, and keep signing secrets and tokens out of logs.
+> **Security — events grant paid access.** A forged or replayed subscription/trial webhook
+> can hand out (or revoke) paid features. Verify the webhook signature and enforce
+> idempotency before mutating plan/entitlement state — that transport layer (signature
+> verification, replay protection, fast 2xx) is owned by **salla-webhooks**; token/OAuth by
+> **salla-app-auth**. Treat an entitlement change as authoritative only from a verified
+> server event or the reconciled Partners API (Step 5), never a client-reported plan. Keep
+> entitlement reads/writes behind your own authenticated admin path, and signing secrets and
+> tokens out of logs.
 
 Wire the events via salla-app-lifecycle. The deltas that matter here:
 
@@ -153,10 +146,8 @@ Payload fields and full examples →
   grace banner.
 - **`app.subscription.canceled`** — merchant cancelled. Restrict per your policy.
 - **Trials** arrive as `app.trial.started` / `.expired` / `.canceled` (zero-price
-  `plan_type: once`; docs samples show `plan_name: "trail"` — that value is a docs-sample
-  artifact, never match on it). On `trial.started` enable trial features and record the
-  trial end; on expiry/cancel downgrade. A converting merchant then triggers
-  `app.subscription.started`.
+  `plan_type: once`). On `trial.started` enable trial features and record the trial end; on
+  expiry/cancel downgrade. A converting merchant then triggers `app.subscription.started`.
 
 Drive feature access from the stored `status` + `end_date`, not from the moment an event
 arrives (events can be late or duplicated — be idempotent). Step 5 is your backstop for
@@ -260,10 +251,10 @@ Content-Type: application/json
 **Response (`201`)** — `{ status, success, data: { message, code } }`.
 **Validation error (`422`)** — `{ status: 422, success: false, error: { code, message, fields: { balance: ["..."] } } }`.
 
-> **Security — never trust a client-reported balance or plan.** Compute the balance
-> server-side from verified usage and only `POST` it behind your own authenticated admin
-> path. Read it back with `GET /apps/{app_id}/subscriptions` (Step 5) to confirm. Verify
-> webhook signatures before mutating entitlements (Step 3).
+> **Security.** Compute the balance server-side from verified usage and `POST` it only
+> behind your own authenticated admin path — never from a client-reported value. Read it
+> back with `GET /apps/{app_id}/subscriptions` (Step 5) to confirm. (Same trust model as
+> Step 3.)
 
 **Gate:** "Balance written via `POST /apps/balance` and confirmed by re-reading the subscription?"
 
@@ -271,11 +262,11 @@ Content-Type: application/json
 
 ## Addons
 
-Addons are extra purchasables on top of a plan — **recurring or one-time**. They flow
-through the **same** `app.subscription.*` / `app.trial.*` event family with
-`item_type: "addon"`; `item_slug` tells you which addon. Define them in the publish
-payload's `addons` array (Step 1). For the in-app purchase UI (embedded SDK Checkout) →
-**salla-addon-purchase**.
+Addons are extra purchasables on top of a plan — recurring or one-time — defined in the
+publish payload's `addons` array (Step 1). They arrive on the same event family with
+`item_type: "addon"` (`item_slug` identifies which addon), so you record them and unlock
+their `features[]` exactly like a plan. For the in-app purchase UI (embedded SDK Checkout)
+→ **salla-addon-purchase**.
 
 ## Entitlement Gating
 
@@ -287,12 +278,10 @@ stored entitlement set, never the raw event).
 ## Usage Balance (Pay As You Go)
 
 For `on_demand` plans, meter each billable action against the merchant's
-**`subscription_balance`** (the amount the merchant owes for the app's service): check the
-remaining balance before performing the action, decrement as usage occurs, and block (or
-warn) when exhausted. **Read** the current balance with
-`GET /apps/{app_id}/subscriptions` (Step 5) and **write** the new balance with
-`POST /apps/balance` (Step 5b) — those are the two real endpoints; never trust a
-client-reported balance.
+**`subscription_balance`** (what the merchant owes for the app's service): check the
+remaining balance before the action, decrement as usage occurs, and block (or warn) when
+exhausted. Read it with `GET /apps/{app_id}/subscriptions` (Step 5); write it with
+`POST /apps/balance` (Step 5b).
 
 ---
 

@@ -4,10 +4,10 @@ Source of truth: the App Events doc — https://docs.salla.dev/421413m0.md. The 
 shapes below (including the trial vs subscription field differences) are taken from that
 doc. Event slugs are verified against the Partners MCP (`salla_events action=list`).
 
-> The token, id, and date **values** in the JSON below are placeholders copied from the
-> doc — never log, commit, or copy values out of a real webhook payload. Treat tokens as
-> secrets (see **salla-webhooks** for signature verification and **salla-app-auth** for
-> encrypting tokens at rest).
+> The token, id, and date **values** in the JSON below are placeholders from the doc, shown
+> to illustrate shape only. Treat real payload tokens as secrets — keep them out of logs and
+> source (signature verification → **salla-webhooks**; encrypting tokens at rest →
+> **salla-app-auth**).
 
 Every event uses the standard webhook envelope:
 
@@ -22,9 +22,9 @@ Every event uses the standard webhook envelope:
 }
 ```
 
-`merchant` is your DB key for the store. Do not use `created_at` + `event` + `merchant`
-as the only idempotency key because `created_at` has second-level resolution. Add a stronger
-discriminator when the payload offers one, such as `subscription_id`, or hash the raw body.
+`merchant` is your DB key for the store. For idempotency, key on a stable discriminator from
+the payload (e.g. `subscription_id`) or a hash of the raw body — `created_at` is
+second-resolution, so `merchant` + `event` + `created_at` alone can collide.
 
 ---
 
@@ -162,11 +162,11 @@ null out `plan_period` / `start_date` / `end_date` for one-time addons. Full per
 
 ## app.trial.\*
 
-**The trial payload is NOT the subscription payload** — it is slightly smaller. Per the App
-Events doc, `app.trial.started` carries only the fields below; it has **no**
-`subscription_id`, `item_type`, `item_slug`, `quantity`, `plan_period`, `coupon`,
-`price`/`tax`/`total`, `subscription_balance`, or `promotion`. Do not assume the
-subscription fields are present on a trial event.
+The trial payload is smaller than the subscription one. Per the App Events doc,
+`app.trial.started` carries exactly the fields below — read only these on a trial event.
+The subscription-only fields it omits: `subscription_id`, `item_type`, `item_slug`,
+`quantity`, `plan_period`, `coupon`, `price`/`tax`/`total`, `subscription_balance`,
+`promotion`.
 
 ```json
 {
@@ -200,7 +200,6 @@ subscription fields are present on a trial event.
 | `store_type`            | `development` \| `demo` \| `live`                                                                                                 |
 
 `app.trial.canceled` additionally carries `subscription_at`; `app.trial.expired` omits
-`created_at` and `features`. Source of truth for the exact per-event shape:
-https://docs.salla.dev/421413m0.md. Branch on the **event name** and `store_type`, not on a
-hardcoded `plan_name` string (`plan_name` is an arbitrary, merchant-defined value). Plan-state
-handling → **salla-app-billing**.
+`created_at` and `features`. Branch on the **event name** and `store_type`. Source of truth
+for the exact per-event shape: https://docs.salla.dev/421413m0.md. Plan-state handling →
+**salla-app-billing**.

@@ -1,12 +1,10 @@
 # Communication App Functions — Event & Payload Reference
 
-Communication Apps send messages on behalf of merchants. Each `communication.*.send`
-event is an App Function trigger, so prefer an App Function handler — see
-[salla-app-functions-handler](../../salla-app-functions-handler/SKILL.md) to write it,
-[salla-app-functions-validate](../../salla-app-functions-validate/SKILL.md) to type-check
-it, and [salla-app-functions-test](../../salla-app-functions-test/SKILL.md) to preview it.
-Only fall back to a webhook subscription (transport, signature verification, idempotency:
-[salla-webhooks](../../salla-webhooks/SKILL.md)) if delivery must run on your own server.
+The event & payload contract for Communication App Functions. Write the handler with
+[salla-app-functions-handler](../../salla-app-functions-handler/SKILL.md), type-check with
+[salla-app-functions-validate](../../salla-app-functions-validate/SKILL.md), preview with
+[salla-app-functions-test](../../salla-app-functions-test/SKILL.md). Use a webhook
+([salla-webhooks](../../salla-webhooks/SKILL.md)) only if delivery must run on your own server.
 
 Source: [Event & Payload Reference](https://docs.salla.dev/2006119m0.md) ·
 [Examples](https://docs.salla.dev/2006120m0.md) ·
@@ -16,8 +14,8 @@ Source: [Event & Payload Reference](https://docs.salla.dev/2006119m0.md) ·
 
 The events your function receives are controlled by the **Supported Features** you declared
 in the Portal. **Local SMS and International SMS both arrive through the same
-`communication.sms.send` event** — if you select both features, your app handles all SMS
-regardless of destination; inspect `notifiable[0]` to route by number prefix.
+`communication.sms.send` event** — selecting both features means your app handles all SMS
+regardless of destination (route by `notifiable[0]` prefix; see Key patterns).
 
 | Event                         | Fires when                               | Controlled by Supported Feature    |
 | ----------------------------- | ---------------------------------------- | ---------------------------------- |
@@ -63,16 +61,6 @@ interface CommunicationEvent {
   settings: Record<string, string>; // your provider credentials from App Settings
 }
 ```
-
-### The five `data` fields
-
-| Field        | Type                   | Description                                               |
-| ------------ | ---------------------- | --------------------------------------------------------- |
-| `notifiable` | `string[]`             | One or more recipients (phone numbers or email addresses) |
-| `type`       | `string`               | Why this message is sent (e.g. `auth.otp.verification`)   |
-| `content`    | `string`               | The ready-to-send message body                            |
-| `entity`     | `{ id, type } \| null` | Related store entity, or `null` for OTPs/broadcasts       |
-| `meta`       | `object`               | Additional context (e.g. `customer_id`, OTP `code`)       |
 
 ## Example payload
 
@@ -139,22 +127,16 @@ When `entity` is present, use its `id` to fetch more detail via the Admin API
 
 ## Key patterns
 
-- `notifiable` is an **array** (never an object — don't use `.phone`). It may carry more
-  than one recipient, especially for Email: **iterate over all of `notifiable`** rather
-  than sending only `notifiable[0]` (the SendGrid example maps every recipient into
-  `personalizations`). For SMS/WhatsApp the documented payloads carry a single recipient,
-  but still treat it as an array. You may read `notifiable[0]`'s prefix to route local vs.
-  international SMS, since both share `communication.sms.send`.
-- `content` is the final, translated message string — send it as-is, don't reformat.
-- `type` tells you the reason for the notification (useful for routing — see logging
-  caution below).
-- `entity` is `{ id, type }` or `null` (OTPs and broadcasts have no entity) — **always
-  guard for `null` with optional chaining (`entity?.id`) before reading it.** An unguarded
-  null on `entity`/`meta` is the most common cause of a 500.
-- `meta` carries extra context (e.g. `customer_id`, OTP `code`, loyalty `points`, cart
-  `discount`/`expires_at`).
-- `context.settings` holds your delivery provider credentials (keys, sender IDs, API URLs);
-  use optional chaining: `settings?.api_key`.
+- `notifiable` is an **array** — index it (`notifiable[0]`), and **iterate over every
+  recipient** when sending (especially Email; the SendGrid example maps each into
+  `personalizations`). SMS/WhatsApp payloads carry a single recipient but are still arrays.
+  Route local vs. international SMS off `notifiable[0]`'s prefix, since both share
+  `communication.sms.send`.
+- `entity` is `{ id, type }` or `null` (OTPs and broadcasts have no entity), so read it
+  with optional chaining (`entity?.id`). An unguarded null on `entity`/`meta` is the most
+  common cause of a 500.
+- `context.settings` holds your provider credentials (keys, sender IDs, API URLs); read
+  with optional chaining (`settings?.api_key`).
 
 ## Security & PII (sends real customer messages)
 

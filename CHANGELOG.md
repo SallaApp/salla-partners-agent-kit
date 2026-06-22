@@ -22,6 +22,15 @@ versions the **skill content as a whole** — the `version` field in `package.js
   substituted). The agent never submits to Salla review itself. Updated
   `salla-publication-consistency` (loop table, sequence, gates, Red Flags),
   `salla-app-builder` (Step 8), and the `salla-app-expert` routing/MCP tables.
+- **Swept every remaining `salla_apps action=publish` reference** (that action was removed —
+  publishing is now `app_publish` for public apps, `salla_apps action=publish_private` for
+  private apps) across `salla-app-builder`, `salla-app-expert`, `salla-app-billing`,
+  `salla-addon-purchase`, `salla-app-functions`, `salla-app-functions-release`, and
+  `salla-shipping-app`. Pricing/plans/addons are now set via the publication's `pricing`
+  section (`app_publish action=set section=pricing`) then `validate`, not a separate publish
+  call. `salla-app-functions-release` reframed: the agent **validates** the publication
+  (saves a draft) and the **partner** does the one-click submit in the Portal — the agent
+  never admin-submits; the pre-publish security scan runs before the partner submits.
 
 ### Added
 

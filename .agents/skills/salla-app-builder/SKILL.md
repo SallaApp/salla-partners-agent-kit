@@ -32,13 +32,13 @@ drive that same Portal, so prefer them when connected.
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
 
-| Tool              | What it does                                                                                                           |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `salla_reference` | Look up `categories`, `countries`, `cities`                                                                            |
-| `salla_upload`    | Upload a logo/file → returns a file `id`                                                                               |
-| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` / `demo_stores` (testing) |
-| `salla_scopes`    | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)   |
-| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                               |
+| Tool              | What it does                                                                                                                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference` | Look up `categories`, `countries`, `cities`                                                                                                                                                                |
+| `salla_upload`    | Upload a logo/file → returns a file `id`                                                                                                                                                                   |
+| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish_private` (private apps) / `demo_stores` (testing). Public-app publishing uses the separate `app_publish` tool. |
+| `salla_scopes`    | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)                                                                                       |
+| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                                                                                                                   |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at

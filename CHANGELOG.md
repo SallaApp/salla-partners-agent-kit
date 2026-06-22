@@ -18,11 +18,6 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - `docs/skill-anatomy.md` — contributor guide and checklist for authoring new skills
   (required sections, description-as-trigger format, red-flags tables, progressive
   disclosure, line limits).
-- `.github/pr-branch-labeler.yml` — config for the existing **Label PRs** workflow, which
-  was failing with `404 Not Found` on every PR because the file it reads
-  (`ffittschen/pr-branch-labeler`) did not exist in the repo. Mirrors the Salla company
-  standard (`SallaApp/.CI/pr-branch-labeler`): branch prefix → label
-  (`feature`/`bugfix`/`hotfix`/`documentation`).
 
 ### Changed
 

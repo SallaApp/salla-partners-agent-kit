@@ -104,9 +104,12 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
 
 **Manual fallback:** Partners Portal → App Keys / Webhooks / App Scope.
 
-**Gate:** "Resource scopes applied, `app.store.authorize` subscribed, and `redirect_urls`
-matches the intended mode — Easy Mode = the app's `easy_redirect_url` (prod:
-`["https://accounts.salla.sa/callback/{app_id}"]`), Custom Mode = your own callback URL?"
+**Gate:** "Resource scopes applied, and `redirect_urls` matches the intended mode — **Easy
+Mode** → `redirect_urls` = the app's `easy_redirect_url` (prod:
+`["https://accounts.salla.sa/callback/{app_id}"]`) **AND** `webhook_url` +
+`webhook_security_strategy` + `generate_secret` set **AND** `app.store.authorize` subscribed
+(no `webhook_url` → the event never fires and tokens never arrive); **Custom Mode** → your
+own callback URL?"
 
 ---
 

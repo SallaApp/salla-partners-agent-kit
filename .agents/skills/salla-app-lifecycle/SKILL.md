@@ -261,6 +261,23 @@ Gate features on `status` (and on addon entitlements — see salla-app-billing).
 
 ---
 
+## Red Flags
+
+Assumptions about lifecycle delivery that hold in a quick test and fail with a real
+merchant. If one of these is your plan, re-read the named step.
+
+| Tempting thought                                        | Why it's wrong                                                                                                                     |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| "`app.installed` arrives before `app.store.authorize`." | Order isn't guaranteed — any event can land first. Make each handler independent and idempotent, upserting by `merchant` (Step 2). |
+| "`app.updated` carries the new tokens."                 | It's a signal only — tokens come in the `app.store.authorize` that follows. Don't read tokens from the update payload (Step 3).    |
+| "`insert` is fine — installs only happen once."         | Merchants re-install and re-authorize. Insert-only throws or duplicates; always **upsert** keyed by `merchant` (Steps 2, 6).       |
+| "The async job is queued, so the work is safe."         | The `200` is already sent — a throw in the worker is invisible to Salla. Dead-letter, retry idempotently, and alert (Step 6).      |
+| "`${merchant}:${event}:${created_at}` is a unique key." | `created_at` is second-resolution; two same-type events in one second collide. Add `subscription_id` or a raw-body hash (Step 6).  |
+| "I'll bill test-store subscription events as revenue."  | Watch `data.store_type` — only `live` is real; development/demo installs would corrupt revenue and entitlements (Step 5).          |
+| "Uninstall just flips a status flag."                   | Cleanup (revoke tokens, delete/anonymize PII) is an App Store requirement reviewed at submission — enqueue the full job (Step 4).  |
+
+---
+
 ## Key Resources
 
 | Resource            | URL                                |

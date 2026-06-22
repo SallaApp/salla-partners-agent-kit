@@ -2,7 +2,8 @@
 name: salla-embedded-ui
 description: >
   Make a Salla app's EMBEDDED app (dashboard) UI native — the Partner-dashboard iframe on the
-  Embedded SDK design system. Drive theme/locale/dir from `embedded.init()`'s layout, use the
+  Embedded SDK design system. Use when an embedded/dashboard page draws visible UI. Drive
+  theme/locale/dir from `embedded.init()`'s layout, use the
   native `page`/`nav`/`ui` SDK modules (No-Chrome), Hugeicons (`hgi hgi-stroke hgi-*`),
   dashboard tokens (light/dark), match the dashboard, RTL, and verify with a LIVE screenshot
   on an installed demo store (`dashboard_url`). Pairs with salla-embedded-app. Storefront UI →

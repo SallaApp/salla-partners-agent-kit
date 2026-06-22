@@ -135,91 +135,14 @@ handler upserts (not inserts).
 
 ### Custom Mode (testing / local dev)
 
-**Step 3a — Authorization request:**
+The authorization-code flow — authorize request (`offline_access` required, `redirect_uri`
+must match the Portal exactly) → callback (`code` + `state`) → `POST /oauth2/token` exchange
+→ persist both tokens. It carries several Salla-specific callback traps (deploy the callback
+before registering it, Salla-initiated installs send their own `state`, hyphens stripped from
+`state`, single-use `code`s, the Next.js cookie-in-redirect trap).
 
-```http
-GET https://accounts.salla.sa/oauth2/auth
-  ?client_id=YOUR_CLIENT_ID
-  &response_type=code
-  &redirect_uri=https://your-app.com/callback
-  &scope=offline_access orders.read_write products.read_write
-  &state=RANDOM_CSRF_STRING
-```
-
-Standard OAuth2 parameters — the Salla deltas: `redirect_uri` must exactly match the
-Portal registration, and `scope` must always include `offline_access`.
-
-**Step 3b — Handle the callback** (`GET /callback?code=…&state=…`): verify `state`, extract `code`.
-
-> **Custom Mode callback rules:**
->
-> - **Deploy the callback route before registering `redirect_url`.** Implement and serve the
->   callback, hit the exact URL you will register, and confirm it responds (not 404); register
->   it only after that. A 404 (route not deployed, wrong path, typo) breaks the merchant's
->   install — blank page, lost install, no tokens.
-> - **Accept Salla-initiated installs.** When the merchant installs from the App Store, Salla
->   redirects straight to your callback with **its own `state`** — your app never ran the
->   authorize step and set no `state` cookie. Treat a request with no matching cookie as a
->   valid Salla-initiated install and proceed with the code exchange. (Easy Mode skips this —
->   no callback.)
-> - **Compare `state` hyphen-insensitively.** Salla strips hyphens from `state` when echoing
->   it back, so a UUID `state` must be matched with hyphens removed (or omit hyphens entirely).
-> - **Next.js — set cookies on the returned response.** `redirect()` from `next/navigation`
->   drops cookies set via `cookies().set()` in a GET handler; instead use
->   `const res = NextResponse.redirect(url); res.cookies.set(...); return res;`.
-> - **Exchange each `code` once.** Authorization `code`s are single-use; a refresh or back
->   button re-hits a spent code and returns `invalid_grant` — start a fresh install rather than
->   replaying the same code.
-
-**Step 3c — Exchange code for tokens:**
-
-```bash
-POST https://accounts.salla.sa/oauth2/token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=authorization_code
-&code=AUTHORIZATION_CODE
-&client_id=YOUR_CLIENT_ID
-&client_secret=YOUR_CLIENT_SECRET
-&redirect_uri=https://your-app.com/callback
-```
-
-```json
-{
-  "token_type": "bearer",
-  "access_token": "KGsnBcNN...",
-  "expires": 1634819484,
-  "refresh_token": "fWcceFWF...",
-  "scope": "offline_access orders.read_write"
-}
-```
-
-PHP — `oauth2-merchant`:
-
-```php
-use Salla\OAuth2\Client\Provider\Salla;
-
-$provider = new Salla([
-    'clientId'     => env('SALLA_OAUTH_CLIENT_ID'),
-    'clientSecret' => env('SALLA_OAUTH_CLIENT_SECRET'),
-    'redirectUrl'  => 'https://your-app.com/callback',
-]);
-
-if (empty($_GET['code'])) {
-    $authUrl = $provider->getAuthorizationUrl(['scope' => 'offline_access']);
-    header('Location: ' . $authUrl);
-    exit;
-}
-
-$token = $provider->getAccessToken('authorization_code', ['code' => $_GET['code']]);
-$accessToken  = $token->getToken();
-$refreshToken = $token->getRefreshToken();
-$expires      = $token->getExpires(); // Unix timestamp
-$user = $provider->getResourceOwner($token); // ->getId(), ->getStoreID(), …
-```
-
-Laravel facade + full controller:
-https://github.com/SallaApp/laravel-starter-kit/blob/master/app/Http/Controllers/OAuthController.php
+**Full flow with the authorize URL, token exchange, callback rules, and PHP/Laravel code:
+load [references/custom-mode.md](references/custom-mode.md).**
 
 **Gate:** "Tokens are persisted per merchant with `tokenExpiresAt` derived from `expires`?"
 
@@ -262,62 +185,12 @@ its lock without the new one being persisted.
 token endpoint. If another process already holds it, wait briefly then re-read the now-refreshed
 token from the DB rather than retrying the refresh. Use a proven distributed-lock library
 (e.g. `redlock` for Redis, or a DB advisory lock) so owner-token and atomic release are handled
-for you.
+for you. Refresh **proactively** (e.g. ~1 day before `expiresAt`), not on a 401, and **always
+persist BOTH** the new access and refresh tokens before releasing the lock — the old refresh
+token is dead the moment the call returns.
 
-```typescript
-async function refreshTokenSafe(merchantId: string): Promise<string> {
-  return await withDistributedLock(`token_refresh:${merchantId}`, async () => {
-    // Re-read inside the lock — another holder may have already refreshed
-    const merchant = await db.merchants.findById(merchantId);
-    if (merchant.tokenExpiresAt.getTime() - Date.now() > 60_000) {
-      return merchant.accessToken; // already fresh
-    }
-
-    const res = await fetch("https://accounts.salla.sa/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: merchant.refreshToken,
-        client_id: process.env.SALLA_CLIENT_ID!,
-        client_secret: process.env.SALLA_CLIENT_SECRET!,
-      }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw Object.assign(
-        new Error(err?.error_description ?? err?.error ?? res.statusText),
-        { status: res.status, body: err },
-      );
-    }
-    const data = await res.json();
-
-    // ALWAYS save BOTH new tokens — the old refresh token is now dead
-    await db.merchants.update(merchantId, {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      tokenExpiresAt: new Date(data.expires * 1000),
-    });
-    return data.access_token;
-  });
-}
-```
-
-**Proactive refresh** — don't wait for a 401:
-
-```typescript
-async function getValidToken(merchantId: string): Promise<string> {
-  const merchant = await db.merchants.findById(merchantId);
-  const bufferMs = 24 * 60 * 60 * 1000; // refresh 1 day before expiry
-  if (merchant.tokenExpiresAt.getTime() - Date.now() < bufferMs) {
-    return await refreshTokenSafe(merchantId);
-  }
-  return merchant.accessToken;
-}
-```
-
-PHP refresh: `$provider->getAccessToken('refresh_token', ['refresh_token' => $stored]);`
-— then save both `->getToken()` and `->getRefreshToken()`.
+**Full runnable code (TS `refreshTokenSafe` + `getValidToken`, and the PHP equivalent):
+load [references/token-refresh.md](references/token-refresh.md).**
 
 **Gate:** "Refresh is guarded by a distributed lock, saves BOTH new tokens, and runs
 proactively before expiry?"
@@ -362,6 +235,23 @@ const storeId = String(merchantId);
 ```
 
 **Gate:** "Merchant id + store details are stored alongside the tokens?"
+
+---
+
+## Red Flags
+
+Thoughts that feel reasonable in isolation but break a production Salla app. If you catch
+yourself thinking one of these, stop and re-read the named step.
+
+| Tempting thought                                        | Why it's wrong                                                                                                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "I know OAuth — I'll just build the `/callback` flow."  | That's Custom Mode. Shipping it in a published app without a justified use case can be **rejected at review**. Default to Easy Mode (Step 1).    |
+| "The per-merchant refresh mutex is overkill."           | Single-use refresh tokens: a parallel double-use invalidates the whole token chain and the **merchant must reinstall**. Non-negotiable (Step 5). |
+| "I'll add the distributed lock later / skip it in dev." | Dev habits ship to prod, and the race only shows up under real concurrency — i.e. in production, on a real merchant. Add it once, now (Step 5).  |
+| "Refresh succeeded — I'll save the new access token."   | You must save **both** new tokens. The old refresh token is already dead; drop the new one and the next refresh fails (Step 5).                  |
+| "`offline_access` is just another resource scope."      | It's an OAuth token scope and goes only in the authorize URL, never the `connect` map. Omit it and **no refresh token is issued** (Step 4).      |
+| "`expires` is how many seconds the token lasts."        | It's an absolute Unix timestamp. Treating it as a duration sets expiry decades out and the token silently dies (Step 4).                         |
+| "Tokens in logs are fine for debugging."                | Access/refresh tokens and the client secret are secrets — encrypt at rest, never log them (Step 3).                                              |
 
 ---
 

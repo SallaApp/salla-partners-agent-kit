@@ -1,7 +1,7 @@
 name: salla-partners
-version: 1.0.2
+version: 1.0.3
 description: >
-  Build Salla Partner apps end to end on Hermes — 25 skills covering create,
+  Build Salla Partner apps end to end on Hermes — 26 skills covering create,
   hook events, build UI, monetize, and publish, paired with the Salla Partners
   MCP action tools (salla_apps, salla_events, …). Start broad with
   salla-app-expert, which routes each step to the right skill.

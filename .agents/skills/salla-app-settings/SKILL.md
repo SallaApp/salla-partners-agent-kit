@@ -1,13 +1,13 @@
 ---
 name: salla-app-settings
 description: >
-  Per-merchant settings for a Salla app: design the schema, register the form and
-  optional public Validation URL via the salla_settings tool, declare supported features
-  (publish-blocker for communication apps), seed defaults on install, read/write values
-  (POST is a full replace — always send ALL keys), react to app.settings.updated (the
-  event that activates the app AND is the storage source of truth), and read
-  context.settings inside App Functions. Admin API mechanics → salla-api-core; lifecycle
-  wiring → salla-app-lifecycle.
+  Per-merchant settings for a Salla app. Use when designing a settings schema, registering
+  the form, or reading/writing merchant config. Covers the salla_settings form + optional
+  Validation URL, supported-features declaration (publish-blocker for communication apps),
+  seeding defaults on install, value read/write (POST is a full replace — send ALL keys),
+  reacting to app.settings.updated (activates the app AND is the storage source of truth),
+  and context.settings in App Functions. Admin API → salla-api-core; lifecycle →
+  salla-app-lifecycle.
 ---
 
 # Salla App Settings Flow

@@ -1,7 +1,8 @@
 ---
 name: salla-live-testing
 description: >
-  Validate a Salla app on a real demo store before calling it done. Install via salla_apps
+  Validate a Salla app on a real demo store before calling it done. Use when verifying an
+  app end to end before publish. Install via salla_apps
   action=demo_stores, then verify the settings form actually SAVES, the embedded dashboard
   authenticates, the storefront snippet renders, and webhooks / App Functions fire from
   real Salla events. MCP/config success and passing endpoint tests are NOT proof the

@@ -1,8 +1,9 @@
 ---
 name: salla-app-ui-builder
 description: >
-  The Salla app's App Store listing page — the home/landing page merchants see before
-  installing. Build it via the `app_page_builder` MCP tool as an ordered list of blocks;
+  The Salla app's App Store listing page (the page merchants see before installing). Use
+  when customizing that listing page. Build it via the `app_page_builder` MCP tool as an
+  ordered list of blocks;
   editing a block's elements writes shared listing content (name, description, logo,
   screenshots, benefits) into the app's draft publication. Prerequisite: call
   `app_publish action=open` first to create the draft — the builder is disabled until then.

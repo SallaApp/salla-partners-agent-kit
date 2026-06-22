@@ -1,13 +1,13 @@
 ---
 name: salla-app-ui-builder
 description: >
-  The Salla app's App Store presentation page — the home/landing page merchants see before
-  installing. It auto-fills from your publication data (images, screenshots, description) into
-  a default template; to customize beyond that, the partner edits it manually in the Partners
-  Portal's App Presentation Builder, after completing the publish details. There is no MCP
-  tool or public API for the block/element operations today (only salla_upload for publication
-  media). Create/configure/publish → salla-app-builder; settings → salla-app-settings; schemas
-  → salla-docs.
+  The Salla app's App Store presentation page — the landing page merchants see before
+  installing. Use when customizing the app's store listing. It auto-fills from your
+  publication data (images, screenshots, description) into a default template; to customize
+  beyond that, the partner edits it manually in the Partners Portal's App Presentation
+  Builder, after completing the publish details. No MCP tool or public API for the
+  block/element operations today (only salla_upload for media). Create/configure/publish →
+  salla-app-builder; settings → salla-app-settings; schemas → salla-docs.
 license: Copyright (c) 2026 Salla
 metadata:
   authors: Abdelrahman Abdelhamid

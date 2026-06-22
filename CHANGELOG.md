@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [Unreleased]
+## [1.0.3] — 2026-06-22
 
 ### Added
 

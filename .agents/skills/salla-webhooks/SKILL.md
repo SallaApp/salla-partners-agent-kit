@@ -30,10 +30,10 @@ Confirm live event payload schemas in the webhooks reference
 (https://docs.salla.dev/421119m0.md) before coding; never assume a shape. The **Salla
 Partners MCP** _performs actions_:
 
-| Tool           | Action               | What it does                                                           |
-| -------------- | -------------------- | ---------------------------------------------------------------------- |
-| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, secret, custom headers |
-| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                            |
+| Tool           | Action               | What it does                                                                    |
+| -------------- | -------------------- | ------------------------------------------------------------------------------- |
+| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, custom headers (secret: Portal) |
+| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                                     |
 
 > New webhooks default to **version 2**. **Always set `webhook_security_strategy` explicitly**
 > (`signature` | `token` | `none`) — the Partners MCP now requires it on

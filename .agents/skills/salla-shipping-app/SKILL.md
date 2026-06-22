@@ -103,7 +103,11 @@ slugs from `salla_apps action=get` — there is no scope-catalog reference endpo
   **minimum** scopes the app needs; pick `read` over `read_write` unless a write is
   required, and don't request broad scopes you won't use.
 - `redirect_urls`, `webhook_url`, `webhook_security_strategy: "signature"`
-- `generate_secret: true` — returns the webhook secret (store it for HMAC verification)
+
+The webhook signing secret isn't minted by `connect` — create/rotate it in the Partner Portal
+(`https://portal.salla.partners/apps/{app_id}`) and read the current value with
+`salla_apps action=get` (the `webhook_secret` field) before deploy; store it for HMAC
+verification.
 
 OAuth, token storage/refresh, and the per-merchant refresh lock → **`salla-app-auth`**.
 Webhook signature verification (verify `X-Salla-Signature` against the raw body, reject

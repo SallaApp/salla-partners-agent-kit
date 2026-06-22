@@ -78,9 +78,11 @@ Lifecycle events only arrive if the app is subscribed and a `webhook_url` is set
 with the Partners MCP:
 
 1. Configure the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
-   `webhook_security_strategy: "signature"`, `generate_secret: true`. Store the returned
-   secret in a secret manager/KMS (never in source or logs) — secure storage and HMAC
-   verification are owned by **salla-webhooks**.
+   `webhook_security_strategy: "signature"`. `connect` doesn't mint the signing secret —
+   create/rotate it in the Partner Portal (`https://portal.salla.partners/apps/{app_id}`) and
+   read the current value via `salla_apps action=get` (the `webhook_secret` field) before
+   deploy. Store it in a secret manager/KMS (never in source or logs) — secure storage and
+   HMAC verification are owned by **salla-webhooks**.
 2. List valid slugs: `salla_events action=list`, `app_id`.
 3. Subscribe: `salla_events action=subscribe`, `app_id`, `events: [...]` — e.g.
    `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,

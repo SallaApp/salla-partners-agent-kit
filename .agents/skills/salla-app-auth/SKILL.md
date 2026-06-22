@@ -86,7 +86,7 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
      computes it as the Salla-owned callback; read it from `salla_apps action=get`). In
      production that's `["https://accounts.salla.sa/callback/{app_id}"]`. Pointing the OAuth
      `redirect_uri` at Salla's own callback is what makes Salla own the exchange. Pair it with
-     `webhook_url` + `webhook_security_strategy: "signature"` + `generate_secret: true`.
+     `webhook_url` + `webhook_security_strategy: "signature"`.
    - **Custom Mode** — set `redirect_urls` to your own callback URL. **Any non-Salla URL here
      activates Custom Mode** — Salla redirects the merchant to your callback expecting a code
      exchange. So "don't build a callback" (Easy Mode) and "what you put in `redirect_urls`"
@@ -95,16 +95,16 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
 
    (Set trusted IPs here too — Part: IP whitelisting below.)
 
-   > **`generate_secret: true` MINTS A NEW signing secret and invalidates the old one — read
-   > the current secret live before deploying.** Each `connect` with `generate_secret: true`
-   > rotates the webhook signing secret; the previous value stops verifying. So run it **once**
-   > to provision the secret, then treat the value as live state, not something you carry
-   > across sessions. Before any deploy, read the **current** secret with
-   > `salla_apps action=get` (the `webhook_secret` field) and set that exact value as the
-   > verification env var. Do **not** re-run `connect` with `generate_secret: true` "to be safe"
-   > on later sessions, and never trust a secret remembered from an earlier session or before a
-   > context compaction — if it's stale, every `X-Salla-Signature` check fails and tokens never
-   > land. (Signature verification itself → [salla-webhooks](../salla-webhooks/SKILL.md).)
+   > **The MCP never mints or rotates the signing secret — read it live before deploying.**
+   > `connect` does not touch the webhook signing secret. Create or rotate it **manually in
+   > the Partner Portal** at `https://portal.salla.partners/apps/{app_id}` — give the user a
+   > ready link with the app's **real id** (e.g. `https://portal.salla.partners/apps/1234567`),
+   > not the `{app_id}` placeholder. Rotating there invalidates the old value. The MCP is read-only for it: before any deploy, read the
+   > **current** secret with `salla_apps action=get` (the `webhook_secret` field) and set that
+   > exact value as the verification env var. Never trust a secret remembered from an earlier
+   > session or before a context compaction — if it was rotated in the Portal it's stale, every
+   > `X-Salla-Signature` check fails, and tokens never land.
+   > (Signature verification itself → [salla-webhooks](../salla-webhooks/SKILL.md).)
 
    > **`offline_access` does NOT go in the `connect` scopes map.** It is an OAuth2
    > token scope that enables refresh tokens and belongs only in the authorize URL
@@ -119,7 +119,7 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
 **Gate:** "Resource scopes applied, and `redirect_urls` matches the intended mode — **Easy
 Mode** → `redirect_urls` = the app's `easy_redirect_url` (prod:
 `["https://accounts.salla.sa/callback/{app_id}"]`) **AND** `webhook_url` +
-`webhook_security_strategy` + `generate_secret` set **AND** `app.store.authorize` subscribed
+`webhook_security_strategy` set **AND** `app.store.authorize` subscribed
 (no `webhook_url` → the event never fires and tokens never arrive); **Custom Mode** → your
 own callback URL?"
 
@@ -272,18 +272,18 @@ const storeId = String(merchantId);
 Thoughts that feel reasonable in isolation but break a production Salla app. If you catch
 yourself thinking one of these, stop and re-read the named step.
 
-| Tempting thought                                                                   | Why it's wrong                                                                                                                                                                                                               |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "I know OAuth — I'll just build the `/callback` flow."                             | That's Custom Mode. Shipping it in a published app without a justified use case can be **rejected at review**. Default to Easy Mode (Step 1).                                                                                |
-| "The per-merchant refresh mutex is overkill."                                      | Single-use refresh tokens: a parallel double-use invalidates the whole token chain and the **merchant must reinstall**. Non-negotiable (Step 5).                                                                             |
-| "I'll add the distributed lock later / skip it in dev."                            | Dev habits ship to prod, and the race only shows up under real concurrency — i.e. in production, on a real merchant. Add it once, now (Step 5).                                                                              |
-| "Refresh succeeded — I'll save the new access token."                              | You must save **both** new tokens. The old refresh token is already dead; drop the new one and the next refresh fails (Step 5).                                                                                              |
-| "`offline_access` is just another resource scope."                                 | It's an OAuth token scope and goes only in the authorize URL, never the `connect` map. Omit it and **no refresh token is issued** (Step 4).                                                                                  |
-| "`expires` is how many seconds the token lasts."                                   | It's an absolute Unix timestamp. Treating it as a duration sets expiry decades out and the token silently dies (Step 4).                                                                                                     |
-| "I'll stash the token in `/tmp` (or a module variable) for now."                   | On serverless the filesystem and memory are wiped on every cold start — the token vanishes and the next call **403s, so the merchant looks uninstalled**. Persist to a real DB keyed by `merchant` from commit one (Step 3). |
-| "I'll re-run `connect` with `generate_secret: true` before deploying, to be safe." | That **mints a new secret and invalidates the old one** — every signature check then fails. Provision once; before deploy read the current `webhook_secret` via `salla_apps action=get` and use that exact value (Step 2).   |
-| "I'll reuse the webhook secret I noted earlier."                                   | The signing secret rotates on any `generate_secret`; a value remembered from a past session or before a compaction is likely stale → all verification fails. Read it live before deploy (Step 2).                            |
-| "Tokens in logs are fine for debugging."                                           | Access/refresh tokens and the client secret are secrets — encrypt at rest, never log them (Step 3).                                                                                                                          |
+| Tempting thought                                                         | Why it's wrong                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I know OAuth — I'll just build the `/callback` flow."                   | That's Custom Mode. Shipping it in a published app without a justified use case can be **rejected at review**. Default to Easy Mode (Step 1).                                                                                                                                     |
+| "The per-merchant refresh mutex is overkill."                            | Single-use refresh tokens: a parallel double-use invalidates the whole token chain and the **merchant must reinstall**. Non-negotiable (Step 5).                                                                                                                                  |
+| "I'll add the distributed lock later / skip it in dev."                  | Dev habits ship to prod, and the race only shows up under real concurrency — i.e. in production, on a real merchant. Add it once, now (Step 5).                                                                                                                                   |
+| "Refresh succeeded — I'll save the new access token."                    | You must save **both** new tokens. The old refresh token is already dead; drop the new one and the next refresh fails (Step 5).                                                                                                                                                   |
+| "`offline_access` is just another resource scope."                       | It's an OAuth token scope and goes only in the authorize URL, never the `connect` map. Omit it and **no refresh token is issued** (Step 4).                                                                                                                                       |
+| "`expires` is how many seconds the token lasts."                         | It's an absolute Unix timestamp. Treating it as a duration sets expiry decades out and the token silently dies (Step 4).                                                                                                                                                          |
+| "I'll stash the token in `/tmp` (or a module variable) for now."         | On serverless the filesystem and memory are wiped on every cold start — the token vanishes and the next call **403s, so the merchant looks uninstalled**. Persist to a real DB keyed by `merchant` from commit one (Step 3).                                                      |
+| "I'll re-run `connect` to (re)mint the webhook secret before deploying." | `connect` never mints or rotates the signing secret — the MCP is read-only for it. Create/rotate it in the Portal (`https://portal.salla.partners/apps/{app_id}`); before deploy read the current `webhook_secret` via `salla_apps action=get` and use that exact value (Step 2). |
+| "I'll reuse the webhook secret I noted earlier."                         | Rotating the secret in the Portal invalidates the old value, so a secret remembered from a past session or before a compaction may be stale → all verification fails. Read it live via `salla_apps action=get` before deploy (Step 2).                                            |
+| "Tokens in logs are fine for debugging."                                 | Access/refresh tokens and the client secret are secrets — encrypt at rest, never log them (Step 3).                                                                                                                                                                               |
 
 ---
 

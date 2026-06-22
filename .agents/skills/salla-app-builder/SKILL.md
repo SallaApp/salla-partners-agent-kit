@@ -161,16 +161,15 @@ app's valid scope slugs and current selection:
    - `webhook_url` — your webhook receiver (**HTTPS-only**, must authenticate inbound
      requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
-   - `generate_secret: true` — mints + returns the webhook signing secret. An app already
-     has a secret from creation, so this **rotates** it; only pass it when you intend to
-     replace the current secret (rotating a secret already live on production traffic
-     breaks in-flight verification).
    - `trusted_ips`, `webhook_headers`
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
-Store the returned **webhook secret** in a secret manager (never in source/repo); it
-verifies the HMAC-SHA256 signature on every webhook.
+`connect` does **not** mint or rotate the webhook signing secret. Create or rotate it in the
+Partner Portal (`https://portal.salla.partners/apps/{app_id}`); rotating there invalidates the
+old value. Read the current secret with `salla_apps action=get` (the `webhook_secret` field)
+and store it in a secret manager (never in source/repo); it verifies the HMAC-SHA256 signature
+on every webhook. Read it live right before deploy — never reuse one carried across sessions.
 Signature verification + idempotency → **`salla-webhooks`** skill. Token handling
 (Easy vs Custom mode, storage, refresh) → **`salla-app-auth`** skill. (Route, don't
 reimplement here.)

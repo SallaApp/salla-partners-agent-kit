@@ -49,6 +49,12 @@ request.
 **Validate before persisting.** Guard against a missing `data`, missing tokens, a
 malformed `expires`, or an unexpected `token_type` rather than writing garbage to the DB.
 
+**Persist to a real datastore, keyed by `merchant`.** `db.merchants` below must be a durable
+store (Postgres, MySQL, DynamoDB, persisted Redis, …). On serverless/Vercel, `/tmp` and
+module-level variables are wiped on every cold start, so a token written there is gone before
+the next request and the merchant's API calls start returning 403 — `app.store.authorize`
+fires only on install/update, so the token is not re-delivered until a reinstall.
+
 **Secret hygiene** (store encrypted, HTTPS-only, never log token/secret values): see the
 SKILL.md secret-hygiene callout.
 

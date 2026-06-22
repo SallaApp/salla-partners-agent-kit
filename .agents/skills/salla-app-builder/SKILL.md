@@ -20,6 +20,21 @@ Build a complete Salla app by **performing the actions**, not just describing th
 Each step calls a Salla Partners MCP tool to do the work. Follow the steps in order —
 complete each gate before moving to the next.
 
+> **Grounding rules — read the real value, confirm the real result.**
+>
+> 1. **Verify the deployed domain before writing ANY URL into Salla.** Read the live Vercel
+>    project domain — `vercel project ls`, the Vercel MCP, or `.vercel/project.json` — before
+>    you set `app_url`, an embedded `iframe_url`, or a snippet BASE. A guessed `*.vercel.app`
+>    that doesn't resolve breaks install, webhooks, and the iframe **silently** (no error at
+>    write time).
+> 2. **Read back after every mutate.** `connect`/`update`/`subscribe` can return a minimal or
+>    empty body — a zero-field response is indistinguishable from a silent failure. Confirm
+>    with a `get`/`list` before treating the change as done; never trust the write response
+>    alone.
+> 3. **On a domain change, update every place the domain lives, together** — portal `app_url`,
+>    embedded `iframe_url`, snippet BASE, and every env var. Checklist:
+>    [references/domain-consistency.md](references/domain-consistency.md).
+
 **The arc:** **create → configure → publish.** Creating the app is only the first gate —
 a created app is **not** published; it still needs scopes, webhooks/events, any UI, then
 review before it reaches merchants ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
@@ -91,7 +106,7 @@ Use the answers to tailor Steps 1, 4–7.
 | `name` + `name_ar`           | Salla expects the app name in Arabic, in plain letters with no diacritics/tashkeel (e.g. هريفاي, not هرّفاي), and unique across Salla apps. Treat these as Portal-enforced — let `create` validate: submit, then act on the error (rename and resubmit if the name is taken or invalid) rather than pre-checking client-side. Confirm the exact constraints from the `create` response when in doubt. |
 | `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                                                          |
 | `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                                                             |
-| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `app_url`                    | The app's live URL — read it from the deployed Vercel project (Grounding rule 1), not a guessed `*.vercel.app`. This is the **source** domain; if it later changes, update it here too (Step 1 gate / domain-consistency checklist).                                                                                                                                                                  |
 | `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
 | `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
 | `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
@@ -106,8 +121,9 @@ Trusted IPs, App Functions, Settings, Onboarding, Embedded Pages, Snippets, Cust
 Testing, and Publishing ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
 
 > **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
-> success — the Portal does not echo changed fields. Always follow up with
-> `salla_apps action=get` to confirm the update was applied.
+> success — the Portal does not echo changed fields, so the response can't tell a success
+> from a silent failure. Per Grounding rule 2, always read back with `salla_apps action=get`
+> and confirm the changed field actually holds the new value before moving on.
 
 **Manual fallback:** Portal → **My Apps → Create App**.
 
@@ -159,8 +175,10 @@ Signature verification + idempotency → **`salla-webhooks`** skill. Token handl
 (Easy vs Custom mode, storage, refresh) → **`salla-app-auth`** skill. (Route, don't
 reimplement here.)
 
-**Gate:** "Scopes + redirect + webhook applied (no `_partial`). Is your webhook URL live
-and returning 200, with the secret stored?"
+**Gate:** "Scopes + redirect + webhook applied (no `_partial`), and a read-back
+(`salla_scopes action=get` / `salla_apps action=get`) confirms the scopes, redirect, and
+webhook URL actually stuck (Grounding rule 2). The webhook URL is the live deployed domain
+(Grounding rule 1), returning 200, with the secret stored?"
 
 ---
 

@@ -33,8 +33,12 @@ everything downstream:
    (`salla_embedded_pages`, an iframe page inside the Salla dashboard), NEVER a custom
    dashboard outside it / a standalone `/dashboard?store_id=…` URL (no auth). → [salla-embedded-app](../salla-embedded-app/SKILL.md)
 
-**Never ship guessed identifiers** (event names, DOM selectors, payload paths) — verify on a
-live demo store or the docs first.
+**Read every concrete value from its live source at the point you use it** — never invent a
+plausible one, never carry one across a context compaction. The deployed domain comes from the
+real Vercel project (not a guessed `*.vercel.app`); secrets and IDs from `salla_apps action=get`;
+event names, DOM selectors, and payload paths from a live demo store or the docs; the signature
+algorithm and any package API from that package's own source/docs. When a value is in front of
+you, read it; don't recall it.
 
 **Arabic-first** — most merchants and shoppers are Arabic: default to Arabic copy,
 illustrations, and RTL presentation for the embedded app, `app_page_builder` listing, app

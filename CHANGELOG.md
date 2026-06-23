@@ -31,6 +31,20 @@ versions the **skill content as a whole** — the `version` field in `package.js
   call. `salla-app-functions-release` reframed: the agent **validates** the publication
   (saves a draft) and the **partner** does the one-click submit in the Portal — the agent
   never admin-submits; the pre-publish security scan runs before the partner submits.
+- **salla-webhooks** — document the two verification strategies distinctly: `token` is
+  plain equality (`Authorization` header `===` `webhook_secret`, **not** HMAC); `signature`
+  is HMAC-SHA256 of the raw body. `webhook_security_strategy` must be set **explicitly** —
+  unset = `none` = no verification. Added the `@salla.sa/*` server packages
+  (`webhooks-actions`, `passport-strategy`, `event`, `embedded-sdk`) with the Next.js
+  serverless caveat on `webhooks-actions`' file-dispatch.
+- **salla-app-auth** — persist merchant tokens in a real datastore keyed by `merchant`
+  (`/tmp` / in-memory are wiped on cold start → 403, app looks uninstalled); `generate_secret`
+  **rotates** the signing secret, so read the live `webhook_secret` via `salla_apps action=get`
+  before deploy and never reuse one carried across sessions.
+- **salla-app-expert / salla-app-builder** — read every concrete value (URLs/domains,
+  secrets, event names, algorithms, package APIs) from its **live source at point of use**,
+  never invented or carried across a context compaction; verify the deployed domain before
+  writing any URL into Salla; domain-change consistency checklist; read back after every mutate.
 
 ### Added
 
@@ -50,6 +64,9 @@ versions the **skill content as a whole** — the `version` field in `package.js
   onboarding (hand off to `salla-publication-consistency`). Scoped
   `salla-publication-consistency` to **public** apps with a one-line hand-off to
   `publish_private`. Added a publishing Red Flags table on `salla-app-builder`.
+
+Closes the skill gaps from the ConversionKit build post-mortem (paired with partners-mcp's
+required `webhook_security_strategy` + `generate_secret` rotation warning).
 
 ## [1.0.3] — 2026-06-22
 

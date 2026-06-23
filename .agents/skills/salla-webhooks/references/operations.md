@@ -65,9 +65,10 @@ auth) live in `SKILL.md` Step 3. This is just where to set them by hand:
   > The client secret and `SALLA_WEBHOOK_SECRET` are credentials — keep `.env` git-ignored
   > and the webhook secret out of logs and error output.
 - Portal setup to receive events: App Keys → OAuth mode; App Scope → enable **Webhooks
-  Read/Write**; Notifications/Webhooks → security strategy (the CLI starter scaffolds for
-  the **Token** strategy; the platform/MCP default for new webhooks is **Signature** —
-  match whichever your handler verifies); set the
+  Read/Write**; Notifications/Webhooks → security strategy (set it **explicitly** —
+  `signature` | `token` | `none`; leaving it unset means `none` = no verification). The CLI
+  starter scaffolds for the **Token** strategy (plain equality, via
+  `@salla.sa/webhooks-actions`); match whichever strategy your handler verifies. Set the
   webhook URL (append your framework's route prefix, e.g. `/api/webhook`); subscribe the
   **Store Events** you need; then install on a demo store
   (see `salla-app-builder/references/demo-store-testing.md`).

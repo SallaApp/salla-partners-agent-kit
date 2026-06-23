@@ -28,6 +28,14 @@ skill:
 - **`GET /apps/{app_id}/subscriptions`** — read plan state, entitlements,
   `subscription_balance` (reconciliation; Step 5).
 - **`POST /apps/balance`** — write back the Pay-As-You-Go usage balance (Step 5b).
+- **`POST /apps/subscriptions/{subscription_id}/renew`** — for **`external_recurring`** plans/addons
+  the **partner drives each renewal** (Salla does not auto-renew them). Take `subscription_id` from
+  the subscription webhook; needs `offline_access`. Returns the renewed subscription
+  (`item_type`/`item_slug`/`plan_*`/`start_date`/`end_date`/`subscription_balance`/`features`).
+  Handle the errors: `not_renewable`, `subscription_not_active`, `auto_renew_disabled`,
+  `payment_failed` (403), `rate_limit_exceeded` (429 — once/day). Applies to addons with
+  `support_renew: true`. (Salla-managed recurring renews automatically — you only receive
+  `app.subscription.renewed`.)
 
 Confirm payloads and field shapes via the App Events reference
 (https://docs.salla.dev/421413m0.md) or `salla_events action=list` before coding. The

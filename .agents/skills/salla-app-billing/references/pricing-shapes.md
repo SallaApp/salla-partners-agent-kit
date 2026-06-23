@@ -84,7 +84,8 @@ Usage balance is written back at runtime via `POST /apps/balance` (see salla-app
 A recurring plan or any addon means the app must handle `app.subscription.*` (+ `app.trial.*`)
 and, for `external_recurring`, call the renew API. This is gated before submit — see
 salla-app-billing (subscription lifecycle + renew) and salla-addon-purchase. Live docs (source of
-truth): subscription webhook events https://docs.salla.dev/2213496m0.md · renew API (OpenAPI schema
+truth):
 
-- error contract) https://docs.salla.dev/37396517e0.md · subscription schema
-  https://docs.salla.dev/5401098e0.md.
+- Subscription webhook events: https://docs.salla.dev/2213496m0.md
+- Renew API — OpenAPI schema and full error contract: https://docs.salla.dev/37396517e0.md
+- Subscription schema: https://docs.salla.dev/5401098e0.md

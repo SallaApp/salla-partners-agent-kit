@@ -35,7 +35,9 @@ skill:
   Handle the errors: `not_renewable`, `subscription_not_active`, `auto_renew_disabled`,
   `payment_failed` (403), `rate_limit_exceeded` (429 — once/day). Applies to addons with
   `support_renew: true`. (Salla-managed recurring renews automatically — you only receive
-  `app.subscription.renewed`.)
+  `app.subscription.renewed`.) **Read the exact request/response schema and the full
+  error-response contract from the live OpenAPI doc — it is the source of truth:**
+  https://docs.salla.dev/37396517e0.md (don't hand-code the shapes; mirror the doc).
 
 Confirm payloads and field shapes via the App Events reference
 (https://docs.salla.dev/421413m0.md) or `salla_events action=list` before coding. The
@@ -147,7 +149,9 @@ Wire the events via salla-app-lifecycle. The deltas that matter here:
 - **Skip billing logic when `store_type !== "live"`** (development/demo stores).
 
 Payload fields and full examples →
-[references/subscription-events.md](references/subscription-events.md).
+[references/subscription-events.md](references/subscription-events.md). Live docs — App
+Subscription Webhook Events: https://docs.salla.dev/2213496m0.md ; App Events reference:
+https://docs.salla.dev/421413m0.md.
 
 **Gate:** "A demo-store subscription event upserts the stored plan with the right status?"
 

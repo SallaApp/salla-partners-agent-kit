@@ -1,12 +1,12 @@
 ---
 name: salla-app-functions-release
 description: >
-  Save & publish a Salla App Function. `salla_functions action=save` deploys to demo stores
-  (poll `action=deploy_status`); then test (salla-app-functions-test) and publish the app —
-  public: validate the publication (`app_publish action=validate` saves a draft; partner
-  submits one-click in the Portal); private: the partner publishes from the app-details page
-  (no MCP action). Use after validating. Routed from salla-app-functions; OAuth/tokens →
-  salla-app-auth, webhook verification → salla-webhooks.
+  Save & publish a Salla App Function — `salla_functions action=save` deploys to demo stores
+  (poll `action=deploy_status`), then the app is published. Use after validating the handler,
+  when you're ready to deploy and ship a function to production. Routed from
+  salla-app-functions; test first → salla-app-functions-test; app publication →
+  salla-app-builder / salla-publication-consistency; OAuth/tokens → salla-app-auth; webhook
+  verification → salla-webhooks.
 ---
 
 # App Functions — Save, Test & Publish

@@ -56,6 +56,16 @@ Paired with partners-mcp: `app_publish action=get`, per-section validation-error
 `set`, the `one_time_old_price`/`plan_additional_features` pricing fields, and a paid-pricing
 billing-cycle warning on `validate`.
 
+- **Skill-quality pass** (kit-wide judge findings): added **Red Flags** tables to
+  `salla-communication-app` (declare-features-before-publish/403, App-Functions-over-server,
+  CITC-for-SMS, never-store-provider-keys) and `salla-addon-purchase-embedded`
+  (activate-only-on-verified-webhook, Salla-owns-billing, match-by-`item_slug`,
+  reconcile-server-not-client); added per-step **`Gate:`** lines to `salla-communication-app`
+  (create/declare/handler/test) and `salla-storefront-ui` (build-native); and reworded
+  descriptions to explicit **"Use when…"** triggers (`salla-communication-app`,
+  `salla-shipping-app`, `salla-storefront-ui`, and trimmed the workflow summary out of
+  `salla-app-functions-release`).
+
 ## [1.0.6] — 2026-06-23
 
 ### Changed

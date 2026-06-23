@@ -1,13 +1,13 @@
 ---
 name: salla-app-billing
 description: >
-  Salla app monetization: plans and addons live in the publish payload (no pricing
-  endpoint), billed by Salla. Use when pricing the app, tracking plan/addon state, or
-  gating features by entitlement. Track state from app.subscription.* / app.trial.* events
-  (one family — item_type splits plan vs addon), reconcile via salla_apps
-  action=subscriptions, meter usage against the balance. Signatures → salla-webhooks;
-  tokens → salla-app-auth; wiring → salla-app-lifecycle; in-app purchase UI →
-  salla-addon-purchase / salla-addon-purchase-embedded.
+  Salla app monetization: plans and addons live in the publication's pricing section (no
+  separate pricing endpoint), billed by Salla. Use when pricing the app, tracking plan/addon
+  state, or gating features by entitlement. Track state from app.subscription.* /
+  app.trial.* events (one family — item_type splits plan vs addon), reconcile via salla_apps
+  action=subscriptions, meter usage against the balance. Signatures → salla-webhooks; tokens
+  → salla-app-auth; wiring → salla-app-lifecycle; in-app purchase UI → salla-addon-purchase /
+  salla-addon-purchase-embedded.
 ---
 
 # Salla App Billing Flow
@@ -33,11 +33,11 @@ Confirm payloads and field shapes via the App Events reference
 (https://docs.salla.dev/421413m0.md) or `salla_events action=list` before coding. The
 **Salla Partners MCP** performs the actions:
 
-| Tool           | Action               | What it does                                       |
-| -------------- | -------------------- | -------------------------------------------------- |
-| `salla_apps`   | `publish`            | Submit the app (pricing lives in the publish flow) |
-| `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`  |
-| `salla_apps`   | `subscriptions`      | Read-only: the app's subscription details          |
+| Tool           | Action               | What it does                                                            |
+| -------------- | -------------------- | ----------------------------------------------------------------------- |
+| `app_publish`  | `set` `validate`     | Set the `pricing` section (plans/addons), then validate the publication |
+| `salla_events` | `list` / `subscribe` | Subscribe to `app.subscription.*` / `app.trial.*`                       |
+| `salla_apps`   | `subscriptions`      | Read-only: the app's subscription details                               |
 
 ### Plans vs Addons
 
@@ -64,12 +64,13 @@ Ask before starting:
 
 ---
 
-## Step 1 — Define Pricing Plans & Publish
+## Step 1 — Define Pricing Plans (publication `pricing` section)
 
-Plans **and addons are defined inside the publish payload** submitted by
-`salla_apps action=publish` — there is **no separate pricing endpoint**. The Portal's
-Pricing wizard step is a UI helper that batches everything into the single
-`POST /app/{id}/publish` body (verified):
+Plans **and addons are defined inside the publication's `pricing` section** —
+`app_publish action=set section=pricing data={…}`, then `app_publish action=validate`. There
+is **no separate pricing endpoint**; the Portal's Pricing wizard step is a UI helper over the
+same section. The publish mechanics are owned by **salla-publication-consistency**; the
+`pricing` data shape is:
 
 - `plan_type` — `"free"` | `"recurring"` | `"once"` | `"on_demand"` (required; these are the exact API values — there is no `one_time` or `pay_as_you_go`).
 - `plans` — for recurring pricing: up to **8 plans** (0–4 monthly, 0–4 yearly), each carrying
@@ -78,8 +79,9 @@ Pricing wizard step is a UI helper that batches everything into the single
 - Trial is set ONCE at the top level, not per plan: `plan_trial` (integer days, min 1, capped by
   the company's max-trial-days — default 7) plus `trial_description` (30–1000 chars).
 - `addons` — extra purchasables, allowed with **all** pricing types.
-- `action: "save" | "submit"` is always required — full payload →
-  salla-app-builder's publish step.
+
+Set this section with `app_publish action=set section=pricing`, then `app_publish
+action=validate` (saves the draft). Full publish flow → **salla-publication-consistency**.
 
 | Plan type        | Use                                          |
 | ---------------- | -------------------------------------------- |
@@ -92,8 +94,8 @@ Pricing wizard step is a UI helper that batches everything into the single
 
 After the app exists, **App details → Custom Plans** exposes per-merchant/tailored plans.
 
-**Gate:** "Plans configured in the Pricing section and the app submitted via
-`salla_apps action=publish`?"
+**Gate:** "Plans configured in the publication's `pricing` section
+(`app_publish action=set section=pricing`) and the publication validates clean?"
 
 ---
 

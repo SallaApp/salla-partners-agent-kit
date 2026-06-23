@@ -2,12 +2,12 @@
 name: salla-webhooks
 description: >
   Salla webhooks end to end — registering/subscribing, choosing a security strategy
-  (Signature vs Token), verifying signatures (`X-Salla-Signature`), the standard
-  payload envelope, idempotency, fast 200, conditional rules, and webhook versions
-  (v1/v2). Use when building a webhook server (Node/Express `@salla.sa/webhooks-actions`
-  or Laravel/PHP / Salla CLI), subscribing store or app events, or debugging delivery.
-  Prefer an App Function (salla-app-functions) when a trigger exists. Lifecycle event
-  handling → salla-app-lifecycle; token storage → salla-app-auth.
+  (signature = HMAC of the raw body; token = plain equality of the Authorization
+  header; or none) and verifying each correctly, the payload envelope, idempotency,
+  fast 200, conditional rules, and versions (v1/v2). Use when building a webhook server
+  (Node/Express `@salla.sa/webhooks-actions` or Laravel/PHP / Salla CLI), subscribing
+  events, or debugging delivery. Prefer an App Function (salla-app-functions) when a
+  trigger exists. Lifecycle → salla-app-lifecycle; tokens → salla-app-auth.
 ---
 
 # Salla Webhooks Flow
@@ -30,14 +30,20 @@ Confirm live event payload schemas in the webhooks reference
 (https://docs.salla.dev/421119m0.md) before coding; never assume a shape. The **Salla
 Partners MCP** _performs actions_:
 
-| Tool           | Action               | What it does                                                           |
-| -------------- | -------------------- | ---------------------------------------------------------------------- |
-| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, secret, custom headers |
-| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                            |
+| Tool           | Action               | What it does                                                                    |
+| -------------- | -------------------- | ------------------------------------------------------------------------------- |
+| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, custom headers (secret: Portal) |
+| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                                     |
 
-> New webhooks default to **version 2**; when no `security_strategy` is sent on a Partner
-> app's webhook Salla assigns **Signature** by default (421119). Store-level management base
-> URL (merchant token): `https://api.salla.dev/admin/v2`; register is `POST /webhooks/subscribe`.
+> New webhooks default to **version 2**. **Always set `webhook_security_strategy` explicitly**
+> (`signature` | `token` | `none`) — the Partners MCP now requires it on
+> `salla_apps action=connect`. Picking **`none`** disables verification: Salla then sends
+> deliveries with **no `Authorization` header and no signature**, so there is nothing to
+> verify (Step 3). Because `none` runs **no** verification, a wrong or missing verify (e.g.
+> HMAC-ing a `token` webhook) stays **invisible** under it — confirm the active strategy is
+> `token`/`signature`, not `none`, before trusting that "verification works." Store-level
+> management base URL (merchant token):
+> `https://api.salla.dev/admin/v2`; register is `POST /webhooks/subscribe`.
 > Docs: https://docs.salla.dev/421119m0.md · Conditional: https://docs.salla.dev/421120m0.md ·
 > Node/Express repo: https://github.com/SallaApp/webhook-actions-js
 
@@ -58,17 +64,28 @@ Partners MCP** _performs actions_:
 
 Two supported paths, both with a single POST endpoint and the secret loaded from env:
 
-- **Node.js / Express with `@salla.sa/webhooks-actions`** ✅ recommended — the SDK verifies
-  the delivery internally and routes events to `on(<event>, …)` listeners (or file-based
-  `Actions/<domain>/<event>.js` handlers scaffolded by `salla app create-webhook`). With the
-  SDK's internal verification, a parsed JSON body is fine.
+- **Node.js / Express with `@salla.sa/webhooks-actions`** — the official server-side package.
+  It dispatches events (`Actions.setSecret(secret)`, `Actions.on(event, cb)`,
+  `Actions.checkActions(body, token)`) and does **token** verification internally — its check
+  is `if (secret !== this._secret) return;`, i.e. plain equality of the `Authorization` value
+  against the secret (Step 3, `token` strategy). Routes events to `on(<event>, …)` listeners
+  or file-based `Actions/<domain>/<event>.js` handlers (`salla app create-webhook`).
+  - **Caveat — Express only.** The package is **CommonJS** and dispatches handlers via dynamic
+    `require()` over the file system, which **does not work on Next.js (or other) serverless**
+    runtimes. The listener API and the token-equality model are portable; the file-dispatch is
+    not. On serverless, verify and dispatch by hand (Step 3) instead of relying on the package.
 - **Laravel / PHP via Salla CLI** (`salla app create`) — scaffolds the server; verify
-  manually with `hash_hmac('sha256', $rawBody, $secret)` + `hash_equals` if you don't use
-  the scaffold.
+  manually with `hash_hmac('sha256', $rawBody, $secret)` + `hash_equals` for the **signature**
+  strategy.
 
-The decision that matters: if you verify the **Signature manually** (Step 3), the HMAC must
+The decision that matters: if you verify the **signature manually** (Step 3), the HMAC must
 run on the **raw request body** — capture the unparsed bytes before any JSON middleware.
 Don't mix a parsed body with a manual HMAC check on the same route.
+
+> **Check for an official `@salla.sa` package before hand-writing server-side code.** Run
+> `npm search "@salla.sa"` — alongside `@salla.sa/webhooks-actions` you may use
+> `@salla.sa/passport-strategy` (OAuth), `@salla.sa/event`, and `@salla.sa/embedded-sdk`.
+> Confirm the package's runtime fit (the serverless caveat above) before adopting it.
 
 **Full scaffolding (env vars, Express Pattern A/B, the file-handler tree, PHP verify):
 load [references/server-setup.md](references/server-setup.md).**
@@ -82,15 +99,21 @@ load [references/server-setup.md](references/server-setup.md).**
 ### App / lifecycle events (Partners MCP) ✅ for partner apps
 
 1. Set the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
-   `webhook_security_strategy: "signature"`, `generate_secret: true` (optional
-   `webhook_headers`).
+   `webhook_security_strategy` (**required** — `signature` | `token` | `none`),
+   optional `webhook_headers`. (The signing secret is created/rotated in the Portal, not here.)
+   - Set the strategy **explicitly every time**. Omitting it is treated as **`none`** —
+     Salla then delivers with **no `Authorization` header and no signature**, so there is
+     nothing to verify and your guard silently passes everything (Red Flags).
+   - `signature` → HMAC; `token` → plain header equality; `none` → no verification (Step 3).
 
-   > **Secret-sync gate:** `generate_secret` mints a NEW secret. After **any**
-   > `generate_secret` call or Portal secret reset, immediately re-read the current value
-   > with `salla_apps action=get` (the `webhook_secret` field) — never assume your
-   > local/env value still matches Salla's — and update **every** deployment environment
-   > (prod, staging, preview) with it. Confirm **deployed env == Portal secret** before
-   > testing; a mismatch fails verification and returns **401 on every delivery**.
+   > **Secret-sync gate:** the signing secret is created/rotated **in the Partner Portal**
+   > (`https://portal.salla.partners/apps/{app_id}`, real id substituted), not by the MCP — a
+   > rotation invalidates the old value. **Immediately before deploying, read the live value with
+   > `salla_apps action=get` (the `webhook_secret` field)** — never reuse a secret from an
+   > earlier session or assume your local/env value still matches Salla's. Tie verification
+   > to that live value and update **every** deployment environment (prod, staging, preview).
+   > Confirm **deployed env == Portal secret** before testing; a mismatch fails verification
+   > and returns **401 on every delivery**.
 
 2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events
 action=subscribe`, `app_id`, `events: [...]`.
@@ -149,15 +172,44 @@ confirms), webhook URL registered?"
 
 ## Step 3 — Secure Every Delivery
 
-### Strategy A: Signature (default ✅)
+**Verify against the strategy you set on connect (Step 2) — the two strategies use _different_
+verification, and using the wrong one rejects (or admits) everything.** Read the live secret
+with `salla_apps action=get` first (Step 2 secret-sync gate). Keep `SALLA_WEBHOOK_SECRET` in
+env only, out of logs. Docs: https://docs.salla.dev/421119m0.md
 
-Set a **secret** when establishing the webhook — this enables verification. Salla appends
-the request body's **64-character SHA256 HMAC hash** to the `x-salla-signature` header
-(alongside `X-Salla-Security-Strategy: Signature`), computed as
-`HMAC-SHA256(rawRequestBody, secret)`. The secret is viewable in the partner dashboard.
-Verify the signature with a **timing-safe comparison** before processing or persisting any
-payload, and keep the signing secret (`SALLA_WEBHOOK_SECRET`) in env only — out of logs.
-Docs: https://docs.salla.dev/421119m0.md
+| `webhook_security_strategy` | What Salla sends                           | How you verify                                        |
+| --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `token`                     | `Authorization: <webhook_secret>` header   | **Plain equality**: header value **===** the secret   |
+| `signature`                 | `x-salla-signature` = HMAC of the raw body | **HMAC-SHA256(rawBody, secret)** compared timing-safe |
+| `none`                      | No `Authorization`, no signature           | Nothing to verify — verification is **disabled**      |
+
+### Strategy `token` — plain equality (NOT HMAC)
+
+Salla sends the secret **verbatim** in the `Authorization` header; verification is a direct
+**equality** check of that header value against your `webhook_secret`. This is exactly what
+`@salla.sa/webhooks-actions` does internally: `if (secret !== this._secret) return;` — no
+hashing, no HMAC. A parsed JSON body is fine, since the body is not part of the check.
+
+```typescript
+import { timingSafeEqual } from "crypto";
+
+// `token` strategy: the Authorization header value IS the secret (no "Bearer" prefix,
+// no HMAC). Compare it directly to webhook_secret. timingSafeEqual avoids a timing leak;
+// the plain-equality model is `received === secret`.
+function verifyToken(authHeader: string, secret: string): boolean {
+  const a = Buffer.from(authHeader ?? "");
+  const b = Buffer.from(secret);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+### Strategy `signature` — HMAC of the raw body
+
+Salla appends the request body's **64-character SHA256 HMAC hash** to the
+`x-salla-signature` header (alongside `X-Salla-Security-Strategy: Signature`), computed as
+`HMAC-SHA256(rawRequestBody, secret)`. Verify it with a **timing-safe comparison** before
+processing or persisting any payload. The HMAC must run on the **raw body** — capture the
+unparsed bytes before any JSON middleware.
 
 ```typescript
 // TypeScript — Web Crypto API (Node 16+, Deno, Cloudflare Workers).
@@ -192,22 +244,6 @@ function hexToBytes(hex: string): Uint8Array {
 }
 ```
 
-### Strategy B: Token
-
-Salla sends `Authorization: Bearer <your-static-token>`; set the value in the Portal or
-the registration request.
-
-```typescript
-import { timingSafeEqual } from "crypto";
-
-function verifyToken(authHeader: string, expectedToken: string): boolean {
-  const token = authHeader.replace("Bearer ", "");
-  const a = Buffer.from(token.padEnd(expectedToken.length));
-  const b = Buffer.from(expectedToken);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-```
-
 ### Custom headers
 
 Both strategies support additional headers (internal routing, gateway auth, multi-tenant):
@@ -223,7 +259,9 @@ Set via the Portal UI, the register/update API, or `salla_apps action=connect`
 `webhook_headers`. Use **standard header names** (e.g. `X-App-Source`, `X-Tenant-ID`) and
 let the **Partners MCP validate** what's accepted.
 
-**Gate:** "Every request is verified (timing-safe) and unverified ones get 401?"
+**Gate:** "Verification matches the strategy I set on connect (`token` → header equality,
+`signature` → HMAC of the raw body), runs timing-safe, and unverified deliveries get 401?
+(If `none`, is leaving it unverified a deliberate choice, not an accident?)"
 
 ---
 
@@ -303,9 +341,11 @@ Response & retry rules — **non-negotiable** (421119):
 > and dedupe rather than depend on exact timing.
 
 ```typescript
-// Fast response + async processing (Express).
+// Fast response + async processing (Express). This route uses the `signature` strategy.
 // Mount a RAW body parser on this route — NOT a global express.json(), which would
 // consume the body and break HMAC. Parse JSON only AFTER the signature checks out.
+// (For the `token` strategy, verify req.get("Authorization") === secret instead — a
+// parsed body is then fine. See Step 3 for both.)
 app.post("/webhooks/salla", express.raw({ type: "*/*" }), async (req, res) => {
   const raw = req.body.toString("utf8"); // Buffer from express.raw
   const signature = req.get("X-Salla-Signature") ?? "";
@@ -384,15 +424,17 @@ Full lifecycle handling → **salla-app-lifecycle**; token storage → **salla-a
 Shortcuts that look harmless on a webhook server and cause silent data loss or security
 holes in production. If one of these is your plan, re-read the named step.
 
-| Tempting thought                                                | Why it's wrong                                                                                                                                           |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "I'll verify the signature after I parse the JSON."             | HMAC must run on the **raw bytes** Salla sent. `express.json()` first and the body is already mutated — verification breaks. Capture raw first (Step 3). |
-| "`===` is fine for comparing the signature."                    | String compare is timing-attackable. Use a timing-safe comparison every time (Step 3).                                                                   |
-| "An App Function trigger exists, but a webhook is what I know." | App Functions run in Salla's sandbox with built-in auth, settings, and synchronous control — prefer them when a trigger exists (top of skill).           |
-| "I'll do the DB write / email, then return 200."                | Salla waits ~30s then marks the delivery failed and **retries 3×**. Ack first, process async (Step 5).                                                   |
-| "Each event is delivered once, so I can skip idempotency."      | Webhooks can arrive more than once. Dedupe on `subscription_id` or a raw-body hash — not the resource id or `created_at` (Step 5).                       |
-| "I'll read the store id from `payload.data.merchant`."          | `merchant` is **top-level** in the envelope. `data.merchant.id` is `undefined`, so you persist the wrong/empty store (Step 5).                           |
-| "Verification returns 401 — must be a code bug."                | First suspect is secret parity: deployed `SALLA_WEBHOOK_SECRET` ≠ Portal secret after a `generate_secret`/reconnect rejects every delivery (Step 8).     |
+| Tempting thought                                                | Why it's wrong                                                                                                                                                                                                                      |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'll just leave `webhook_security_strategy` unset on connect." | Unset is treated as **`none`** — Salla then sends **no `Authorization` and no signature**, so your guard verifies nothing and admits every request. Always set it explicitly (Step 2). This footgun caused a ~1h production outage. |
+| "I'll HMAC the body to verify a `token` webhook."               | `token` is **plain equality** — `Authorization` header **===** the secret, not a hash. HMAC'ing it rejects every valid delivery. Match the verification to the strategy you set (Step 3).                                           |
+| "I'll verify the signature after I parse the JSON."             | HMAC must run on the **raw bytes** Salla sent. `express.json()` first and the body is already mutated — verification breaks. Capture raw first (Step 3).                                                                            |
+| "`===` is fine for comparing the signature."                    | A naive string compare is timing-attackable. Use a timing-safe comparison for both the signature HMAC and the token equality check (Step 3).                                                                                        |
+| "An App Function trigger exists, but a webhook is what I know." | App Functions run in Salla's sandbox with built-in auth, settings, and synchronous control — prefer them when a trigger exists (top of skill).                                                                                      |
+| "I'll do the DB write / email, then return 200."                | Salla waits ~30s then marks the delivery failed and **retries 3×**. Ack first, process async (Step 5).                                                                                                                              |
+| "Each event is delivered once, so I can skip idempotency."      | Webhooks can arrive more than once. Dedupe on `subscription_id` or a raw-body hash — not the resource id or `created_at` (Step 5).                                                                                                  |
+| "I'll read the store id from `payload.data.merchant`."          | `merchant` is **top-level** in the envelope. `data.merchant.id` is `undefined`, so you persist the wrong/empty store (Step 5).                                                                                                      |
+| "Verification returns 401 — must be a code bug."                | First suspect is secret parity: deployed `SALLA_WEBHOOK_SECRET` ≠ Portal secret after a Portal secret rotation (or reconnect) rejects every delivery (Step 8).                                                                      |
 
 ---
 
@@ -430,7 +472,7 @@ it, via the read-schema → build → validate → fix → retry loop in **salla
 When webhooks aren't arriving:
 
 - [ ] **Every delivery returns 401 → check secret parity FIRST.** Deployed
-      `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a `generate_secret`/reconnect mints
+      `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a Portal rotation (or reconnect) mints
       a new one. This single mismatch rejects every webhook.
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")

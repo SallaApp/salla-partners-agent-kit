@@ -20,9 +20,9 @@ only when `app.subscription.started` arrives, signature-verified.**
 
 ## Tools & MCPs
 
-Use the Salla Partners MCP: define the addon at publish (`salla_apps action=publish`,
-`addons[]`), set a `webhook_url` via `salla_apps action=connect`, then `salla_events
-action=subscribe` to the subscription events below.
+Use the Salla Partners MCP: define the addon in the publication's `pricing` section
+(`app_publish action=set section=pricing`, `addons[]`), set a `webhook_url` via `salla_apps
+action=connect`, then `salla_events action=subscribe` to the subscription events below.
 
 > Salla owns billing — you never charge. Hand-offs: purchase UX (iframe) →
 > **salla-addon-purchase-embedded** · pricing/entitlement primitives & gating →

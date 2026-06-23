@@ -20,6 +20,21 @@ Build a complete Salla app by **performing the actions**, not just describing th
 Each step calls a Salla Partners MCP tool to do the work. Follow the steps in order —
 complete each gate before moving to the next.
 
+> **Grounding rules — read the real value, confirm the real result.**
+>
+> 1. **Verify the deployed domain before writing ANY URL into Salla.** Read the live Vercel
+>    project domain — `vercel project ls`, the Vercel MCP, or `.vercel/project.json` — before
+>    you set `app_url`, an embedded `iframe_url`, or a snippet BASE. A guessed `*.vercel.app`
+>    that doesn't resolve breaks install, webhooks, and the iframe **silently** (no error at
+>    write time).
+> 2. **Read back after every mutate.** `connect`/`update`/`subscribe` can return a minimal or
+>    empty body — a zero-field response is indistinguishable from a silent failure. Confirm
+>    with a `get`/`list` before treating the change as done; never trust the write response
+>    alone.
+> 3. **On a domain change, update every place the domain lives, together** — portal `app_url`,
+>    embedded `iframe_url`, snippet BASE, and every env var. Checklist:
+>    [references/domain-consistency.md](references/domain-consistency.md).
+
 **The arc:** **create → configure → publish.** Creating the app is only the first gate —
 a created app is **not** published; it still needs scopes, webhooks/events, any UI, then
 review before it reaches merchants ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
@@ -32,13 +47,13 @@ drive that same Portal, so prefer them when connected.
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
 
-| Tool              | What it does                                                                                                           |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `salla_reference` | Look up `categories`, `countries`, `cities`                                                                            |
-| `salla_upload`    | Upload a logo/file → returns a file `id`                                                                               |
-| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish` / `demo_stores` (testing) |
-| `salla_scopes`    | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)   |
-| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                               |
+| Tool              | What it does                                                                                                                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference` | Look up `categories`, `countries`, `cities`                                                                                                                                                                |
+| `salla_upload`    | Upload a logo/file → returns a file `id`                                                                                                                                                                   |
+| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `publish_private` (private apps) / `demo_stores` (testing). Public-app publishing uses the separate `app_publish` tool. |
+| `salla_scopes`    | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)                                                                                       |
+| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                                                                                                                   |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -91,7 +106,7 @@ Use the answers to tailor Steps 1, 4–7.
 | `name` + `name_ar`           | Salla expects the app name in Arabic, in plain letters with no diacritics/tashkeel (e.g. هريفاي, not هرّفاي), and unique across Salla apps. Treat these as Portal-enforced — let `create` validate: submit, then act on the error (rename and resubmit if the name is taken or invalid) rather than pre-checking client-side. Confirm the exact constraints from the `create` response when in doubt. |
 | `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                                                          |
 | `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                                                             |
-| `app_url`                    | URL                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `app_url`                    | The app's live URL — read it from the deployed Vercel project (Grounding rule 1), not a guessed `*.vercel.app`. This is the **source** domain; if it later changes, update it here too (Step 1 gate / domain-consistency checklist).                                                                                                                                                                  |
 | `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
 | `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
 | `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
@@ -106,8 +121,9 @@ Trusted IPs, App Functions, Settings, Onboarding, Embedded Pages, Snippets, Cust
 Testing, and Publishing ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
 
 > **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
-> success — the Portal does not echo changed fields. Always follow up with
-> `salla_apps action=get` to confirm the update was applied.
+> success — the Portal does not echo changed fields, so the response can't tell a success
+> from a silent failure. Per Grounding rule 2, always read back with `salla_apps action=get`
+> and confirm the changed field actually holds the new value before moving on.
 
 **Manual fallback:** Portal → **My Apps → Create App**.
 
@@ -145,22 +161,23 @@ app's valid scope slugs and current selection:
    - `webhook_url` — your webhook receiver (**HTTPS-only**, must authenticate inbound
      requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
-   - `generate_secret: true` — mints + returns the webhook signing secret. An app already
-     has a secret from creation, so this **rotates** it; only pass it when you intend to
-     replace the current secret (rotating a secret already live on production traffic
-     breaks in-flight verification).
    - `trusted_ips`, `webhook_headers`
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
-Store the returned **webhook secret** in a secret manager (never in source/repo); it
-verifies the HMAC-SHA256 signature on every webhook.
+`connect` does **not** mint or rotate the webhook signing secret. Create or rotate it in the
+Partner Portal (`https://portal.salla.partners/apps/{app_id}`); rotating there invalidates the
+old value. Read the current secret with `salla_apps action=get` (the `webhook_secret` field)
+and store it in a secret manager (never in source/repo); it verifies the HMAC-SHA256 signature
+on every webhook. Read it live right before deploy — never reuse one carried across sessions.
 Signature verification + idempotency → **`salla-webhooks`** skill. Token handling
 (Easy vs Custom mode, storage, refresh) → **`salla-app-auth`** skill. (Route, don't
 reimplement here.)
 
-**Gate:** "Scopes + redirect + webhook applied (no `_partial`). Is your webhook URL live
-and returning 200, with the secret stored?"
+**Gate:** "Scopes + redirect + webhook applied (no `_partial`), and a read-back
+(`salla_scopes action=get` / `salla_apps action=get`) confirms the scopes, redirect, and
+webhook URL actually stuck (Grounding rule 2). The webhook URL is the live deployed domain
+(Grounding rule 1), returning 200, with the secret stored?"
 
 ---
 
@@ -291,7 +308,33 @@ Integrates a carrier or fulfillment provider:
 
 ---
 
-## Step 8 — Test & Publish
+## Step 8 — Test, Validate the Draft & Hand Off to the Partner
+
+### Public app vs Private app — how each publishes
+
+**Decide the path by app type before publishing — they do not share a flow:**
+
+- **If `type` is `private`** (installed only by specific merchant(s) via a private
+  request) → **direct one-shot publish**: call `salla_apps action=publish_private`
+  (`app_id`; `update_note` **required only when it's an update**) →
+  `POST /app/{id}/private-publish`. This snapshots the app's current config (snippets,
+  webhooks, scopes) and publishes to the target merchant(s). There is **no public listing,
+  no stepwise onboarding, and no readiness sections** — skip Steps 3–7's publication
+  sections entirely. **Prerequisites (Portal-enforced):** the app must be `type: private`
+  and in **DEVELOPMENT**, the company must be **ID-verified**, and the app must not already
+  be submitted. Free private apps may be capped by a `private_apps_limit` — exceeding it
+  returns `free_private_apps_disabled` (403). Let `publish_private` validate these and act
+  on the error.
+- **Else (a public app — App Store, any merchant can discover/install)** → the **stepwise
+  `app_publish` onboarding** in sub-steps 1–4 below: `open` → guided `set` per section →
+  `app_publish action=validate` (validates + saves a DRAFT) → guide the partner to submit
+  one-click in the Portal. This needs the full public listing (categories, pricing,
+  screenshots, benefits, contact, etc.). Mechanics → **follow
+  [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**.
+
+**Gate:** "Is `type` `private`? → publish with `salla_apps action=publish_private`
+(`update_note` on updates), confirm ID-verification + DEVELOPMENT status, and STOP — do not
+run the public onboarding. Otherwise continue with the public `app_publish` flow below."
 
 1. **Test on a demo store.** List the company's demo stores with
    `salla_apps action=demo_stores`, `app_id`. Each store returns:
@@ -307,32 +350,50 @@ Integrates a carrier or fulfillment provider:
    `https://portal.salla.partners/apps/{app_id}`.
 
 2. Move the app to live when ready: `salla_apps action=set_status`, `status: "live"`.
-3. **Publish.** Two paths — use the guided one by default:
+3. **Validate + save the draft.** The agent's terminal publish action is **validate**, not
+   submit — it validates every section, **saves a DRAFT**, and stops there. Use the guided
+   path:
 
    - **Primary — guided, stepwise `app_publish`:** `open` → (set `<section>` →
-     `readiness`)\* → `submit`. `open` creates the draft (and unlocks `app_page_builder`
+     `readiness`)\* → `validate`. `open` creates the draft (and unlocks `app_page_builder`
      for the listing page); then for each of the 5 sections (`basic_information`,
      `features`, `pricing`, `contact_information`, `service_trial`) call `set`, re-check
      `readiness`, and fix one section at a time off the returned `missing` list until every
-     section reads `complete`; then `submit`. `withdraw` pulls a pending submission back.
-     **Section fields, the readiness gate, and ordering →
+     section reads `complete`; then run `app_publish action=validate` to validate and save
+     the draft. **First-time publish is a guided onboarding, not a blind fill:** the sections
+     carry the partner's business decisions (listing copy, categories, pricing, contact) —
+     ask the partner per section, suggest Salla-grounded options, and fill from their
+     answers; never auto-invent them. **Section fields, the guided-onboarding rule, the
+     listing-image rule, and the Portal hand-off →
      [salla-publication-consistency](../salla-publication-consistency/SKILL.md)** (follow it
      for the mechanics).
-   - **Alternative — one-shot `salla_apps action=publish`:** a single call (`app_id`,
-     `publication` payload, `publish_action: "save" | "submit"`, optional
-     `private`/`update_note`) for when you already have the full listing payload assembled.
+     The same server-side gate (`app_publish action=validate`) runs and returns **422** with the
+     still-missing sections if it isn't ready. Listing content
+     (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
+     [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
+     [salla-app-billing](../salla-app-billing/SKILL.md).
 
-   Either way `submit` hits the same server-side gate, which returns **422** with the
-   still-missing sections if it isn't ready. Listing content
-   (name/description/logo/screenshots/benefits) is written via `app_page_builder` →
-   [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
-   [salla-app-billing](../salla-app-billing/SKILL.md).
-
-4. Once approved the app is live on https://apps.salla.sa/en.
+4. **Partner reviews, then send the publish request.** `validate` only saves a DRAFT. After a
+   clean validate, give the partner their real `/publish` link with the app's actual id
+   substituted (never the placeholder): `https://portal.salla.partners/apps/{app_id}/publish`
+   (e.g. `.../apps/1234567/publish`) and ask them to **review** the draft there. It goes to
+   Salla review only **either** when they submit one-click in the Portal **or**, after they
+   **explicitly confirm**, when you call `app_publish action=send_publish_request` (`confirm:
+true`) — **never before** review + confirmation. Once submitted and approved it's live on
+   https://apps.salla.sa/en. Mechanics → **salla-publication-consistency**.
 
 Testing guide: references/demo-store-testing.md
 
-**Gate:** "Published — `salla_apps action=get` shows the expected status."
+**Gate:** "Sections validated + saved as a draft, the partner reviewed the real `/publish`
+link, and the publish request is sent only on their one-click submit or explicit confirmation?"
+
+### Red Flags — publishing
+
+| Tempting thought                                                                      | Why it's wrong                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "It's a private app, I'll run the public `app_publish` onboarding to publish it."     | Private apps don't use the stepwise listing flow. Publish with `salla_apps action=publish_private` (one call, `update_note` on updates) — no sections, no listing.                                           |
+| "I'll `app_publish action=submit` / push the private app through the readiness gate." | A private app has no public listing to validate. The private path is `publish_private` → `POST /app/{id}/private-publish`; the public `validate` gate doesn't apply.                                         |
+| "Private publish keeps failing — I'll retry."                                         | Check the prerequisites: `type: private` + DEVELOPMENT, company **ID-verified**, not already submitted; a `free_private_apps_disabled` 403 means the `private_apps_limit` is hit. Act on the specific error. |
 
 ---
 

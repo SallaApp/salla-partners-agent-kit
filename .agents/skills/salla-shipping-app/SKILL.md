@@ -41,14 +41,15 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 
 ## Tools
 
-| Tool              | Action                                          | What it does                                                          |
-| ----------------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| `salla_reference` | `categories`                                    | Get the shipping `type`; pick `sub_category_id` from `sub_categories` |
-| `salla_upload`    | —                                               | Upload the logo → file `id`                                           |
-| `salla_apps`      | `create` / `connect` / `set_status` / `publish` | Create + configure OAuth/webhooks + publish                           |
-| `salla_events`    | `list` / `subscribe`                            | Subscribe to the async shipment events                                |
-| `salla_functions` | `list_triggers` / `save` / `preview`            | Implement + test the sync shipment App Functions                      |
-| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings`      | Configure shipping zones + settings                                   |
+| Tool              | Action                                                  | What it does                                                                     |
+| ----------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `salla_reference` | `categories`                                            | Get the shipping `type`; pick `sub_category_id` from `sub_categories`            |
+| `salla_upload`    | —                                                       | Upload the logo → file `id`                                                      |
+| `salla_apps`      | `create` / `connect` / `set_status` / `publish_private` | Create + configure OAuth/webhooks; private apps publish in one shot              |
+| `app_publish`     | `open` / `set` / `validate`                             | Public apps: validate the publication (saves a DRAFT; partner submits in Portal) |
+| `salla_events`    | `list` / `subscribe`                                    | Subscribe to the async shipment events                                           |
+| `salla_functions` | `list_triggers` / `save` / `preview`                    | Implement + test the sync shipment App Functions                                 |
+| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings`              | Configure shipping zones + settings                                              |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Carry the `app_id`
 > through every step. If a tool returns "Salla session expired", re-run the login flow.
@@ -103,7 +104,11 @@ slugs from `salla_apps action=get` — there is no scope-catalog reference endpo
   **minimum** scopes the app needs; pick `read` over `read_write` unless a write is
   required, and don't request broad scopes you won't use.
 - `redirect_urls`, `webhook_url`, `webhook_security_strategy: "signature"`
-- `generate_secret: true` — returns the webhook secret (store it for HMAC verification)
+
+The webhook signing secret isn't minted by `connect` — create/rotate it in the Partner Portal
+(`https://portal.salla.partners/apps/{app_id}`) and read the current value with
+`salla_apps action=get` (the `webhook_secret` field) before deploy; store it for HMAC
+verification.
 
 OAuth, token storage/refresh, and the per-merchant refresh lock → **`salla-app-auth`**.
 Webhook signature verification (verify `X-Salla-Signature` against the raw body, reject
@@ -257,8 +262,10 @@ owned by **`salla-live-testing`**. Use demo/non-sensitive data: keep production 
 credentials, OAuth/bearer tokens, webhook signing secrets, and real customer PII out of any
 third-party capture/inspection tool, and restore real config when done.
 
-**Publishing:** `salla_apps action=publish`, `app_id` (optional `update_note`). Complete
-the publishing sections in the Portal. Two shipping-specific blockers:
+**Publishing:** public app → `app_publish` stepwise (`open` → `set` each section →
+`validate` saves a DRAFT; the partner then submits one-click in the Portal `/publish` page —
+owned by **salla-publication-consistency**). Private app → `salla_apps action=publish_private`,
+`app_id` (optional `update_note`). Two shipping-specific blockers:
 
 - The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).

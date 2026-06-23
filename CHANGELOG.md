@@ -10,6 +10,64 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.4] — 2026-06-23
+
+### Changed
+
+- **Publish flow now stops at a validated draft.** `app_publish` no longer submits to admin
+  review — its terminal action is `validate`, which validates every section and **saves a
+  DRAFT**, returning a valid publication. After a clean validate, the agent guides the
+  **partner** to review and submit in one click at
+  `https://portal.salla.partners/apps/{app_id}/publish` (with the app's **real** id
+  substituted). The agent never submits to Salla review itself. Updated
+  `salla-publication-consistency` (loop table, sequence, gates, Red Flags),
+  `salla-app-builder` (Step 8), and the `salla-app-expert` routing/MCP tables.
+- **Swept every remaining `salla_apps action=publish` reference** (that action was removed —
+  publishing is now `app_publish` for public apps, `salla_apps action=publish_private` for
+  private apps) across `salla-app-builder`, `salla-app-expert`, `salla-app-billing`,
+  `salla-addon-purchase`, `salla-app-functions`, `salla-app-functions-release`, and
+  `salla-shipping-app`. Pricing/plans/addons are now set via the publication's `pricing`
+  section (`app_publish action=set section=pricing`) then `validate`, not a separate publish
+  call. `salla-app-functions-release` reframed: the agent **validates** the publication
+  (saves a draft) and the **partner** does the one-click submit in the Portal — the agent
+  never admin-submits; the pre-publish security scan runs before the partner submits.
+- **salla-webhooks** — document the two verification strategies distinctly: `token` is
+  plain equality (`Authorization` header `===` `webhook_secret`, **not** HMAC); `signature`
+  is HMAC-SHA256 of the raw body. `webhook_security_strategy` must be set **explicitly** —
+  unset = `none` = no verification. Added the `@salla.sa/*` server packages
+  (`webhooks-actions`, `passport-strategy`, `event`, `embedded-sdk`) with the Next.js
+  serverless caveat on `webhooks-actions`' file-dispatch.
+- **salla-app-auth** — persist merchant tokens in a real datastore keyed by `merchant`
+  (`/tmp` / in-memory are wiped on cold start → 403, app looks uninstalled); `generate_secret`
+  **rotates** the signing secret, so read the live `webhook_secret` via `salla_apps action=get`
+  before deploy and never reuse one carried across sessions.
+- **salla-app-expert / salla-app-builder** — read every concrete value (URLs/domains,
+  secrets, event names, algorithms, package APIs) from its **live source at point of use**,
+  never invented or carried across a context compaction; verify the deployed domain before
+  writing any URL into Salla; domain-change consistency checklist; read back after every mutate.
+
+### Added
+
+- **Listing-image asset rule** (owned by `salla-app-ui-builder`, referenced from
+  `salla-publication-consistency`): the listing needs real `logo` + ≥3 screenshots (App
+  Information) and `banner` + `embedded_image` (App Features). Ask the user to provide the
+  required images; if they decline, proceed with clearly-marked placeholders **and**
+  explicitly tell the partner to replace them in the Portal before the one-click submit.
+  Never invent a real-looking image or silently ship a placeholder as final. Added as a
+  positive recipe plus Red Flags rows on both skills.
+- **Public app vs Private app publish decision** (owned by `salla-app-builder`, Step 8): a
+  type-based rule — `type: private` → direct one-shot `salla_apps action=publish_private`
+  (`POST /app/{id}/private-publish`, body just `update_note` on updates; no public listing,
+  no stepwise onboarding, no readiness sections; prerequisites: `type: private` +
+  DEVELOPMENT, ID-verified company, not already submitted, `private_apps_limit` /
+  `free_private_apps_disabled` 403 guard). Public apps → the stepwise `app_publish`
+  onboarding (hand off to `salla-publication-consistency`). Scoped
+  `salla-publication-consistency` to **public** apps with a one-line hand-off to
+  `publish_private`. Added a publishing Red Flags table on `salla-app-builder`.
+
+Closes the skill gaps from the ConversionKit build post-mortem (paired with partners-mcp's
+required `webhook_security_strategy` + `generate_secret` rotation warning).
+
 ## [1.0.3] — 2026-06-22
 
 ### Added

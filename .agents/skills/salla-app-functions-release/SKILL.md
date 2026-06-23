@@ -2,9 +2,11 @@
 name: salla-app-functions-release
 description: >
   Save & publish a Salla App Function. `salla_functions action=save` deploys to demo stores
-  (poll `action=deploy_status`); then test (salla-app-functions-test) and `salla_apps
-  action=publish` for admin approval to reach real stores. Use after validating. Routed from
-  salla-app-functions; OAuth/tokens → salla-app-auth, webhook verification → salla-webhooks.
+  (poll `action=deploy_status`); then test (salla-app-functions-test) and publish the app —
+  public: validate the publication (`app_publish action=validate` saves a draft; partner
+  submits one-click in the Portal); private: `salla_apps action=publish_private`. Use after
+  validating. Routed from salla-app-functions; OAuth/tokens → salla-app-auth, webhook
+  verification → salla-webhooks.
 ---
 
 # App Functions — Save, Test & Publish
@@ -42,16 +44,19 @@ secrets out of them — covered by the pre-publish scan below.
 
 ## Publish (production)
 
-The already-saved function reaches **real merchant stores only after the publish request is
-approved** — publish via `salla_apps`, not by re-running `save`:
+The already-saved function reaches **real merchant stores only after the app is published** —
+not by re-running `save`. The agent prepares the publication; the partner submits it.
 
-- **Publish:** `salla_apps action=publish`, `app_id`, **`publish_action`** (`"save"` drafts
-  the publication, `"submit"` sends for review) with the `publication` payload; optional
-  `update_note`. Admin approval releases the saved function to live stores. Confirm the exact
-  required `publication` fields with `salla_apps` / **salla-publication-consistency** before
-  submitting — they are version-specific.
+- **Public app:** the agent **validates** the publication via `app_publish action=validate`,
+  which validates every section and **saves a DRAFT** (no admin submission). After a clean
+  validate, hand the partner their real Portal `/publish` link
+  (`https://portal.salla.partners/apps/{app_id}/publish`, real id substituted) so they review
+  the draft and click submit one-click. The agent **never** admin-submits — full stepwise flow
+  (`open` → `set` each section → `validate`) is owned by **salla-publication-consistency**.
+- **Private app:** `salla_apps action=publish_private`, `app_id` (optional `update_note`,
+  required on updates) — one shot, no listing/review.
 
-**Pre-publish security check.** Before `publish_action="submit"`, scan the saved `content`
+**Pre-publish security check.** **Before** the partner submits, scan the saved `content`
 (`salla_functions action=get`): no hardcoded tokens, secrets, or API keys; no debug dumps of
 `context` or merchant PII into preview logs; no over-broad outbound `fetch` calls. Token/OAuth
 handling belongs in your backend, not the function — see **salla-app-auth**; webhook signature
@@ -64,7 +69,9 @@ verification → **salla-webhooks**.
 - [ ] `Resp.success().setData(...)` on every path — `{}` if empty.
 - [ ] No npm/unsupported core; `globalThis.crypto`; no hardcoded secrets/tokens, no PII logged.
 - [ ] Tested in preview against a demo store with a real record ID (**salla-app-functions-test**).
-- [ ] Saved (`action=save`) then submitted (`salla_apps action=publish`, `publish_action="submit"`).
+- [ ] Saved (`action=save`); for a public app the publication validates clean
+      (`app_publish action=validate` → draft) and the partner has the Portal `/publish` link;
+      for a private app, `salla_apps action=publish_private`.
 
-**Gate:** "Execution Status = success in preview, within the timeout budget, and submitted
-for publish?"
+**Gate:** "Execution Status = success in preview, within the timeout budget, and the
+publication validates clean (public) / `publish_private` succeeds (private) — partner submits?"

@@ -19,7 +19,7 @@ Prepare a Salla app for review via `app_publish` (base `/app/{id}/publication`):
 readiness-driven loop, not one bulk call. Fill sections one at a time; the **server** decides
 when the draft is ready.
 
-**open → (set `<section>` → readiness)\* → validate → partner reviews the /publish link → send_publish_request**
+**open → get (read the current draft) → (set `<section>` → readiness)\* → validate → partner reviews the /publish link → send_publish_request**
 
 `app_publish action=validate` validates every section for completeness/correctness and
 **saves a DRAFT**, returning a valid publication — it does **not** submit. **Sending the app
@@ -41,6 +41,7 @@ complete.
 | action                 | verb | body                   | does                                                                                                                                                                                           |
 | ---------------------- | ---- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `open`                 | POST | —                      | Create the draft + return the per-section readiness checklist; opening also makes `app_page_builder` available for listing content.                                                            |
+| `get`                  | GET  | —                      | Read-only: the FULL current draft (`publication_last_save` — every saved value) + scopes + webhooks. RESUME/REVIEW entry — readiness shows what's MISSING, `get` shows what's THERE.           |
 | `readiness`            | GET  | —                      | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.                                                                                                 |
 | `set`                  | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                                            |
 | `validate`             | PUT  | —                      | Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit.                                                         |
@@ -49,9 +50,39 @@ complete.
 Listing content (name, description, logo, screenshots, benefits) is authored with
 `app_page_builder` → **salla-app-ui-builder**.
 
+## Read the current draft first (resume / review)
+
+Before filling or fixing anything — **especially when resuming a draft or asked to review one** —
+read it with `app_publish action=get`. It returns `publication_last_save` (every saved section
+value) plus the app's `scopes` and `webhooks`. `readiness` tells you what's **missing**; `get`
+tells you what's **already there** — never re-ask the partner for a value the draft already holds,
+and never blind-overwrite a section you haven't read.
+
+## Step map — this skill is the master router
+
+Each publication step routes to the skill that owns its modelling, and each has a **reference**
+(data retrieval → submission schema → how to submit):
+
+| Step (publication section)                               | Owner skill                     | Reference                                                         |
+| -------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------- |
+| Basic Information                                        | this skill                      | [step-basic-information.md](references/step-basic-information.md) |
+| App Config (scopes / webhooks)                           | salla-app-auth + salla-webhooks | [step-app-config.md](references/step-app-config.md)               |
+| Features (banner / embedded image; screenshots/benefits) | salla-app-ui-builder            | [step-features.md](references/step-features.md)                   |
+| Pricing                                                  | salla-app-billing               | [step-pricing.md](references/step-pricing.md)                     |
+| Contact Information                                      | this skill                      | [step-contact.md](references/step-contact.md)                     |
+| Service Trial / Review                                   | this skill + salla-app-billing  | [step-service-trial.md](references/step-service-trial.md)         |
+
+> **`app_page_builder` is the App Store LISTING/PROFILE page builder** — the public app profile
+> (rating, plans, install button). It is publication-coupled: it pulls images/text/plans from the
+> draft, can be edited against a **draft** publication, and its **images and content override the
+> publication's**. It is NOT the post-install embedded dashboard UI (→ **salla-embedded-app** /
+> **salla-embedded-ui**).
+
 ## The 5 sections and their `data` fields
 
-Pass `section` plus only the fields you're setting:
+At-a-glance set overview; the per-field **retrieval + submission schema + how-to-submit** detail
+lives in each step's reference (linked in the Step map above). Pass `section` plus only the fields
+you're setting:
 
 1. **`basic_information`** — `short_description{ar,en}` (50–200 chars), `main_category_id`,
    `categories[]` (sub-categories of the main category), `video_url`, `demo_url`,

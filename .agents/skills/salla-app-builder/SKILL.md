@@ -110,12 +110,12 @@ Use the answers to tailor Steps 1, 4–7.
 | `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
 | `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
 | `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
-| `is_paid`                    | optional. For a **private** app this controls the free-private-app limit: a company gets a limited number of free private apps (`private_apps_limit`, effectively one). The first private app is free; for any **additional** private app set `is_paid: "1"` (paid) — otherwise `create` returns `free_private_apps_disabled` (403).                                                                  |
+| `is_paid`                    | optional. For a **private** app this controls the free-private-app limit: a company gets a limited number of free private apps (`private_apps_limit`, effectively one). The first private app is free; for any **additional** private app set `is_paid: "1"` (paid) — otherwise `create` is rejected with "You can't create more than N private apps".                                                |
 
 **Private apps — the free-private-app limit:** the first private app a company creates is
 free; for any **additional** private app, set `is_paid: "1"` (or `true`) on
-`salla_apps action=create`. Otherwise `create` returns `free_private_apps_disabled` (403)
-because the company's free `private_apps_limit` (effectively one) is exhausted.
+`salla_apps action=create`. Otherwise `create` is rejected with "You can't create more than
+N private apps" because the company's free `private_apps_limit` (effectively one) is exhausted.
 
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
@@ -138,9 +138,9 @@ keep going through configure → publish.
 
 ### Red Flags — create
 
-| Tempting thought                                                                             | Why it's wrong                                                                                                                                                                  |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "`create` returned `free_private_apps_disabled` — the private-app feature must be disabled." | The company has used its free private app (`private_apps_limit`, effectively one). Create the additional private app as paid: set `is_paid: "1"` on `salla_apps action=create`. |
+| Tempting thought                                                                            | Why it's wrong                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "`create` was rejected — 'can't create more than N private apps'; the feature must be off." | The company has used its free private app (`private_apps_limit`, effectively one). Create the additional private app as paid: set `is_paid: "1"` on `salla_apps action=create`. |
 
 ---
 

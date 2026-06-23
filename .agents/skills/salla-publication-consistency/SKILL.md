@@ -4,9 +4,9 @@ description: >
   Use before a Salla app goes to review: guided pre-publication via app_publish. Open the
   draft, loop set one section → re-check readiness until all sections complete, then run
   app_publish action=validate — it validates every section and SAVES a DRAFT (no admin
-  submission). After a clean validate, give the partner their real Portal /publish link so
-  THEY submit in one click; the agent never submits to Salla review. Listing images →
-  salla-app-ui-builder; pricing → salla-app-billing; settings → salla-app-settings.
+  submission). After a clean validate, give the partner their /publish link to REVIEW; it
+  reaches review only on their one-click submit or, after they confirm, send_publish_request.
+  Listing images → salla-app-ui-builder; pricing → salla-app-billing; settings → salla-app-settings.
 ---
 
 # Salla Publication Consistency
@@ -18,14 +18,16 @@ Prepare a Salla app for review via `app_publish` (base `/app/{id}/publication`):
 readiness-driven loop, not one bulk call. Fill sections one at a time; the **server** decides
 when the draft is ready.
 
-**open → (set `<section>` → readiness)\* → validate → guide the partner to the Portal /publish link**
+**open → (set `<section>` → readiness)\* → validate → partner reviews the /publish link → send_publish_request**
 
-`app_publish action=validate` is the agent's **terminal action**: it validates every section
-for completeness/correctness and **saves a DRAFT**, returning a valid publication. It does
-**not** submit to admin review. Submitting to Salla review is a deliberate **one-click
-partner action** in the Portal — the agent **never** submits. After a clean `validate`,
-surface the partner's real `/publish` link (id substituted) so they review the draft and
-submit.
+`app_publish action=validate` validates every section for completeness/correctness and
+**saves a DRAFT**, returning a valid publication — it does **not** submit. **Sending the app
+to Salla review is HARD-GATED:** after a clean `validate`, surface the partner's real
+`/publish` link (id substituted) and ask them to **REVIEW** the draft. Only then does it go to
+review — either the partner **submits one-click** in the Portal, **or**, after they
+**explicitly confirm**, the agent calls `app_publish action=send_publish_request` with
+`confirm: true`. Never send the request before a clean validate **and** the partner reviewing
+the link **and** confirming.
 
 Drive off the readiness checklist returned by `open` and every `set`: it marks each section
 `complete` or, for incomplete ones, lists the exact `missing` fields. Fix the one section it
@@ -35,12 +37,13 @@ complete.
 
 ## The loop (`app_publish`, base `/app/{id}/publication`)
 
-| action      | verb | body                   | does                                                                                                                                                                 |
-| ----------- | ---- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open`      | POST | —                      | Create the draft + return the per-section readiness checklist; opening also makes `app_page_builder` available for listing content.                                  |
-| `readiness` | GET  | —                      | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.                                                                       |
-| `set`       | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                  |
-| `validate`  | PUT  | —                      | **Terminal.** Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit to admin review. |
+| action                 | verb | body                   | does                                                                                                                                                                                           |
+| ---------------------- | ---- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open`                 | POST | —                      | Create the draft + return the per-section readiness checklist; opening also makes `app_page_builder` available for listing content.                                                            |
+| `readiness`            | GET  | —                      | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.                                                                                                 |
+| `set`                  | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                                            |
+| `validate`             | PUT  | —                      | Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit.                                                         |
+| `send_publish_request` | PUT  | `confirm:true`         | Send the app to Salla review — **HARD-GATED**: only after `validate` + the partner reviewed the `/publish` link + **confirmed**. Without `confirm:true` it does NOT submit (returns the link). |
 
 Listing content (name, description, logo, screenshots, benefits) is authored with
 `app_page_builder` → **salla-app-ui-builder**.
@@ -178,24 +181,28 @@ been explicitly told to replace before submitting?"
 5. Re-run `readiness` — confirm all 5 sections read `complete`.
 6. **Validate + save the draft** (`action=validate`). On **422**, `set` the missing sections
    and `validate` again until it returns a valid publication.
-7. **Guide the partner to submit.** Give them their real Portal link — substitute the app's
-   actual id, never the placeholder:
+7. **Ask the partner to REVIEW, then send the publish request.** Give them their real Portal
+   link — substitute the app's actual id, never the placeholder:
    `https://portal.salla.partners/apps/{app_id}/publish`
-   (e.g. `https://portal.salla.partners/apps/1234567/publish`). Tell them: review the draft
-   there and click submit to send it to Salla review. The agent stops at the draft; the
-   submit is the partner's deliberate one-click action.
+   (e.g. `https://portal.salla.partners/apps/1234567/publish`). Tell them to review the draft
+   there. To go to review, **either** the partner clicks submit one-click in the Portal, **or**
+   — only after they **explicitly confirm** — you call
+   `app_publish action=send_publish_request` with `confirm: true`. **Hard rule:** never send the
+   request before a clean `validate`, the partner being shown the link, and their confirmation.
 
-**Gate:** "All sections validated + saved as a draft, and the partner has been given the real
-`/publish` link to review and submit?"
+**Gate:** "All sections validated + saved as a draft, the partner was given the real `/publish`
+link and asked to review — and `send_publish_request` fires ONLY after they confirm (or they
+submit one-click themselves)?"
 
-Done (for the agent) means `validate` returns a valid publication and the partner has the
-real `/publish` link — **not** that the app was submitted to review.
+Done (for the agent) means `validate` returns a valid publication and the partner has reviewed
+the real `/publish` link — the app goes to review only on their one-click submit or their
+explicit confirmation (then `send_publish_request confirm=true`), never before.
 
 ## Red Flags
 
-| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                |
-| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Validate succeeded, so I'll submit it to Salla review to finish the job."        | `validate` only saves a draft. Submitting to review is the partner's one-click decision after they review it (Step 7) — the agent never submits.                              |
-| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                  |
-| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                        |
-| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate. |
+| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                           |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Validate succeeded, so I'll send the publish request to finish the job."         | `send_publish_request` is HARD-GATED — allowed only after the partner reviewed the draft at the `/publish` link and explicitly confirmed (Step 7). Don't send on a clean validate alone. |
+| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                             |
+| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                                   |
+| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate.            |

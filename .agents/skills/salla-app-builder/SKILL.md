@@ -356,17 +356,19 @@ run the public onboarding. Otherwise continue with the public `app_publish` flow
      [salla-app-ui-builder](../salla-app-ui-builder/SKILL.md); plan/addon pricing →
      [salla-app-billing](../salla-app-billing/SKILL.md).
 
-4. **Guide the partner to submit in the Portal.** `validate` does **not** submit to Salla
-   review — that is a deliberate one-click partner action. After a clean validate, give the
-   partner their real `/publish` link with the app's actual id substituted (never the
-   placeholder): `https://portal.salla.partners/apps/{app_id}/publish` (e.g.
-   `.../apps/1234567/publish`). Tell them to review the draft there and click submit. Once
-   they submit and the app is approved it is live on https://apps.salla.sa/en.
+4. **Partner reviews, then send the publish request.** `validate` only saves a DRAFT. After a
+   clean validate, give the partner their real `/publish` link with the app's actual id
+   substituted (never the placeholder): `https://portal.salla.partners/apps/{app_id}/publish`
+   (e.g. `.../apps/1234567/publish`) and ask them to **review** the draft there. It goes to
+   Salla review only **either** when they submit one-click in the Portal **or**, after they
+   **explicitly confirm**, when you call `app_publish action=send_publish_request` (`confirm:
+true`) — **never before** review + confirmation. Once submitted and approved it's live on
+   https://apps.salla.sa/en. Mechanics → **salla-publication-consistency**.
 
 Testing guide: references/demo-store-testing.md
 
-**Gate:** "All sections validated + saved as a draft, and the partner has been given the real
-`/publish` link to review and submit?"
+**Gate:** "Sections validated + saved as a draft, the partner reviewed the real `/publish`
+link, and the publish request is sent only on their one-click submit or explicit confirmation?"
 
 ### Red Flags — publishing
 

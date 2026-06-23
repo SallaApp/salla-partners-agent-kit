@@ -34,7 +34,9 @@ case "$short" in
   salla_snippets) skill='salla-snippets' ;;
   salla_events) skill='salla-webhooks' ;;
   app_publish) skill='salla-publication-consistency' ;;
-  app_page_builder) skill='salla-app-ui-builder' ;;
+  # app_page_builder is the publication-coupled App Store listing builder — load the master
+  # publication skill, which routes on to salla-app-ui-builder for the listing-content shapes.
+  app_page_builder) skill='salla-publication-consistency' ;;
   salla_apps) skill='salla-app-builder' ;;
   *) emit_noop ;;
 esac

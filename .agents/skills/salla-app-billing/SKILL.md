@@ -25,8 +25,10 @@ Plan state is **event-driven** — drive it from verified `app.subscription.*` /
 `https://api.salla.dev/admin/v2` (OAuth, `offline_access`). Two real endpoints back this
 skill:
 
-- **`GET /apps/{app_id}/subscriptions`** — read plan state, entitlements,
-  `subscription_balance` (reconciliation; Step 5).
+- **`GET /apps/{app_id}/subscriptions`** — retrieve the app's subscription statuses + details
+  for **both plans AND addons** (filter by `item_type`): plan state, entitlements, dates,
+  `subscription_balance` (reconciliation; Step 5). Full OpenAPI schema (source of truth):
+  https://docs.salla.dev/5401098e0.md
 - **`POST /apps/balance`** — write back the Pay-As-You-Go usage balance (Step 5b).
 - **`POST /apps/subscriptions/{subscription_id}/renew`** — for **`external_recurring`** plans/addons
   the **partner drives each renewal** (Salla does not auto-renew them). Take `subscription_id` from
@@ -150,8 +152,8 @@ Wire the events via salla-app-lifecycle. The deltas that matter here:
 
 Payload fields and full examples →
 [references/subscription-events.md](references/subscription-events.md). Live docs — App
-Subscription Webhook Events: https://docs.salla.dev/2213496m0.md ; App Events reference:
-https://docs.salla.dev/421413m0.md.
+Subscription Webhook Events: https://docs.salla.dev/2213496m0.md ; App Events reference (lifecycle
+webhooks with payload examples): https://docs.salla.dev/421413m0.md.
 
 **Gate:** "A demo-store subscription event upserts the stored plan with the right status?"
 

@@ -10,6 +10,41 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.7] — 2026-06-23
+
+### Changed
+
+- **`salla-publication-consistency` is now the master publication router.** Added the
+  `app_publish action=get` step to read the FULL current draft (`publication_last_save`) before
+  filling/validating — resume/review without re-asking; per-step **reference docs**
+  (`references/step-*.md`) carrying data retrieval + submission schema + how-to-submit, aligned
+  with the front-end's steps; a **step-by-step validation** model (`set` = per-section format,
+  `readiness` = completeness, `validate` = cross-field gate); a **billing-cycle submit gate**
+  (paid pricing → verify `app.subscription.*` subscribed + handlers confirmed, else save a draft
+  and wire the cycle first) with Red Flags; first-publish onboarding now **suggests the
+  publication-only monetization features** (addons, trials, promotions, comparison matrix,
+  recommended plan, strikethrough pricing, adjustable features, unsubscribe rewards); and routes
+  the partner to the **educational-video guide** when `video_url` is missing.
+- **`salla-app-billing` — full pricing models.** New `references/pricing-shapes.md` documents
+  subscriptions + one-time grounded in the real payloads + server rules: full plan object
+  (`recommended`/`balance`/`promotions`/`id`…), `recurring` incl. `one-time`, the `plan_features`
+  matrix, `on_demand_type`, the once-model (`one_time_old_price`, `plan_additional_features`), the
+  addon object, and the `plan_type` vs `plan.recurring` / `plan_additional_features` vs
+  `additional_features` naming traps. Documented the **renew API**
+  (`POST /apps/subscriptions/{id}/renew`, external_recurring = partner-driven) and the **app+addon
+  subscription retrieval**, citing the live OpenAPI docs as source of truth (renew `37396517e0`,
+  subscription events `2213496m0`, subscription schema `5401098e0`, app events `421413m0`).
+- **`salla-addon-purchase` / `salla-addon-purchase-embedded`** — the external_recurring renewal
+  obligation (renew API); external_recurring addons may renew on any custom logic, which must be
+  stated in the addon `description`; in-app purchase runs through the **checkout SDK** (cited the
+  create/add-ons/result module docs); the addon `slug` is the partner's own pre-known identifier.
+- **Pretool hook** — `app_page_builder` now routes through the master publication skill (it is the
+  publication-coupled App Store listing builder, distinct from the embedded dashboard UI).
+
+Paired with partners-mcp: `app_publish action=get`, per-section validation-error surfacing on
+`set`, the `one_time_old_price`/`plan_additional_features` pricing fields, and a paid-pricing
+billing-cycle warning on `validate`.
+
 ## [1.0.6] — 2026-06-23
 
 ### Changed

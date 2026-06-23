@@ -53,8 +53,11 @@ full flow:
   Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/result.md
 
 These three Checkout-module docs are the source of truth for the **frontend purchase cycle**.
-Signatures and payloads are version-dependent across `@salla.sa/embedded-sdk` releases — confirm
-against the docs or the package, never hardcode slugs, prices, or URLs.
+SDK signatures and payloads are version-dependent across `@salla.sa/embedded-sdk` releases —
+confirm them against the docs or the package, and don't hardcode prices or URLs. The addon
+**`slug` is YOUR pre-known identifier** — you set it as the addon's `slug` at publish and match it
+as `item_slug` in the subscription webhooks + API — so referencing your own slug directly is
+expected.
 
 ---
 

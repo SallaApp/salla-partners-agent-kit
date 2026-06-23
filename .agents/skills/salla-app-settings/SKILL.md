@@ -15,8 +15,20 @@ description: >
 Set up per-merchant configuration for a Salla app by **performing the actions** with the
 Salla Partners MCP tools. Follow the steps in order — complete each gate before moving on.
 
+> **Applies to public, private, and communication apps.** The merchant settings form
+> (`salla_settings define_form` / `set_validation_url`) is for these app types. **Shipping
+> apps have no merchant settings form** — they configure shipping via `salla_shipping`
+> (zones/settings), a separate concept; the Portal rejects `POST /settings` for a shipping
+> app. For a shipping app go to [salla-shipping-app](../salla-shipping-app/SKILL.md).
+
 > **Critical rule:** at runtime, always send ALL keys on every settings POST. Omitting a
 > key sets it to `null` — there is no partial update.
+
+## Red Flags
+
+| Tempting thought                                        | Why it's wrong                                                                                                                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Define a `salla_settings` form for this shipping app." | Shipping apps have no merchant settings form; the Portal rejects `POST /settings` for them. Configure zones/settings via `salla_shipping` → [salla-shipping-app](../salla-shipping-app/SKILL.md). |
 
 ## Tools
 

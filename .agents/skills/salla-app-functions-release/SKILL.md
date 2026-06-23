@@ -4,9 +4,9 @@ description: >
   Save & publish a Salla App Function. `salla_functions action=save` deploys to demo stores
   (poll `action=deploy_status`); then test (salla-app-functions-test) and publish the app —
   public: validate the publication (`app_publish action=validate` saves a draft; partner
-  submits one-click in the Portal); private: `salla_apps action=publish_private`. Use after
-  validating. Routed from salla-app-functions; OAuth/tokens → salla-app-auth, webhook
-  verification → salla-webhooks.
+  submits one-click in the Portal); private: the partner publishes from the app-details page
+  (no MCP action). Use after validating. Routed from salla-app-functions; OAuth/tokens →
+  salla-app-auth, webhook verification → salla-webhooks.
 ---
 
 # App Functions — Save, Test & Publish
@@ -53,8 +53,9 @@ not by re-running `save`. The agent prepares the publication; the partner submit
   (`https://portal.salla.partners/apps/{app_id}/publish`, real id substituted) so they review
   the draft and click submit one-click. The agent **never** admin-submits — full stepwise flow
   (`open` → `set` each section → `validate`) is owned by **salla-publication-consistency**.
-- **Private app:** `salla_apps action=publish_private`, `app_id` (optional `update_note`,
-  required on updates) — one shot, no listing/review.
+- **Private app:** there's no MCP publish action — the partner sends the publish request
+  from the app-details page `https://portal.salla.partners/apps/{app_id}` (no onboarding,
+  no listing/review). Hand them the link.
 
 **Pre-publish security check.** **Before** the partner submits, scan the saved `content`
 (`salla_functions action=get`): no hardcoded tokens, secrets, or API keys; no debug dumps of
@@ -71,7 +72,8 @@ verification → **salla-webhooks**.
 - [ ] Tested in preview against a demo store with a real record ID (**salla-app-functions-test**).
 - [ ] Saved (`action=save`); for a public app the publication validates clean
       (`app_publish action=validate` → draft) and the partner has the Portal `/publish` link;
-      for a private app, `salla_apps action=publish_private`.
+      for a private app, the partner has the app-details link to publish from.
 
 **Gate:** "Execution Status = success in preview, within the timeout budget, and the
-publication validates clean (public) / `publish_private` succeeds (private) — partner submits?"
+publication validates clean (public) / the partner has the app-details link (private) —
+partner submits?"

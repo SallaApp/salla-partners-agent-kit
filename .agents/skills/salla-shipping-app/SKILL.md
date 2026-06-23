@@ -121,6 +121,12 @@ these concerns there — don't reimplement them here.
 
 ## Step 3 — Configure Shipping Zones & Settings
 
+> **A shipping app has no merchant settings form.** Don't call `salla_settings
+define_form` — that form is for public/private/communication apps, and the Portal rejects
+> `POST /settings` for a shipping app. Shipping configuration is the `salla_shipping` zones
+> and settings below; carrier credentials go through the Shipping Settings URL. The
+> settings-form concept itself → [salla-app-settings](../salla-app-settings/SKILL.md).
+
 Use `salla_shipping` instead of the Portal form:
 
 1. Inspect current zones: `salla_shipping action=get_zones`, `app_id`. **Note:** a newly

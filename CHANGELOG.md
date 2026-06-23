@@ -10,6 +10,19 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.5] — 2026-06-23
+
+### Changed
+
+- **The merchant settings form is for public/private/communication apps — not shipping
+  apps.** `salla-app-settings` now states up front that the form (`salla_settings
+define_form` / `set_validation_url`) applies to public, private, and communication apps,
+  and that shipping apps have no merchant settings form — they configure shipping via
+  `salla_shipping` (zones/settings); the Portal rejects `POST /settings` for a shipping app.
+  Added a Red Flags row to that effect, routing to `salla-shipping-app`. `salla-shipping-app`
+  Step 3 gains the matching note (don't call `salla_settings define_form`; shipping config is
+  `salla_shipping`), routing the settings-form concept back to `salla-app-settings`.
+
 ## [1.0.4] — 2026-06-23
 
 ### Changed

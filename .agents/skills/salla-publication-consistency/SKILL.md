@@ -15,6 +15,18 @@ description: >
 have no MCP publish action — the partner sends their publish request from the app-details
 page `https://portal.salla.partners/apps/{app_id}` (see **salla-app-builder**).
 
+## Before you can publish — prerequisites
+
+Check these first; they gate the whole flow regardless of the sections:
+
+1. **The app must be publishable.** `can_publish` must be `true` — read it from app details
+   (`app_publish action=get` / `salla_apps action=get`). If `false`, the app cannot be submitted.
+2. **The partner's account must be verified.** Before publishing, the partner verifies their
+   account at **https://portal.salla.partners/account**. An unverified account blocks submission
+   (validate/submit returns an `id_verification` error).
+3. **A communication app that supports SMS must upload a CITC certification** on the account
+   verification form (Saudi regulatory requirement) → **salla-communication-app**.
+
 Prepare a Salla app for review via `app_publish` (base `/app/{id}/publication`): a
 readiness-driven loop, not one bulk call. Fill sections one at a time; the **server** decides
 when the draft is ready.
@@ -239,11 +251,12 @@ explicit confirmation (then `send_publish_request confirm=true`), never before.
 
 ## Red Flags
 
-| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                                       |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Validate succeeded, so I'll send the publish request to finish the job."         | `send_publish_request` is HARD-GATED — allowed only after the partner reviewed the draft at the `/publish` link and explicitly confirmed (Step 7). Don't send on a clean validate alone.             |
-| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                                         |
-| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                                               |
-| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate.                        |
-| "Validate passed and the app sells a subscription/addon — I'll submit."           | Paid pricing requires the billing cycle wired **and** confirmed first (Step 6b). If it isn't, keep the saved draft and implement the cycle (salla-app-billing / salla-addon-purchase) before submit. |
-| "I subscribed to `app.subscription.*`, that's enough to go to review."            | Subscribing ≠ handling. The app must provision on `started`, re-point on `renewed`, revoke on `expired`/`canceled` (check `item_type`), and call the renew API for `external_recurring` (Step 6b).   |
+| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "Validate succeeded, so I'll send the publish request to finish the job."         | `send_publish_request` is HARD-GATED — allowed only after the partner reviewed the draft at the `/publish` link and explicitly confirmed (Step 7). Don't send on a clean validate alone.                                                                                                               |
+| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                                                                                                                                           |
+| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                                                                                                                                                 |
+| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate.                                                                                                                          |
+| "Validate passed and the app sells a subscription/addon — I'll submit."           | Paid pricing requires the billing cycle wired **and** confirmed first (Step 6b). If it isn't, keep the saved draft and implement the cycle (salla-app-billing / salla-addon-purchase) before submit.                                                                                                   |
+| "I subscribed to `app.subscription.*`, that's enough to go to review."            | Subscribing ≠ handling. The app must provision on `started`, re-point on `renewed`, revoke on `expired`/`canceled` (check `item_type`), and call the renew API for `external_recurring` (Step 6b).                                                                                                     |
+| "All sections are complete, so I'll submit." (app not publishable / unverified)   | Check the prerequisites first: `can_publish` must be `true` and the partner's account verified at `portal.salla.partners/account` (an unverified account fails submit with `id_verification`); an SMS communication app needs a CITC certification on the verification form (salla-communication-app). |

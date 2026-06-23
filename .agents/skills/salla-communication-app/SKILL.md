@@ -57,6 +57,12 @@ Publishing without features fails with **403 `communication_app_not_have_feature
 (slug and channel values are surfaced by the `salla_settings` tool schema — verify
 current values via the Partners MCP or the Portal if they ever change).
 
+> **SMS apps need a CITC certification to publish.** A communication app that supports SMS
+> (`sms_local` / `sms_international`) must upload its **CITC certification** on the account
+> verification form (`https://portal.salla.partners/account`) — a Saudi regulatory requirement.
+> The partner verifies the account (and uploads the certificate) **before** the publish request;
+> an unverified account blocks submission. Publication flow → **salla-publication-consistency**.
+
 ## Step 3 — Set up the provider
 
 Pick a delivery provider and obtain its credentials before writing code. The doc walks

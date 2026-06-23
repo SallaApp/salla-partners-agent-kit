@@ -58,6 +58,11 @@ Partners MCP** _performs actions_:
    with a merchant token (`webhooks.read_write` scope).
 3. **Stack?** Node/Express (`@salla.sa/webhooks-actions`) or Laravel/PHP (Salla CLI)?
 
+> **`salla_events action=subscribe` REPLACES the whole subscription list** — include every
+> event you want to keep on each call (a shipping app's 4 default shipment webhooks too). To
+> remove ALL subscriptions, pass `clear_all: true`; an empty `events: []` alone is rejected, so
+> you can't wipe subscriptions by forgetting to pass events.
+
 ---
 
 ## Step 1 — Build the Webhook Server

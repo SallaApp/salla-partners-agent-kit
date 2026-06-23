@@ -10,6 +10,14 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.6] — 2026-06-23
+
+### Changed
+
+- **`salla-webhooks`** — document that `salla_events action=subscribe` REPLACES the whole
+  subscription list, and that removing ALL subscriptions is done with `clear_all: true` (an
+  empty `events: []` is rejected to avoid an accidental wipe).
+
 ## [1.0.5] — 2026-06-23
 
 ### Changed

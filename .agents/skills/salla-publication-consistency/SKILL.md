@@ -146,7 +146,8 @@ from **their answers**, never invent or auto-fill. At each section:
 
 - **Ask the right questions** for that section, e.g.:
   - `basic_information` → value prop / short description, main category + sub-categories,
-    supported countries, a demo/video URL?
+    supported countries, a demo/video URL? (`video_url` is required — if they have none, point
+    them to the educational-video guide: https://salla.dev/tutorial/educational-video-guidelines-apps-ar/)
   - `pricing` → free or paid? one-time, subscription plans, or addons? a trial?
   - `contact_information` → support email/phone, policy + FAQ URLs?
   - App Information (`app_page_builder`) → name, description, logo, ≥3 screenshots, benefits?

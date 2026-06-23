@@ -60,8 +60,10 @@ current values via the Partners MCP or the Portal if they ever change).
 > **SMS apps need a CITC certification to publish.** A communication app that supports SMS
 > (`sms_local` / `sms_international`) must upload its **CITC certification** on the account
 > verification form (`https://portal.salla.partners/account`) — a Saudi regulatory requirement.
-> The partner verifies the account (and uploads the certificate) **before** the publish request;
-> an unverified account blocks submission. Publication flow → **salla-publication-consistency**.
+> App details expose **`requires_citc`** (`app_publish action=get` / `salla_apps action=get`):
+> when `true`, the certificate is still needed. The partner verifies the account and uploads it
+> **before** the publish request; until then submission is blocked. Publication flow →
+> **salla-publication-consistency**.
 
 ## Step 3 — Set up the provider
 

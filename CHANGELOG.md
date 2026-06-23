@@ -43,8 +43,8 @@ versions the **skill content as a whole** — the `version` field in `package.js
   prerequisites: the app must be publishable (`can_publish` true — read from app details), the
   partner's account must be verified at `portal.salla.partners/account` (else submit fails with
   `id_verification`), and an SMS communication app must upload a **CITC certification** on the
-  verification form (`salla-communication-app`). `app_publish action=get` surfaces `can_publish` +
-  `can_have_free_plan`.
+  verification form (`salla-communication-app`) — read concretely from the `requires_citc` flag.
+  `app_publish action=get` surfaces `can_publish`, `requires_citc`, and `can_have_free_plan`.
 - **`salla-addon-purchase` / `salla-addon-purchase-embedded`** — the external_recurring renewal
   obligation (renew API); external_recurring addons may renew on any custom logic, which must be
   stated in the addon `description`; in-app purchase runs through the **checkout SDK** (cited the

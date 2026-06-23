@@ -19,13 +19,17 @@ page `https://portal.salla.partners/apps/{app_id}` (see **salla-app-builder**).
 
 Check these first; they gate the whole flow regardless of the sections:
 
-1. **The app must be publishable.** `can_publish` must be `true` — read it from app details
-   (`app_publish action=get` / `salla_apps action=get`). If `false`, the app cannot be submitted.
+All three are readable from app details — `app_publish action=get` (or `salla_apps action=get`)
+returns `can_publish`, `requires_citc`, and `can_have_free_plan`. Check them before filling:
+
+1. **The app must be publishable.** `can_publish` must be `true`. If `false`, the app cannot be
+   submitted.
 2. **The partner's account must be verified.** Before publishing, the partner verifies their
    account at **https://portal.salla.partners/account**. An unverified account blocks submission
    (validate/submit returns an `id_verification` error).
-3. **A communication app that supports SMS must upload a CITC certification** on the account
-   verification form (Saudi regulatory requirement) → **salla-communication-app**.
+3. **CITC certification (SMS communication apps).** When `requires_citc` is `true`, the partner
+   must upload a CITC certification on the account verification form before publishing (Saudi
+   regulatory requirement) → **salla-communication-app**.
 
 Prepare a Salla app for review via `app_publish` (base `/app/{id}/publication`): a
 readiness-driven loop, not one bulk call. Fill sections one at a time; the **server** decides

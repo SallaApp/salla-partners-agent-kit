@@ -95,7 +95,7 @@ Each publication step routes to the skill that owns its modelling, and each has 
 | Step (publication section)                               | Owner skill                     | Reference                                                         |
 | -------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------- |
 | Basic Information                                        | this skill                      | [step-basic-information.md](references/step-basic-information.md) |
-| App Config (scopes / webhooks)                           | salla-app-auth + salla-webhooks | [step-app-config.md](references/step-app-config.md)               |
+| App Config (scopes/webhooks — not a `set` section)       | salla-app-auth + salla-webhooks | [step-app-config.md](references/step-app-config.md)               |
 | Features (banner / embedded image; screenshots/benefits) | salla-app-ui-builder            | [step-features.md](references/step-features.md)                   |
 | Pricing                                                  | salla-app-billing               | [step-pricing.md](references/step-pricing.md)                     |
 | Contact Information                                      | this skill                      | [step-contact.md](references/step-contact.md)                     |

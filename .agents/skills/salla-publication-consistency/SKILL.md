@@ -208,6 +208,16 @@ been explicitly told to replace before submitting?"
 5. Re-run `readiness` — confirm all 5 sections read `complete`.
 6. **Validate + save the draft** (`action=validate`). On **422**, `set` the missing sections
    and `validate` again until it returns a valid publication.
+   6b. **Billing-cycle gate — paid pricing only, BEFORE submit.** If the draft's pricing has a
+   recurring plan or any addon, the app must handle the subscription lifecycle before it can go to
+   review. **Auto-check:** `salla_events action=list` shows `app.subscription.*` (+ `app.trial.*`
+   when there's a trial) subscribed, **and** `salla_apps action=get` shows a `webhook_url` set.
+   **Then user-confirm:** ask the partner to confirm the handlers exist — provision on `started`,
+   re-point entitlement on `renewed`, revoke on `expired`/`canceled` (verify `item_type`: plan vs
+   addon), and for `external_recurring` addons the renew API is wired (→ **salla-app-billing**).
+   **If not coherent, do NOT submit** — keep the saved draft, hand off to **salla-app-billing** /
+   **salla-addon-purchase** to implement the billing cycle, then re-check and re-gate. Only a
+   coherent billing cycle clears this gate.
 7. **Ask the partner to REVIEW, then send the publish request.** Give them their real Portal
    link — substitute the app's actual id, never the placeholder:
    `https://portal.salla.partners/apps/{app_id}/publish`
@@ -217,9 +227,10 @@ been explicitly told to replace before submitting?"
    `app_publish action=send_publish_request` with `confirm: true`. **Hard rule:** never send the
    request before a clean `validate`, the partner being shown the link, and their confirmation.
 
-**Gate:** "All sections validated + saved as a draft, the partner was given the real `/publish`
-link and asked to review — and `send_publish_request` fires ONLY after they confirm (or they
-submit one-click themselves)?"
+**Gate:** "All sections validated + saved as a draft; for paid pricing (recurring plan or any
+addon) the billing cycle is wired + confirmed (else kept as a draft until it is); the partner was
+given the real `/publish` link and asked to review — and `send_publish_request` fires ONLY after
+they confirm (or they submit one-click themselves)?"
 
 Done (for the agent) means `validate` returns a valid publication and the partner has reviewed
 the real `/publish` link — the app goes to review only on their one-click submit or their
@@ -227,9 +238,11 @@ explicit confirmation (then `send_publish_request confirm=true`), never before.
 
 ## Red Flags
 
-| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                           |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Validate succeeded, so I'll send the publish request to finish the job."         | `send_publish_request` is HARD-GATED — allowed only after the partner reviewed the draft at the `/publish` link and explicitly confirmed (Step 7). Don't send on a clean validate alone. |
-| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                             |
-| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                                   |
-| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate.            |
+| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Validate succeeded, so I'll send the publish request to finish the job."         | `send_publish_request` is HARD-GATED — allowed only after the partner reviewed the draft at the `/publish` link and explicitly confirmed (Step 7). Don't send on a clean validate alone.             |
+| "I'll just give them the `…/apps/{app_id}/publish` template; they'll fill it in." | Substitute the **real** app id (Step 7). A placeholder link sends the partner nowhere and they can't submit.                                                                                         |
+| "No images provided — I'll skip them / drop in a placeholder and move on."        | Ask the user first; if they decline, use a clearly-marked placeholder **and** tell them to replace it in the Portal before submitting.                                                               |
+| "I'll write a description / pick a category / set a price to reach readiness."    | These are the partner's business decisions. Ask them, suggest Salla-grounded options, and fill from their answers — never fabricate or blind-fill a section to pass the gate.                        |
+| "Validate passed and the app sells a subscription/addon — I'll submit."           | Paid pricing requires the billing cycle wired **and** confirmed first (Step 6b). If it isn't, keep the saved draft and implement the cycle (salla-app-billing / salla-addon-purchase) before submit. |
+| "I subscribed to `app.subscription.*`, that's enough to go to review."            | Subscribing ≠ handling. The app must provision on `started`, re-point on `renewed`, revoke on `expired`/`canceled` (check `item_type`), and call the renew API for `external_recurring` (Step 6b).   |

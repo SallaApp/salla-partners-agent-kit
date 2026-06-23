@@ -34,6 +34,11 @@ versions the **skill content as a whole** — the `version` field in `package.js
   (`POST /apps/subscriptions/{id}/renew`, external_recurring = partner-driven) and the **app+addon
   subscription retrieval**, citing the live OpenAPI docs as source of truth (renew `37396517e0`,
   subscription events `2213496m0`, subscription schema `5401098e0`, app events `421413m0`).
+- **Free plans are eligibility-gated.** `salla-app-billing` now states `plan_type: "free"` (and a
+  plan's `recurring: "free"`) is allowed only when `can_have_free_plan` is true (shipping/communication
+  app or the `show_app_free_plan` feature) — read it from app details before offering free; the
+  Portal rejects it for an ineligible app on both `set` and submit (mirrors the FE). Paired with the
+  DevelopersPortal change exposing `can_have_free_plan` + gating the per-section `set`.
 - **`salla-addon-purchase` / `salla-addon-purchase-embedded`** — the external_recurring renewal
   obligation (renew API); external_recurring addons may renew on any custom logic, which must be
   stated in the addon `description`; in-app purchase runs through the **checkout SDK** (cited the

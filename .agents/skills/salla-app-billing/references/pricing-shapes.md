@@ -8,6 +8,13 @@ Zod. `plan_type` selects which fields apply.
 
 These are the exact API values — there is no `one_time` or `pay_as_you_go`.
 
+> **`free` is eligibility-gated — don't offer it blindly.** It's allowed only when the app is
+> eligible: a **shipping** or **communication** app, OR the company has the **`show_app_free_plan`**
+> feature. Read **`can_have_free_plan`** from app details (`app_publish action=get` / `salla_apps
+action=get`) and only use `free` (as `plan_type`, or a plan's `recurring: "free"`) when it is
+> `true` — the Portal rejects `free` for an ineligible app on **both `set` and submit**, mirroring
+> the FE which hides the option. For an ineligible app, offer `once` / `recurring` / `on_demand`.
+
 ## Two naming traps (read first)
 
 - `plan_type: "recurring"` (the **model**) vs a plan's own `recurring: "monthly"` (the **period**).

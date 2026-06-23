@@ -18,8 +18,27 @@ Read current values from `app_publish action=get` → `publication.*`:
 
 ## Submission schema
 
-_(Filled in Step 1 — fields, lengths, and the update_note-iff-is_update rule.)_
+Set via `app_publish action=set section=service_trial` (`PublicationSectionRequest`):
+
+| Field               | Type / rule                                                                   |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `service_link`      | URL — where the reviewer tests the app                                        |
+| `trial_username`    | string, 3–255 — test-only credential                                          |
+| `trial_password`    | string, 4–255 — test-only; redact in logs, never store plaintext              |
+| `trial_description` | string, **30–1000** — how the reviewer exercises the app                      |
+| `update_note`       | `{ar,en}` — **required only when the app is already published** (`is_update`) |
 
 ## How to submit
 
-_(Filled in Step 1 — the exact `app_publish action=set section=service_trial data={…}` call.)_
+```jsonc
+// app_publish action=set
+{
+  "section": "service_trial",
+  "service_link": "https://example.com/app",
+  "trial_username": "reviewer@example.com",
+  "trial_password": "＜temporary-test-only＞",
+  "trial_description": "Install via the demo link, open the dashboard, create a campaign, then view it on a product page.",
+}
+```
+
+For an UPDATE to a published app, also pass `update_note: {ar,en}`. Then `app_publish action=readiness`.

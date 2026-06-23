@@ -25,8 +25,35 @@ on skip, use a clearly-marked placeholder and tell them to replace it in the Por
 
 ## Submission schema
 
-_(Filled in Step 1 — fields, types, and server rules from `PublicationSectionRequest`.)_
+Server rules (`PublicationSectionRequest`, section `basic_information`):
+
+| Field                 | Type / rule                                                                      |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `short_description`   | `{ar,en}`, string, **50–200** chars                                              |
+| `main_category_id`    | integer — a MAIN category id (`salla_reference action=categories`, `type:"app"`) |
+| `categories`          | integer[] — SUB-categories of that main category                                 |
+| `video_url`           | URL, max 255 — **required for completeness**                                     |
+| `demo_url`            | URL, max 255 — optional                                                          |
+| `search_terms`        | string[]                                                                         |
+| `supported_countries` | integer[] — country ids (`salla_reference action=countries`)                     |
+
+Builder-owned (NOT set here): `name`, `description`, `logo` → `app_page_builder` (**salla-app-ui-builder**).
 
 ## How to submit
 
-_(Filled in Step 1 — the exact `app_publish action=set section=basic_information data={…}` call.)_
+```jsonc
+// app_publish action=set
+{
+  "section": "basic_information",
+  "short_description": {
+    "ar": "إدارة الشحنات تلقائياً",
+    "en": "Automate your shipments",
+  },
+  "main_category_id": 1,
+  "categories": [4],
+  "video_url": "https://youtu.be/＜demo＞",
+  "supported_countries": [1617628556],
+}
+```
+
+A 422 here lists the offending field(s) — fix and `set` again. Then `app_publish action=readiness`.

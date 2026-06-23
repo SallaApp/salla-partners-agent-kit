@@ -32,8 +32,30 @@ Read current values from `app_publish action=get` → `publication.*`:
 
 ## Submission schema
 
-_(Filled in Step 1/2 — routes to salla-app-billing for the full plan/addon/once/matrix shapes.)_
+`plan_type` (`free` | `once` | `recurring` | `on_demand`) selects which fields apply. The full,
+server-grounded shapes — plan object, addon object, the `plan_features` matrix, the once-model
+(`one_time_price`/`one_time_old_price`/`plan_additional_features`), on_demand, promotions, balance,
+unsubscribe rewards — are owned by **salla-app-billing** (read it before building this section).
+Don't duplicate them here; this step routes to that skill.
 
 ## How to submit
 
-_(Filled in Step 1 — `app_publish action=set section=pricing data={…}`; per-type examples in salla-app-billing.)_
+```jsonc
+// app_publish action=set — recurring example (shapes → salla-app-billing)
+{
+  "section": "pricing",
+  "plan_type": "recurring",
+  "plan_trial": 7,
+  "plans": [
+    {
+      "name": { "ar": "شهري", "en": "Monthly" },
+      "price": 49,
+      "recurring": "monthly",
+    },
+  ],
+}
+```
+
+After setting pricing, if it's paid (recurring plan or any addon) the **billing-cycle gate**
+applies before submit — see the master skill's gate and **salla-app-billing** /
+**salla-addon-purchase**. Then `app_publish action=readiness`.

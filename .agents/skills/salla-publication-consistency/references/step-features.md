@@ -21,8 +21,24 @@ image recipe + dimensions → **salla-app-ui-builder**; embedded-image dimension
 
 ## Submission schema
 
-_(Filled in Step 1 — `banner`/`embedded_image` rules; screenshots/benefits shapes route to salla-app-ui-builder.)_
+Set via `app_publish action=set section=features`:
+
+| Field            | Type / rule                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `banner`         | integer image id (from `salla_upload`)                                                |
+| `embedded_image` | integer image id — **required iff the app has an iframe page** (`has_embedded_pages`) |
+
+Builder-owned (NOT set here): `screenshots` (**≥3**) and `benefits` (**≥3**) → `app_page_builder`
+(**salla-app-ui-builder**), which writes them into the draft; readiness reports `features`
+`complete` once they're present.
 
 ## How to submit
 
-_(Filled in Step 1 — `app_publish action=set section=features data={banner, embedded_image}`; screenshots/benefits via `app_page_builder`.)_
+```jsonc
+// id = salla_upload(source_url) → integer
+// app_publish action=set
+{ "section": "features", "banner": 90817, "embedded_image": 90820 }
+```
+
+Then author screenshots/benefits via `app_page_builder`, and `app_publish action=readiness` to
+confirm `features` is `complete`.

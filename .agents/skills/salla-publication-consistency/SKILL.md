@@ -58,6 +58,23 @@ value) plus the app's `scopes` and `webhooks`. `readiness` tells you what's **mi
 tells you what's **already there** — never re-ask the partner for a value the draft already holds,
 and never blind-overwrite a section you haven't read.
 
+## Validation is step-by-step
+
+Three layers, in order — don't defer everything to one bulk check at the end:
+
+1. **`set` validates FORMAT per section** (server `PublicationSectionRequest`: e.g.
+   `short_description` 50–200, `video_url`/URLs well-formed, plan numeric rules). A `set` that
+   returns **422** is THIS section's validation error — the tool surfaces the field messages; fix
+   them and `set` again before moving on.
+2. **`readiness` reports COMPLETENESS** — which sections are `complete` and the exact `missing`
+   (blank) fields. Completeness ≠ correctness: a field can be present-but-invalid (caught by
+   `set`) or present-but-blank (caught by `readiness`).
+3. **`validate` is the final CROSS-FIELD + requiredness gate** over the whole draft — it saves
+   the DRAFT when clean, or returns 422 + the still-missing sections.
+
+The loop: `set <section>` → if 422, fix this section → `readiness` → next. Catch each section's
+errors as you write it, not in one end-of-flow `validate`.
+
 ## Step map — this skill is the master router
 
 Each publication step routes to the skill that owns its modelling, and each has a **reference**
@@ -78,57 +95,19 @@ Each publication step routes to the skill that owns its modelling, and each has 
 > publication's**. It is NOT the post-install embedded dashboard UI (→ **salla-embedded-app** /
 > **salla-embedded-ui**).
 
-## The 5 sections and their `data` fields
+## The 5 sections at a glance
 
-At-a-glance set overview; the per-field **retrieval + submission schema + how-to-submit** detail
-lives in each step's reference (linked in the Step map above). Pass `section` plus only the fields
-you're setting:
+Pass `section` + only the fields you're writing (localized fields take `{ ar, en }`; image fields
+an integer id from `salla_upload`; multi-value fields an array). Per-field **schema, server rules,
+and a worked `set` example** are in each step's reference (Step map above) — read it before writing.
 
-1. **`basic_information`** — `short_description{ar,en}` (50–200 chars), `main_category_id`,
-   `categories[]` (sub-categories of the main category), `video_url`, `demo_url`,
-   `search_terms[]`, `supported_countries[]`.
-2. **`features`** — `banner` (image id) and `embedded_image` (the Embedded App Banner,
-   accepted only when the app has an iframe page → **salla-embedded-app**). Treat banner
-   dimensions/size as verify-don't-guess: confirm the accepted values from the `salla_upload`
-   response and the `features` readiness/`missing` list rather than hard-coding them. Author
-   `screenshots` and `benefits` via `app_page_builder` (**salla-app-ui-builder**); readiness
-   confirms when `features` reports `complete`. To create a missing `banner`/`embedded_image`,
-   generate the image, `salla_upload` it (returns the integer id), then set the id here — full
-   image-generation recipe and embedded-image dimensions → **salla-app-ui-builder** /
-   **salla-embedded-app**.
-3. **`pricing`** — `plan_type`, `plan_trial`, `one_time_price`, `plans[]`, `plan_features[]`,
-   `addons[]`, `unsubscribe_reward`, `unsubscribe_email_reward`. Plan/addon modelling detail
-   → **salla-app-billing**.
-4. **`contact_information`** — `notification_email`, `submission_email`, `contact_method`
-   (`"email"|"phone"|"website"`), `support_email`, `support_phone`, `policy_url`, `faq_url`,
-   `website_url`.
-5. **`service_trial`** — `service_link`, `trial_username`, `trial_password`,
-   `trial_description` (30–1000 chars), `update_note{ar,en}`. Make `trial_password` a
-   temporary, test-only credential: redact it in logs and never store it in plaintext.
-
-## Example — one `set` call
-
-Pass `section` + only the fields you're writing. Localized fields take `{ ar, en }`; image
-fields take an integer id from `salla_upload`; multi-value fields take an array:
-
-```jsonc
-// app_publish action=set
-{
-  "section": "basic_information",
-  "short_description": {
-    "ar": "إدارة الشحنات تلقائياً",
-    "en": "Automate your shipments",
-  },
-  "main_category_id": 12,
-  "categories": [34, 35], // array field: sub-categories of the main category
-}
-```
-
-```jsonc
-// id = salla_upload(source_url) → integer; then set it in the features section
-// app_publish action=set
-{ "section": "features", "banner": 90817 }
-```
+| Section               | Sets (summary)                                                                                                         | Reference                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `basic_information`   | short_description, main_category_id, categories, **video_url (required)**, demo_url, search_terms, supported_countries | [step-basic-information.md](references/step-basic-information.md)     |
+| `features`            | banner, embedded_image (screenshots/benefits → `app_page_builder`)                                                     | [step-features.md](references/step-features.md)                       |
+| `pricing`             | plan_type + that type's plan/addon/once fields                                                                         | [step-pricing.md](references/step-pricing.md) → **salla-app-billing** |
+| `contact_information` | contact_method, notification/submission/support contacts, website_url, policy_url, faq_url                             | [step-contact.md](references/step-contact.md)                         |
+| `service_trial`       | service_link, trial_username, trial_password, trial_description, update_note (updates only)                            | [step-service-trial.md](references/step-service-trial.md)             |
 
 ## Route elsewhere — not set via `app_publish`
 

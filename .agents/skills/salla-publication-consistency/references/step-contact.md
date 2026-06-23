@@ -20,8 +20,32 @@ Read current values from `app_publish action=get` → `publication.*`:
 
 ## Submission schema
 
-_(Filled in Step 1 — fields, types, and the conditional-required rule from `PublicationSectionRequest`.)_
+Set via `app_publish action=set section=contact_information` (`PublicationSectionRequest`):
+
+| Field                | Type / rule                                          |
+| -------------------- | ---------------------------------------------------- |
+| `contact_method`     | `"email"` \| `"phone"` \| `"website"` — **required** |
+| `notification_email` | email — **required**                                 |
+| `submission_email`   | email — **required**                                 |
+| `support_email`      | email — required when `contact_method = "email"`     |
+| `support_phone`      | string — required when `contact_method = "phone"`    |
+| `website_url`        | URL — required when `contact_method = "website"`     |
+| `policy_url`         | URL — **required**                                   |
+| `faq_url`            | URL — **required**                                   |
 
 ## How to submit
 
-_(Filled in Step 1 — the exact `app_publish action=set section=contact_information data={…}` call.)_
+```jsonc
+// app_publish action=set
+{
+  "section": "contact_information",
+  "contact_method": "email",
+  "notification_email": "support@example.com",
+  "submission_email": "support@example.com",
+  "support_email": "support@example.com",
+  "policy_url": "https://example.com/privacy",
+  "faq_url": "https://example.com/faq",
+}
+```
+
+Pass the `contact_method`-specific support field too, then `app_publish action=readiness`.

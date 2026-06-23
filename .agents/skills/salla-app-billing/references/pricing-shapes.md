@@ -75,6 +75,12 @@ Usage balance is written back at runtime via `POST /apps/balance` (see salla-app
 | `slug`          | string ≤100 — the `item_slug` you match on in lifecycle events |
 | `support_renew` | bool — supports renewal (recurring/external_recurring addons)  |
 
+> **`external_recurring` addons renew on ANY logic you choose** — a fixed period, a custom period,
+> pay-as-you-go, or your own rule (the partner drives each renewal via the renew API). The merchant
+> can't infer it, so **state the renewal model plainly in the addon `description`** (what recurs,
+> how often, what triggers a charge). In-app purchase of addons runs through the **checkout SDK**
+> (frontend purchase cycle) → **salla-addon-purchase-embedded**.
+
 ## Top-level (any type)
 
 `unsubscribe_reward`, `unsubscribe_email_reward` — churn-prevention discounts (nullable).

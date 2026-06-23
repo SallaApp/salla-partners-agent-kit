@@ -46,12 +46,15 @@ The purchase entry point is the embedded SDK **Checkout module** — three metho
 full flow:
 
 - `embedded.checkout.getAddons()` — fetch your app's add-ons (slugs, names, prices).
+  Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/add-ons.md
 - `embedded.checkout.create(input, config?)` — open the native checkout drawer.
+  Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/create.md
 - `embedded.checkout.onResult(callback)` — hear the payment result (incl. after a 3DS redirect).
+  Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/result.md
 
-Signatures and payloads below are from the current Checkout module docs (cited per step);
-exact shapes are version-dependent across `@salla.sa/embedded-sdk` releases — confirm against
-the docs or the package, never hardcode slugs, prices, or URLs.
+These three Checkout-module docs are the source of truth for the **frontend purchase cycle**.
+Signatures and payloads are version-dependent across `@salla.sa/embedded-sdk` releases — confirm
+against the docs or the package, never hardcode slugs, prices, or URLs.
 
 ---
 

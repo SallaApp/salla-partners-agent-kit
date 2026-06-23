@@ -16,14 +16,14 @@ each in its own skill, and clear every gate before moving on.
 
 ## Build flow — route to the step skill
 
-| Step | Do this                                                                                                                           | Skill                            |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| 1    | Pick the trigger, confirm its `payload.data`, choose sync vs async                                                                | **salla-app-functions-design**   |
-| 2    | Write the handler (template, context, `Resp`, sandbox, timeouts)                                                                  | **salla-app-functions-handler**  |
-| 3    | Keep the template wrapper (first + last line) + type-check locally (before any save)                                              | **salla-app-functions-validate** |
-| 4    | Save (deploys to demo stores)                                                                                                     | **salla-app-functions-release**  |
-| 5    | Test on a demo store with `salla_functions action=preview` (read its return value)                                                | **salla-app-functions-test**     |
-| 6    | Publish for production (public: `app_publish` validate → partner submits in Portal; private: `salla_apps action=publish_private`) | **salla-app-functions-release**  |
+| Step | Do this                                                                                                                                   | Skill                            |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 1    | Pick the trigger, confirm its `payload.data`, choose sync vs async                                                                        | **salla-app-functions-design**   |
+| 2    | Write the handler (template, context, `Resp`, sandbox, timeouts)                                                                          | **salla-app-functions-handler**  |
+| 3    | Keep the template wrapper (first + last line) + type-check locally (before any save)                                                      | **salla-app-functions-validate** |
+| 4    | Save (deploys to demo stores)                                                                                                             | **salla-app-functions-release**  |
+| 5    | Test on a demo store with `salla_functions action=preview` (read its return value)                                                        | **salla-app-functions-test**     |
+| 6    | Publish for production (public: `app_publish` validate → partner submits in Portal; private: partner publishes from the app-details page) | **salla-app-functions-release**  |
 
 ## Prefer an App Function over a webhook (when a trigger exists)
 
@@ -44,11 +44,11 @@ servers/`child_process`; Web Crypto only; `fetch` for HTTP) — confirm those li
 
 ## Act with the Salla Partners MCP
 
-| Tool              | Action                                                          | What it does                                                                                                                |
-| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `salla_functions` | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store |
-| `app_publish`     | `open` `set` `validate`                                         | Public app: validate the publication (saves a DRAFT; partner submits in Portal) to release the function to real stores      |
-| `salla_apps`      | `publish_private`                                               | Private app: publish in one shot                                                                                            |
+| Tool              | Action                                                          | What it does                                                                                                                  |
+| ----------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `salla_functions` | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store   |
+| `app_publish`     | `open` `set` `validate`                                         | Public app: validate the publication (saves a DRAFT; partner submits in Portal) to release the function to real stores        |
+| `salla_apps`      | —                                                               | Private app: the partner publishes it from the app-details page `https://portal.salla.partners/apps/{app_id}` (no MCP action) |
 
 > Sync actions have a **hard 5 s total** limit (keep each internal async call **< 2 s**; the
 > docs **recommend < 500 ms** since the merchant is blocked — a target, not the limit); async

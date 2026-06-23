@@ -11,8 +11,9 @@ description: >
 
 # Salla Publication Consistency
 
-**Scope: PUBLIC apps (App Store listing).** Private apps don't use this stepwise flow —
-publish them with `salla_apps action=publish_private` (see **salla-app-builder**).
+**Scope: PUBLIC apps (App Store listing).** Private apps don't use this stepwise flow and
+have no MCP publish action — the partner sends their publish request from the app-details
+page `https://portal.salla.partners/apps/{app_id}` (see **salla-app-builder**).
 
 Prepare a Salla app for review via `app_publish` (base `/app/{id}/publication`): a
 readiness-driven loop, not one bulk call. Fill sections one at a time; the **server** decides

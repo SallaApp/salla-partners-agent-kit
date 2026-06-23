@@ -41,15 +41,15 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 
 ## Tools
 
-| Tool              | Action                                                  | What it does                                                                     |
-| ----------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `salla_reference` | `categories`                                            | Get the shipping `type`; pick `sub_category_id` from `sub_categories`            |
-| `salla_upload`    | —                                                       | Upload the logo → file `id`                                                      |
-| `salla_apps`      | `create` / `connect` / `set_status` / `publish_private` | Create + configure OAuth/webhooks; private apps publish in one shot              |
-| `app_publish`     | `open` / `set` / `validate`                             | Public apps: validate the publication (saves a DRAFT; partner submits in Portal) |
-| `salla_events`    | `list` / `subscribe`                                    | Subscribe to the async shipment events                                           |
-| `salla_functions` | `list_triggers` / `save` / `preview`                    | Implement + test the sync shipment App Functions                                 |
-| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings`              | Configure shipping zones + settings                                              |
+| Tool              | Action                                     | What it does                                                                                                            |
+| ----------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference` | `categories`                               | Get the shipping `type`; pick `sub_category_id` from `sub_categories`                                                   |
+| `salla_upload`    | —                                          | Upload the logo → file `id`                                                                                             |
+| `salla_apps`      | `create` / `connect` / `set_status`        | Create + configure OAuth/webhooks; a private app is published by the partner from its app-details page, not via the MCP |
+| `app_publish`     | `open` / `set` / `validate`                | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                        |
+| `salla_events`    | `list` / `subscribe`                       | Subscribe to the async shipment events                                                                                  |
+| `salla_functions` | `list_triggers` / `save` / `preview`       | Implement + test the sync shipment App Functions                                                                        |
+| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings` | Configure shipping zones + settings                                                                                     |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Carry the `app_id`
 > through every step. If a tool returns "Salla session expired", re-run the login flow.
@@ -270,8 +270,9 @@ third-party capture/inspection tool, and restore real config when done.
 
 **Publishing:** public app → `app_publish` stepwise (`open` → `set` each section →
 `validate` saves a DRAFT; the partner then submits one-click in the Portal `/publish` page —
-owned by **salla-publication-consistency**). Private app → `salla_apps action=publish_private`,
-`app_id` (optional `update_note`). Two shipping-specific blockers:
+owned by **salla-publication-consistency**). Private app → the partner sends the publish
+request from the app-details page `https://portal.salla.partners/apps/{app_id}` (no MCP
+action, no onboarding). Two shipping-specific blockers:
 
 - The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).

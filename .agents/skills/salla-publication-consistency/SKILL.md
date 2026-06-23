@@ -1,12 +1,12 @@
 ---
 name: salla-publication-consistency
 description: >
-  Use before a Salla app goes to review: guided pre-publication via app_publish. Open the
-  draft, loop set one section → re-check readiness until all sections complete, then run
-  app_publish action=validate — it validates every section and SAVES a DRAFT (no admin
-  submission). After a clean validate, give the partner their /publish link to REVIEW; it
-  reaches review only on their one-click submit or, after they confirm, send_publish_request.
-  Listing images → salla-app-ui-builder; pricing → salla-app-billing; settings → salla-app-settings.
+  Use when a PUBLIC Salla app is going to review (App Store listing): the master skill for
+  stepwise publication via app_publish. It reads the current draft, routes each step to its
+  owner, and HARD-GATES sending to admin review behind a clean validate plus the partner's
+  explicit confirmation. Private apps publish from the Portal — see salla-app-builder.
+  Hand-offs: listing/images → salla-app-ui-builder; pricing + billing cycle → salla-app-billing;
+  scopes → salla-app-auth; webhooks → salla-webhooks; settings → salla-app-settings.
 ---
 
 # Salla Publication Consistency

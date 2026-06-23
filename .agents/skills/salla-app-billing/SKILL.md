@@ -72,13 +72,18 @@ is **no separate pricing endpoint**; the Portal's Pricing wizard step is a UI he
 same section. The publish mechanics are owned by **salla-publication-consistency**; the
 `pricing` data shape is:
 
-- `plan_type` — `"free"` | `"recurring"` | `"once"` | `"on_demand"` (required; these are the exact API values — there is no `one_time` or `pay_as_you_go`).
-- `plans` — for recurring pricing: up to **8 plans** (0–4 monthly, 0–4 yearly), each carrying
-  bilingual `name {en,ar}`, `price`, a `recurring` field (`"monthly"` | `"yearly"` | `"free"`),
-  and `additional_features[]`.
-- Trial is set ONCE at the top level, not per plan: `plan_trial` (integer days, min 1, capped by
-  the company's max-trial-days — default 7) plus `trial_description` (30–1000 chars).
-- `addons` — extra purchasables, allowed with **all** pricing types.
+- `plan_type` — `"free"` | `"recurring"` | `"once"` | `"on_demand"` (required; exact API values — no `one_time` or `pay_as_you_go`). It selects which fields apply.
+- **Recurring** — `plans[]` (≤8; 0–4 monthly, 0–4 yearly). Each plan: `name{ar,en}`, `subtitle{ar,en}`, `price`, `recurring` (`free` | `monthly` | `yearly` | **`one-time`**), `recommended`, `is_compare_included`, `hidden`, `initialization_cost`, `discount`, `additional_features[]`, `promotions[]` (max 1), `balance` (for one-time/on_demand), and `id` to update a plan in place. Plus the top-level `plan_features[]` comparison matrix.
+- **Once** — `one_time_price`, `one_time_old_price` (> price), `plan_additional_features[]` `{key,name,price,adjustable,min,max}`. No `plans[]`.
+- **On-demand** — `plans[]` with `balance` required + `on_demand_type` (`emails`|`messages`|`per-transaction`).
+- **Addons** (all types) — `{name,description,price,price_model (once|recurring|on_demand),frequency? (recurring),slug,support_renew}`.
+- Trial is top-level: `plan_trial` (days, min 1, capped by max-trial-days — default 7) + `trial_description` (30–1000). Churn: `unsubscribe_reward`, `unsubscribe_email_reward`.
+
+> **Naming traps:** `plan_type:"recurring"` (model) ≠ per-plan `recurring:"monthly"` (period);
+> and `plan_additional_features` (top-level, **once**) ≠ per-plan `additional_features` (**recurring**).
+
+**Full field tables, types, and server rules: load
+[references/pricing-shapes.md](references/pricing-shapes.md).**
 
 Set this section with `app_publish action=set section=pricing`, then `app_publish
 action=validate` (saves the draft). Full publish flow → **salla-publication-consistency**.

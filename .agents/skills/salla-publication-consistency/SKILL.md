@@ -157,6 +157,22 @@ from **their answers**, never invent or auto-fill. At each section:
 - **Fill from the answers**, then run `app_publish action=readiness` to see what's still
   missing, and move to the next section.
 
+**Suggest the publication-window monetization features.** First publish is the moment to set
+these — surface them as grounded **opt-in** options (never auto-add), each routing to
+**salla-app-billing** / **salla-addon-purchase**:
+
+- **Addons** — extra in-app purchases on top of any plan.
+- **Trial** — a free `plan_trial` (days) and/or the reviewer service trial.
+- **Promotions** — time-boxed plan discounts (`promotions[]`).
+- **Comparison matrix** — `plan_features[]` to compare plans side by side.
+- **Recommended / highlighted plan** — `recommended`, `is_compare_included`.
+- **Strikethrough pricing** — `one_time_old_price` (once) or a plan's `old_price`.
+- **Adjustable quantities** — `plan_additional_features` (once) / per-plan `additional_features`.
+- **Churn-prevention** — `unsubscribe_reward`, `unsubscribe_email_reward`.
+
+Note which are publication-window only; per-merchant/tailored plans come **later** via App
+details → Custom Plans. Any paid choice triggers the billing-cycle gate (below).
+
 This composes with the **image-asset rule** below (ask for images; on skip → clearly-marked
 placeholders + tell the partner to replace them).
 

@@ -72,21 +72,26 @@ Usage balance is written back at runtime via `POST /apps/balance` (see salla-app
 
 `addons[]` — each:
 
-| Field           | Type / rule                                                    |
-| --------------- | -------------------------------------------------------------- |
-| `name`          | `{ar,en}`, required                                            |
-| `description`   | `{ar,en}`                                                      |
-| `price`         | numeric, 1–999999.99                                           |
-| `price_model`   | `once` \| `recurring` \| `on_demand`                           |
-| `frequency`     | `monthly` \| `yearly` — only when `price_model: "recurring"`   |
-| `slug`          | string ≤100 — the `item_slug` you match on in lifecycle events |
-| `support_renew` | bool — supports renewal (recurring/external_recurring addons)  |
+| Field           | Type / rule                                                                   |
+| --------------- | ----------------------------------------------------------------------------- |
+| `name`          | `{ar,en}`, required — state the renewal cycle here when `support_renew: true` |
+| `description`   | `{ar,en}` — state what recurs, how often, and what triggers a charge          |
+| `price`         | numeric, 1–999999.99                                                          |
+| `slug`          | string ≤100 — the `item_slug` you match on in lifecycle events                |
+| `support_renew` | bool, default `false` — opt in to a renewing (`external_recurring`) addon     |
 
-> **`external_recurring` addons renew on ANY logic you choose** — a fixed period, a custom period,
-> pay-as-you-go, or your own rule (the partner drives each renewal via the renew API). The merchant
-> can't infer it, so **state the renewal model plainly in the addon `description`** (what recurs,
-> how often, what triggers a charge). In-app purchase of addons runs through the **checkout SDK**
-> (frontend purchase cycle) → **salla-addon-purchase-embedded**.
+Addons are **always one-time at the publication level** — do NOT send `price_model` or
+`frequency` (they're ignored). Renewal is a single flag:
+
+- **`support_renew: false`** (default) → a one-time purchase. The merchant receives addon
+  subscription events with **type `once`**; there is no renewal.
+- **`support_renew: true`** → an **`external_recurring`** addon. You drive each renewal yourself
+  via the **addon renewal API** (any cadence: fixed period, custom period, pay-as-you-go, your
+  own rule). The merchant can't infer the cycle, so **describe it plainly in the addon title and
+  `description`** (what recurs, how often, what triggers a charge).
+
+In-app purchase of addons runs through the **checkout SDK** (frontend purchase cycle) →
+**salla-addon-purchase-embedded**.
 
 ## Top-level (any type)
 

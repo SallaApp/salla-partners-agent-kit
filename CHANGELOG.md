@@ -10,32 +10,47 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.7] — 2026-06-23
+## [1.0.8] — 2026-06-24
 
 ### Changed
 
 - **App events are auto-delivered — subscribe only to store events (kit-wide).** Corrected the
-  event-subscription model across the kit: `app.*` events (`app.installed`,
-  `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.*`, `app.subscription.*`,
-  `app.settings.updated`) arrive at the app's `webhook_url` automatically — the app is subscribed
-  to its own app events by default — so partners **set a `webhook_url` and HANDLE them**, never
-  `salla_events action=subscribe`. That action is now scoped to non-app **store** events
-  (`order.*`, `product.*`, `customer.*`, `cart.*`, store-side `shipment.*`). Fixed
-  `salla-app-billing` (Step 2 + gate + Red Flag + `references/subscription-events.md`),
-  `salla-publication-consistency` (Step 6b billing gate + Red Flags + step-app-config),
-  `salla-app-lifecycle` (Step 1 + tools table), `salla-app-auth` (Step 2 + Easy-Mode checklist),
-  `salla-addon-purchase` (Step 2), `salla-webhooks` (app-event vs store-event subscribe split),
-  and a `salla-live-testing` settings note. The MCP `salla_events` description now states app
-  events auto-deliver and `subscribe` is for store events. Cites the App Events ref
-  (`421413m0`).
+  event-subscription model across the kit: `app.*` events (`app.installed`, `app.store.authorize`,
+  `app.updated`, `app.uninstalled`, `app.trial.*`, `app.subscription.*`, `app.settings.updated`)
+  arrive at the app's `webhook_url` automatically — the app is subscribed to its own app events by
+  default — so partners **set a `webhook_url` and HANDLE them**, never `salla_events
+action=subscribe`; that action is scoped to non-app **store** events (`order.*`, `product.*`,
+  `customer.*`, `cart.*`, store-side `shipment.*`). Touches `salla-app-billing` (Step 2 + gate +
+  Red Flag + `references/subscription-events.md`), `salla-publication-consistency` (Step 6b billing
+  gate + Red Flags + `step-app-config`), `salla-app-lifecycle`, `salla-app-auth`,
+  `salla-addon-purchase`, `salla-webhooks` (app-event vs store-event split), and a
+  `salla-live-testing` note. Grounded in the App Events ref `421413m0`. This also corrects the
+  v1.0.7 billing-cycle gate, which had said to verify `app.subscription.*` is _subscribed_.
+- **App Function handlers are gated on the fetched type definitions, and stay minimal.** A build
+  post-mortem (a shipping handler guessed `sender_address`/`weight` instead of reading the real
+  `Shipments` payload) surfaced a missing gate: `salla-app-functions-handler` now opens with a
+  numbered, gated step — fetch every URL in the `types` array from `salla_functions action=get`
+  and read the exact `context.payload.data` field names from those `.d.ts` before writing — and
+  the rule is **strict for writing OR modifying** any function. Adds a "keep it minimal — delegate
+  to your own API" principle (the function is a thin transform layer: read payload → call your
+  backend → map to `Resp`). `salla-shipping-app` Step 4 routes the handler body here with a
+  matching gate.
+
+Paired with partners-mcp: `app_publish` maps the `already_submitted` 403 to withdraw/check-status
+guidance, and the `salla_events` tool description scopes `subscribe` to store events.
+
+## [1.0.7] — 2026-06-23
+
+### Changed
+
 - **`salla-publication-consistency` is now the master publication router.** Added the
   `app_publish action=get` step to read the FULL current draft (`publication_last_save`) before
   filling/validating — resume/review without re-asking; per-step **reference docs**
   (`references/step-*.md`) carrying data retrieval + submission schema + how-to-submit, aligned
   with the front-end's steps; a **step-by-step validation** model (`set` = per-section format,
   `readiness` = completeness, `validate` = cross-field gate); a **billing-cycle submit gate**
-  (paid pricing → verify the `webhook_url` is set so `app.subscription.*` auto-delivers +
-  handlers confirmed, else save a draft and wire the cycle first) with Red Flags; first-publish onboarding now **suggests the
+  (paid pricing → verify `app.subscription.*` subscribed + handlers confirmed, else save a draft
+  and wire the cycle first) with Red Flags; first-publish onboarding now **suggests the
   publication-only monetization features** (addons, trials, promotions, comparison matrix,
   recommended plan, strikethrough pricing, adjustable features, unsubscribe rewards); and routes
   the partner to the **educational-video guide** when `video_url` is missing.
@@ -79,27 +94,6 @@ billing-cycle warning on `validate`.
   descriptions to explicit **"Use when…"** triggers (`salla-communication-app`,
   `salla-shipping-app`, `salla-storefront-ui`, and trimmed the workflow summary out of
   `salla-app-functions-release`).
-- **App Function handlers are gated on reading the fetched type definitions before writing**
-  (build post-mortem: a shipping handler guessed `sender_address` / `receiver_address` /
-  `weight` instead of reading the real `Shipments` payload). `salla-app-functions-handler`
-  now opens with a numbered, gated step — fetch every URL in the `types` array from
-  `salla_functions action=get` and read the exact `context.payload.data` field names/shapes
-  from those `.d.ts` before writing the body. `salla-shipping-app` Step 4 adds a matching
-  template→save hand-off routing the body to `salla-app-functions-handler` and requiring the
-  `shipment.creating` / `shipment.cancelling` field names be confirmed from the fetched types.
-  The type-fetch rule is now **strict for writing OR modifying** any function, and the handler
-  skill adds a "keep it minimal — delegate to your own API" principle: the function is a thin
-  transform layer (read payload → call your backend API → map to `Resp`), not the business logic.
-- **Subscription lifecycle events arrive at the webhook, not via subscribe** (live test:
-  `salla_events action=list` exposes only `app.subscription.started` + `app.trial.*` as
-  subscribable). `salla-app-billing` Step 2/4 + its Red Flags and `references/subscription-events.md`
-  now state it positively — subscribe to `app.subscription.started` (+ `app.trial.*`); the platform
-  delivers `app.subscription.renewed`/`expired`/`canceled` to the `webhook_url` automatically once a
-  subscription exists, so the FULL lifecycle is covered in the **handler**, not by a subscribe call
-  (grounded in the App Events reference `421413m0`, which lists each as platform-fired).
-  `salla-publication-consistency` Step 6b's billing-cycle gate + Red Flag now auto-check
-  `webhook_url` set **+** the subscribable events subscribed (not all four). Paired with partners-mcp
-  mapping the `app_publish` 403 `already_submitted` to withdraw/check-status guidance.
 
 ## [1.0.6] — 2026-06-23
 

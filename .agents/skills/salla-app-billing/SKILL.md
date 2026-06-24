@@ -88,7 +88,7 @@ same section. The publish mechanics are owned by **salla-publication-consistency
 - **Recurring** — `plans[]` (≤8; 0–4 monthly, 0–4 yearly). Each plan: `name{ar,en}`, `subtitle{ar,en}`, `price`, `recurring` (`free` | `monthly` | `yearly` | **`one-time`**), `recommended`, `is_compare_included`, `hidden`, `initialization_cost`, `discount`, `additional_features[]`, `promotions[]` (max 1), `balance` (for one-time/on_demand), and `id` to update a plan in place. Plus the top-level `plan_features[]` comparison matrix.
 - **Once** — `one_time_price`, `one_time_old_price` (> price), `plan_additional_features[]` `{key,name,price,adjustable,min,max}`. No `plans[]`.
 - **On-demand** — `plans[]` with `balance` required + `on_demand_type` (`emails`|`messages`|`per-transaction`).
-- **Addons** (all types) — `{name,description,price,slug,support_renew}`. Always one-time; never send `price_model`/`frequency`. `support_renew:true` ⇒ `external_recurring` (you drive renewals via the renew API; state the cycle in the addon title/description), else `once` events.
+- **Addons** (all types) — `{name,description,price,slug,support_renew}`. Always one-time; `support_renew` is the only recurring control: `true` ⇒ `external_recurring` (you drive renewals via the renew API; state the cycle in the addon title/description), else `once` events.
 - Trial is top-level: `plan_trial` (days, min 1, capped by max-trial-days — default 7) + `trial_description` (30–1000). Churn: `unsubscribe_reward`, `unsubscribe_email_reward`.
 
 > **Naming traps:** `plan_type:"recurring"` (model) ≠ per-plan `recurring:"monthly"` (period);

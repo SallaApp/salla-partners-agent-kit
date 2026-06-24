@@ -10,6 +10,22 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.10] — 2026-06-24
+
+### Changed
+
+- **Onboarding steps: no `url`, single-language `title`, mandatory settings + handler, and a
+  re-entrant rule.** Corrected the onboarding-steps contract: a step is a **settings form, not
+  an iframe** (there is **no `url`** input), and `title` is a **single-language plain string**,
+  not an `{ar,en}` object. Each step is **two mandatory parts**: (1) `salla_onboarding_steps
+action=create` with a fixed `slug` and **non-empty `fields`** (the **same schema as public
+  app settings** → salla-app-settings); (2) its App Function via `salla_functions` with trigger
+  `app.onboarding.step.creating.{slug}` and context `Onboarding`. The merchant's saved input
+  arrives as key/value in `context.payload.data.fields` (step identified by `step.slug` +
+  `step.sort`) for validation or custom logic. **The handler must be re-entrant** — it fires on
+  every submit (the merchant can edit and re-save before activating), so upsert and re-validate
+  each run. Touches `salla-app-builder` (Step 5a + `references/onboarding-steps.md`).
+
 ## [1.0.9] — 2026-06-24
 
 ### Changed

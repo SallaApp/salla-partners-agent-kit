@@ -65,6 +65,14 @@ billing-cycle warning on `validate`.
   descriptions to explicit **"Use when…"** triggers (`salla-communication-app`,
   `salla-shipping-app`, `salla-storefront-ui`, and trimmed the workflow summary out of
   `salla-app-functions-release`).
+- **App Function handlers are gated on reading the fetched type definitions before writing**
+  (build post-mortem: a shipping handler guessed `sender_address` / `receiver_address` /
+  `weight` instead of reading the real `Shipments` payload). `salla-app-functions-handler`
+  now opens with a numbered, gated step — fetch every URL in the `types` array from
+  `salla_functions action=get` and read the exact `context.payload.data` field names/shapes
+  from those `.d.ts` before writing the body. `salla-shipping-app` Step 4 adds a matching
+  template→save hand-off routing the body to `salla-app-functions-handler` and requiring the
+  `shipment.creating` / `shipment.cancelling` field names be confirmed from the fetched types.
 
 ## [1.0.6] — 2026-06-23
 

@@ -74,10 +74,12 @@ or the docs link before coding. To **read** the current subscription detail use
 | `app.trial.expired`         | Trial ended without upgrade | set `inactive`                 |
 | `app.trial.canceled`        | Trial cancelled             | set `inactive`                 |
 
-> **Subscribe vs. deliver.** Only `app.subscription.started` (+ the `app.trial.*` events) is
-> in the subscribable catalog. The platform delivers `app.subscription.renewed`/`expired`/
-> `canceled` to your `webhook_url` automatically once a subscription exists — handle all of
-> them here, but subscribe only to `started`/`app.trial.*` (→ SKILL Step 2).
+> **App events auto-deliver — no subscribe call.** These are all `app.*` events, and the app
+> is subscribed to its own app events by default, so Salla delivers the whole family
+> (`started`/`renewed`/`expired`/`canceled` + `app.trial.*`) to your `webhook_url`
+> automatically — whether or not a slug appears in the `salla_events action=list` catalog
+> (`renewed`/`expired`/`canceled` aren't even in it). Set the `webhook_url` and HANDLE them
+> all here; `salla_events action=subscribe` is for store events only (→ SKILL Step 2).
 
 Filter on `data.item_type`:
 

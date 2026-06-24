@@ -21,8 +21,10 @@ only when `app.subscription.started` arrives, signature-verified.**
 ## Tools & MCPs
 
 Use the Salla Partners MCP: define the addon in the publication's `pricing` section
-(`app_publish action=set section=pricing`, `addons[]`), set a `webhook_url` via `salla_apps
-action=connect`, then `salla_events action=subscribe` to the subscription events below.
+(`app_publish action=set section=pricing`, `addons[]`), then set a `webhook_url` via
+`salla_apps action=connect`. The `app.subscription.*` events below are **app events** — the
+app is subscribed to them by default, so they auto-deliver to that `webhook_url`. There is
+**no subscribe call** (`salla_events action=subscribe` is for store events only).
 
 > Salla owns billing — you never charge. Hand-offs: purchase UX (iframe) →
 > **salla-addon-purchase-embedded** · pricing/entitlement primitives & gating →
@@ -41,10 +43,12 @@ shape → **salla-app-billing** Step 1.
 
 ---
 
-## Step 2 — Subscribe to the Lifecycle Events
+## Step 2 — Set the Webhook URL (addon events auto-deliver)
 
-Subscribe the app (`salla_events action=subscribe`) to the addon subscription events.
-Confirm exact slugs via `salla_events action=list` / the App Events doc before coding.
+The addon lifecycle rides on `app.subscription.*` **app events** — the app is subscribed to
+them by default, so set a `webhook_url` (`salla_apps action=connect`) and they auto-deliver.
+There is **no subscribe call**; your job is to HANDLE the events below. Confirm exact payload
+shapes via the App Events doc (https://docs.salla.dev/421413m0.md) before coding.
 
 | Event                       | When                              | Do                                          |
 | --------------------------- | --------------------------------- | ------------------------------------------- |
@@ -53,7 +57,8 @@ Confirm exact slugs via `salla_events action=list` / the App Events doc before c
 | `app.subscription.expired`  | Period ended, not renewed         | Revoke the entitlement, re-gate features    |
 | `app.subscription.canceled` | Merchant cancels                  | Mark canceled; keep access until `end_date` |
 
-**Gate:** "All addon lifecycle events subscribed?"
+**Gate:** "`webhook_url` set (addon `app.subscription.*` events auto-deliver to it — no
+subscribe call), and a handler is wired for each event above?"
 
 ---
 

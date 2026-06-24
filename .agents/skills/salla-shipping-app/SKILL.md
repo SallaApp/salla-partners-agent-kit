@@ -221,6 +221,18 @@ export default async (context: Shipments): Promise<Resp> => {
 > the `Shipments` context payload, and the three AWB processing flows — live in
 > [`references/shipment-cycle.md`](references/shipment-cycle.md).
 
+**Before you save: confirm the payload field names from the fetched types.** Between getting
+the template (`salla_functions action=get`) and `salla_functions action=save`, route the
+handler body to **`salla-app-functions-handler`** — it owns writing the body, including the
+rule that you fetch **every URL in the `types` array** from `action=get` and read the exact
+`shipment.creating` / `shipment.cancelling` payload field names (addresses, parcel, weight,
+`type: "shipment" | "return"`) off `context.payload.data` from those `.d.ts` definitions. Don't
+guess carrier-API-style names like `sender_address` / `receiver_address` / `weight`.
+
+**Gate:** "Handler body written via salla-app-functions-handler, with every
+`context.payload.data` field confirmed against the trigger's fetched `types` `.d.ts` — none
+guessed — before `salla_functions action=save`?"
+
 **Test via the App Function MCP preview** (owned by **`salla-app-functions-test`**): save the
 function, poll `salla_functions action=deploy_status` until `COMPLETED`, then run
 `salla_functions action=preview` with `app_id`, `trigger`, a demo `store_id`, and the

@@ -19,6 +19,23 @@ plus local type-check → **salla-app-functions-validate**).
 This skill assumes sync-vs-async is already decided in **salla-app-functions-design** (a sync
 `merchant_actions` trigger blocks/modifies the operation; an async event is fire-and-forget).
 
+## 1. Read the payload field names from the fetched types FIRST
+
+Before writing the handler body, fetch **every URL in the `types` array** returned by
+`salla_functions action=get` (`app_id`, `trigger`) and read the exact field names and shapes
+from those `.d.ts` type definitions. The typed payload your handler reads is
+`context.payload.data` — build every property access against the names the `.d.ts` actually
+declares (and any nested shapes / enums it references), not the names you expect. For a
+shipping AWB function, that means reading the real `Shipments` payload fields from its types
+(e.g. the address, parcel, and weight fields as the `.d.ts` names them) instead of assuming
+`sender_address` / `receiver_address` / `weight`. The same `types` URLs feed the local
+type-check in **salla-app-functions-validate**, which fails the build if a guessed field
+doesn't exist — but reading them first is what lets you write the body correctly the first
+time.
+
+**Gate:** "Every field the handler reads off `context.payload.data` was confirmed against a
+field actually declared in the fetched `types` `.d.ts` — none guessed?"
+
 ```typescript
 export default async (context: Shipments): Promise<Resp> => {
   // ↑ template's first line, unchanged    ↓ ALL your code goes inside the body

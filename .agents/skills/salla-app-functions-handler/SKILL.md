@@ -19,9 +19,21 @@ plus local type-check → **salla-app-functions-validate**).
 This skill assumes sync-vs-async is already decided in **salla-app-functions-design** (a sync
 `merchant_actions` trigger blocks/modifies the operation; an async event is fire-and-forget).
 
-## 1. Read the payload field names from the fetched types FIRST
+## Keep the handler minimal — delegate to your own API
 
-Before writing the handler body, fetch **every URL in the `types` array** returned by
+**Best practice: the function is a thin transform layer, not your business logic.** Do the real
+work in **your own backend API** and use the App Function only to (1) read the trigger payload,
+(2) call your API, and (3) transform its response into the `Resp` the trigger expects. The
+sandbox is a constrained V8 isolate with a hard time budget (5 s sync / 30 s async) and no npm —
+heavy logic, SDKs, persistence, and long work belong on your server, not in here. So a sync
+action (e.g. `shipment.creating`) should: validate the input → `fetch` your API → map its result
+to the trigger's `Resp`. Minimal and concise keeps it within budget and easy to type-check
+against the trigger's types.
+
+## 1. Read the payload field names from the fetched types FIRST (strict)
+
+**STRICT RULE — applies to writing OR modifying any App Function.** Before you write or change any
+property access on the payload, fetch **every URL in the `types` array** returned by
 `salla_functions action=get` (`app_id`, `trigger`) and read the exact field names and shapes
 from those `.d.ts` type definitions. The typed payload your handler reads is
 `context.payload.data` — build every property access against the names the `.d.ts` actually
@@ -33,8 +45,9 @@ type-check in **salla-app-functions-validate**, which fails the build if a guess
 doesn't exist — but reading them first is what lets you write the body correctly the first
 time.
 
-**Gate:** "Every field the handler reads off `context.payload.data` was confirmed against a
-field actually declared in the fetched `types` `.d.ts` — none guessed?"
+**Gate:** "Before writing OR modifying the body, every field the handler reads off
+`context.payload.data` was confirmed against a field actually declared in the (re-)fetched
+`types` `.d.ts` — none guessed?"
 
 ```typescript
 export default async (context: Shipments): Promise<Resp> => {

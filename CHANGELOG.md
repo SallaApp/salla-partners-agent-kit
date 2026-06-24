@@ -73,6 +73,9 @@ billing-cycle warning on `validate`.
   from those `.d.ts` before writing the body. `salla-shipping-app` Step 4 adds a matching
   template→save hand-off routing the body to `salla-app-functions-handler` and requiring the
   `shipment.creating` / `shipment.cancelling` field names be confirmed from the fetched types.
+  The type-fetch rule is now **strict for writing OR modifying** any function, and the handler
+  skill adds a "keep it minimal — delegate to your own API" principle: the function is a thin
+  transform layer (read payload → call your backend API → map to `Resp`), not the business logic.
 
 ## [1.0.6] — 2026-06-23
 

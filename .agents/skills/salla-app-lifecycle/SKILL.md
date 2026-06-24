@@ -14,7 +14,7 @@ description: >
 
 Keep your backend in sync with each merchant's relationship to your app — from install
 through trial, subscription, and uninstall. Follow the steps in order; complete each gate
-before moving on. Step 1 **performs** the subscription with the Salla Partners MCP; Steps
+before moving on. Step 1 **sets the webhook receiver** with the Salla Partners MCP; Steps
 2–6 are the runtime handlers you write.
 
 ## Tools & MCPs
@@ -22,10 +22,16 @@ before moving on. Step 1 **performs** the subscription with the Salla Partners M
 The App Events doc (https://docs.salla.dev/421413m0.md) is the authoritative source for
 every lifecycle payload shape. The **Salla Partners MCP** _performs actions_:
 
-| Tool           | Action               | What it does                                 |
-| -------------- | -------------------- | -------------------------------------------- |
-| `salla_apps`   | `connect` / `get`    | Set the webhook receiver / inspect app state |
-| `salla_events` | `list` / `subscribe` | Discover + subscribe to lifecycle events     |
+| Tool         | Action            | What it does                                                                        |
+| ------------ | ----------------- | ----------------------------------------------------------------------------------- |
+| `salla_apps` | `connect` / `get` | Set the `webhook_url` (lifecycle app events auto-deliver to it) / inspect app state |
+
+> **Lifecycle events are `app.*` events — auto-delivered, no subscribe call.** The app is
+> subscribed to its **own** app events by default, so `app.installed`, `app.store.authorize`,
+> `app.updated`, `app.uninstalled`, `app.trial.*`, `app.subscription.*`, and
+> `app.settings.updated` all arrive at your `webhook_url` automatically the moment they fire.
+> You do **not** call `salla_events action=subscribe` for any of them — that action is only
+> for non-app (store) events (`order.*`, `product.*`, …) → **salla-webhooks**.
 
 > All events arrive on your single webhook endpoint inside the standard envelope
 > (`event`, `merchant`, `created_at`, `data`). **Verify the signature, acknowledge fast
@@ -72,10 +78,11 @@ Ask before starting:
 
 ---
 
-## Step 1 — Subscribe to Lifecycle Events
+## Step 1 — Set the Webhook URL (lifecycle events auto-deliver)
 
-Lifecycle events only arrive if the app is subscribed and a `webhook_url` is set. Do this
-with the Partners MCP:
+Lifecycle events are **app events** — the app is subscribed to them by default, so they
+arrive the moment a `webhook_url` is set. There is **no subscribe call**; the one action is
+to configure the receiver with the Partners MCP:
 
 1. Configure the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
    `webhook_security_strategy: "signature"`. `connect` doesn't mint the signing secret —
@@ -83,15 +90,15 @@ with the Partners MCP:
    read the current value via `salla_apps action=get` (the `webhook_secret` field) before
    deploy. Store it in a secret manager/KMS (never in source or logs) — secure storage and
    HMAC verification are owned by **salla-webhooks**.
-2. List valid slugs: `salla_events action=list`, `app_id`.
-3. Subscribe: `salla_events action=subscribe`, `app_id`, `events: [...]` — e.g.
-   `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.started`,
-   `app.subscription.started`, `app.subscription.renewed`, `app.subscription.expired`.
+2. That's it for delivery: `app.installed`, `app.store.authorize`, `app.updated`,
+   `app.uninstalled`, `app.trial.*`, `app.subscription.*`, and `app.settings.updated` now flow
+   to that URL automatically. (`salla_events action=subscribe` is for store events — `order.*`,
+   `product.*`, … — which lifecycle handling doesn't need → **salla-webhooks**.)
 
 Inspect the app's current configuration any time with `salla_apps action=get`, `app_id`.
 
-**Gate:** "Webhook set + events subscribed (`salla_events action=list` shows them), and
-your endpoint returns 200?"
+**Gate:** "`webhook_url` set via `salla_apps action=connect` (app events auto-deliver to it —
+no subscribe call), and your endpoint returns 200?"
 
 ---
 
@@ -249,7 +256,7 @@ handlers above:
   │           │ app.subscription.expired/canceled
   │           ▼
   │       restricted
-  │           │ app.subscription.started (re-subscribe)
+  │           │ app.subscription.started (merchant re-purchases)
   └───────────┘
               │ app.uninstalled (from any state)
               ▼

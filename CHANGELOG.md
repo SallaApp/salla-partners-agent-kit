@@ -10,6 +10,35 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.8] — 2026-06-24
+
+### Changed
+
+- **App events are auto-delivered — subscribe only to store events (kit-wide).** Corrected the
+  event-subscription model across the kit: `app.*` events (`app.installed`, `app.store.authorize`,
+  `app.updated`, `app.uninstalled`, `app.trial.*`, `app.subscription.*`, `app.settings.updated`)
+  arrive at the app's `webhook_url` automatically — the app is subscribed to its own app events by
+  default — so partners **set a `webhook_url` and HANDLE them**, never `salla_events
+action=subscribe`; that action is scoped to non-app **store** events (`order.*`, `product.*`,
+  `customer.*`, `cart.*`, store-side `shipment.*`). Touches `salla-app-billing` (Step 2 + gate +
+  Red Flag + `references/subscription-events.md`), `salla-publication-consistency` (Step 6b billing
+  gate + Red Flags + `step-app-config`), `salla-app-lifecycle`, `salla-app-auth`,
+  `salla-addon-purchase`, `salla-webhooks` (app-event vs store-event split), and a
+  `salla-live-testing` note. Grounded in the App Events ref `421413m0`. This also corrects the
+  v1.0.7 billing-cycle gate, which had said to verify `app.subscription.*` is _subscribed_.
+- **App Function handlers are gated on the fetched type definitions, and stay minimal.** A build
+  post-mortem (a shipping handler guessed `sender_address`/`weight` instead of reading the real
+  `Shipments` payload) surfaced a missing gate: `salla-app-functions-handler` now opens with a
+  numbered, gated step — fetch every URL in the `types` array from `salla_functions action=get`
+  and read the exact `context.payload.data` field names from those `.d.ts` before writing — and
+  the rule is **strict for writing OR modifying** any function. Adds a "keep it minimal — delegate
+  to your own API" principle (the function is a thin transform layer: read payload → call your
+  backend → map to `Resp`). `salla-shipping-app` Step 4 routes the handler body here with a
+  matching gate.
+
+Paired with partners-mcp: `app_publish` maps the `already_submitted` 403 to withdraw/check-status
+guidance, and the `salla_events` tool description scopes `subscribe` to store events.
+
 ## [1.0.7] — 2026-06-23
 
 ### Changed

@@ -24,11 +24,16 @@ MCP; the token handling is runtime code.
 
 ## Tools & MCPs
 
-| Tool           | Action               | What it does                                                            |
-| -------------- | -------------------- | ----------------------------------------------------------------------- |
-| `salla_scopes` | `get` / `set`        | Read or update the app's OAuth scopes (slugs, disabled flags, selected) |
-| `salla_apps`   | `connect`            | Set scopes, redirect URLs, and the webhook receiver in one call         |
-| `salla_events` | `list` / `subscribe` | Subscribe to `app.store.authorize` (+ lifecycle events)                 |
+| Tool           | Action        | What it does                                                                                             |
+| -------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
+| `salla_scopes` | `get` / `set` | Read or update the app's OAuth scopes (slugs, disabled flags, selected)                                  |
+| `salla_apps`   | `connect`     | Set scopes, redirect URLs, and the `webhook_url` (`app.store.authorize` auto-delivers to it) in one call |
+
+> **`app.store.authorize` is an app event — auto-delivered, no subscribe call.** The app is
+> subscribed to its own app events by default, so once a `webhook_url` is set the token event
+> (`app.store.authorize`) and every other `app.*` lifecycle event arrive automatically. You do
+> **not** call `salla_events action=subscribe` for it — that action is only for store events
+> (`order.*`, `product.*`, …) → **salla-webhooks**.
 
 > Docs: https://docs.salla.dev/421118m0.md · App Events: https://docs.salla.dev/421413m0.md
 > · API header: `Authorization: Bearer <access_token>`.
@@ -111,17 +116,19 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
    > (space-delimited, e.g. `scope=offline_access orders.read_write`). The `connect`
    > map takes resource slugs only (e.g. `{"orders": "read_write"}`).
 
-3. **Subscribe** — `salla_events action=subscribe`, `app_id`,
-   `events: ["app.store.authorize"]` (plus other lifecycle events you need).
+3. **No subscribe call for the token event.** `app.store.authorize` is an app event — with
+   the `webhook_url` set in step 2 it auto-delivers, along with every other `app.*` lifecycle
+   event. (Use `salla_events action=subscribe` only for store events your app reacts to →
+   **salla-webhooks**.)
 
 **Manual fallback:** Partners Portal → App Keys / Webhooks / App Scope.
 
 **Gate:** "Resource scopes applied, and `redirect_urls` matches the intended mode — **Easy
 Mode** → `redirect_urls` = the app's `easy_redirect_url` (prod:
 `["https://accounts.salla.sa/callback/{app_id}"]`) **AND** `webhook_url` +
-`webhook_security_strategy` set **AND** `app.store.authorize` subscribed
-(no `webhook_url` → the event never fires and tokens never arrive); **Custom Mode** → your
-own callback URL?"
+`webhook_security_strategy` set (`app.store.authorize` auto-delivers to it — no subscribe
+call; without a `webhook_url` the event has nowhere to land and tokens never arrive);
+**Custom Mode** → your own callback URL?"
 
 **Gate:** "Before deploy: read the **current** `webhook_secret` via `salla_apps action=get`
 and set that exact value in the verification env — not a secret carried from an earlier
@@ -157,8 +164,9 @@ then on `app.store.authorize` **upsert** `access_token` / `refresh_token` /
 > diagnostics. Redirect and webhook URLs are HTTPS-only. Restrict your app to known server
 > IPs (IP whitelisting, below).
 
-Easy Mode checklist: webhook URL set (Step 2) · `app.store.authorize` subscribed · the
-granted `data.scope` in the payload contains `offline_access` (so refresh tokens are
+Easy Mode checklist: webhook URL set (Step 2) · `app.store.authorize` auto-delivers to it
+(app event — no subscribe call) · the granted `data.scope` in the payload contains
+`offline_access` (so refresh tokens are
 issued) · DB stores `access_token` / `refresh_token` / `token_expires_at` per merchant ·
 handler upserts (not inserts).
 

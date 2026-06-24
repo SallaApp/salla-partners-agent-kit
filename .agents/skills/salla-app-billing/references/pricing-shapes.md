@@ -80,8 +80,8 @@ Usage balance is written back at runtime via `POST /apps/balance` (see salla-app
 | `slug`          | string ≤100 — the `item_slug` you match on in lifecycle events                |
 | `support_renew` | bool, default `false` — opt in to a renewing (`external_recurring`) addon     |
 
-Addons are **always one-time at the publication level** — do NOT send `price_model` or
-`frequency` (they're ignored). Renewal is a single flag:
+Addons are **always one-time at the publication level**. Renewal is the single
+`support_renew` flag — that's the only addon recurring control:
 
 - **`support_renew: false`** (default) → a one-time purchase. The merchant receives addon
   subscription events with **type `once`**; there is no renewal.

@@ -255,14 +255,19 @@ first install**. Common use cases: collecting credentials (e.g. email + password
 the app activates, gathering store profile info, or configuring settings that cannot be
 changed later.
 
-- **Yes** → use `salla_onboarding_steps` (one `action`-driven tool): `action=create` each
-  step (`icon`, `title`, `slug` all required; optional `fields`, `sort`, `required`),
-  `action=sort` to order them, `action=list`/`delete` to manage. A step with `fields` runs a
-  validation Step Function on submit that returns `Resp.success()` (continue) or
-  `Resp.error().setFields(...)` (stop + show feedback); validate credentials provider-side
-  and store only an encrypted/hashed form. **Full tool params, the `update` revalidation
-  rule, the Step Function handler, credential handling, and the completion payload shape:
-  load [references/onboarding-steps.md](references/onboarding-steps.md).**
+- **Yes** → each step is **two mandatory parts**: the step (with **non-empty `fields`**) and an
+  App Function handler. Create the step with `salla_onboarding_steps action=create` (`icon`,
+  `title`, `slug` all required — `title` is a single-language plain string, NOT `{ar,en}`; a
+  step has **no `url`**; `fields` **required, same schema as public app settings**; `sort`,
+  `required` optional), `action=sort` to order, `action=list`/`delete` to manage. Then add the
+  handler with `salla_functions action=save` (trigger `app.onboarding.step.creating.{slug}`,
+  context `Onboarding`): the merchant's input arrives as `context.payload.data.fields` to
+  validate or run custom logic; return `Resp.success()` (continue) or
+  `Resp.error().setFields(...)` (stop + show feedback). **The handler must be re-entrant** — it
+  fires on every submit (the merchant can edit and re-save before activating), so upsert and
+  re-validate each run. Validate credentials provider-side, store only encrypted/hashed.
+  **Full tool params, the hard rules, the `update` revalidation rule, the handler, and the
+  completion payload shape: load [references/onboarding-steps.md](references/onboarding-steps.md).**
 - **No** → skip to Step 6.
 
 ---

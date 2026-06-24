@@ -76,6 +76,16 @@ billing-cycle warning on `validate`.
   The type-fetch rule is now **strict for writing OR modifying** any function, and the handler
   skill adds a "keep it minimal — delegate to your own API" principle: the function is a thin
   transform layer (read payload → call your backend API → map to `Resp`), not the business logic.
+- **Subscription lifecycle events arrive at the webhook, not via subscribe** (live test:
+  `salla_events action=list` exposes only `app.subscription.started` + `app.trial.*` as
+  subscribable). `salla-app-billing` Step 2/4 + its Red Flags and `references/subscription-events.md`
+  now state it positively — subscribe to `app.subscription.started` (+ `app.trial.*`); the platform
+  delivers `app.subscription.renewed`/`expired`/`canceled` to the `webhook_url` automatically once a
+  subscription exists, so the FULL lifecycle is covered in the **handler**, not by a subscribe call
+  (grounded in the App Events reference `421413m0`, which lists each as platform-fired).
+  `salla-publication-consistency` Step 6b's billing-cycle gate + Red Flag now auto-check
+  `webhook_url` set **+** the subscribable events subscribed (not all four). Paired with partners-mcp
+  mapping the `app_publish` 403 `already_submitted` to withdraw/check-status guidance.
 
 ## [1.0.6] — 2026-06-23
 

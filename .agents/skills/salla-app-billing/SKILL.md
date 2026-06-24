@@ -118,14 +118,27 @@ After the app exists, **App details → Custom Plans** exposes per-merchant/tail
 
 ## Step 2 — Subscribe to Subscription Events
 
-The events are your source of truth, so subscribe the app to them (a `webhook_url` must
-be set — see salla-app-lifecycle Step 1):
+The events are your source of truth, so subscribe the app to the **subscribable** ones (a
+`webhook_url` must be set — see salla-app-lifecycle Step 1):
 
-- `salla_events action=list`, `app_id` → confirm valid slugs.
+- `salla_events action=list`, `app_id` → confirm which slugs the catalog actually exposes.
 - `salla_events action=subscribe`, `app_id`,
-  `events: ["app.subscription.started","app.subscription.renewed","app.subscription.expired","app.subscription.canceled","app.trial.started","app.trial.expired","app.trial.canceled"]`.
+  `events: ["app.subscription.started","app.trial.started","app.trial.expired","app.trial.canceled"]`.
 
-**Gate:** "All subscription + trial events subscribed (`salla_events action=list` confirms)?"
+**What's subscribable vs. auto-delivered.** Only `app.subscription.started` (plus the
+`app.trial.*` events) appear in the subscribable catalog. Once a subscription exists, the
+platform delivers `app.subscription.renewed`, `app.subscription.expired`, and
+`app.subscription.canceled` to your `webhook_url` **automatically** as the subscription
+progresses — they are NOT separate catalog entries, so don't try to `subscribe` to them. You
+still must HANDLE all four in your webhook handler (Step 4) — `started` is the half you
+subscribe; renewed/expired/canceled are the half the platform pushes once the merchant is
+subscribed. The App Events reference (https://docs.salla.dev/421413m0.md) lists each as
+platform-fired ("triggered whenever a subscription is renewed/expired/canceled").
+
+**Gate:** "`webhook_url` set, and the subscribable events
+(`app.subscription.started` + `app.trial.*`) subscribed (`salla_events action=list`
+confirms)? Renewed/expired/canceled are auto-delivered to the webhook — covered in the
+handler (Step 4), not via subscribe."
 
 ---
 
@@ -160,6 +173,9 @@ webhooks with payload examples): https://docs.salla.dev/421413m0.md.
 ---
 
 ## Step 4 — Handle Renewals, Expiry & Trials
+
+These three arrive at your `webhook_url` **automatically** once the subscription exists (you
+don't subscribe to them — see Step 2); your job is to HANDLE them:
 
 - **`app.subscription.renewed`** — confirm still active; persist the new
   `end_date` / `renew_date`. Don't assume the old end date.
@@ -286,15 +302,16 @@ addon features merged into one set). Full payloads:
 Billing events grant and revoke paid access, so a shortcut here either leaks paid features
 or wrongly locks a paying merchant out. If one of these is your plan, re-read the named step.
 
-| Tempting thought                                             | Why it's wrong                                                                                                                                     |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "I'll unlock features straight from the event payload."      | A forged/replayed webhook would hand out paid access. Verify the signature + dedupe, then gate on **stored** entitlement state (Step 3).           |
-| "Plans and addons need separate event handlers."             | They share one `app.subscription.*` family — branch on `item_type` (`item_slug` picks the addon). Separate handlers miss half the events (Step 3). |
-| "I only need the subscription events; trials are different." | Trials ride the **same** payload shape (`app.trial.*`). Skip them and trial start/expiry falls through to wrong gating (Steps 3–4).                |
-| "I'll trust the balance the client sends me."                | Compute usage server-side and `POST /apps/balance` behind your own auth; read it back to confirm. Client-reported balance is spoofable (Step 5b).  |
-| "Events are reliable — I don't need reconciliation."         | A missed webhook during downtime leaves stored state stale forever. `GET /apps/{app_id}/subscriptions` is the backstop (Step 5).                   |
-| "I'll gate at the moment the event arrives."                 | Events are late/duplicated. Drive access from stored `status` + `end_date`, recomputed idempotently (Step 4).                                      |
-| "Demo-store subscription events should bill like real ones." | Skip billing logic when `store_type !== "live"`, or development installs corrupt real plan state (Step 3).                                         |
+| Tempting thought                                             | Why it's wrong                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'll unlock features straight from the event payload."      | A forged/replayed webhook would hand out paid access. Verify the signature + dedupe, then gate on **stored** entitlement state (Step 3).                                                                                                       |
+| "Plans and addons need separate event handlers."             | They share one `app.subscription.*` family — branch on `item_type` (`item_slug` picks the addon). Separate handlers miss half the events (Step 3).                                                                                             |
+| "I only need the subscription events; trials are different." | Trials ride the **same** payload shape (`app.trial.*`). Skip them and trial start/expiry falls through to wrong gating (Steps 3–4).                                                                                                            |
+| "I'll `subscribe` to renewed/expired/canceled too."          | Only `app.subscription.started` (+ `app.trial.*`) is in the subscribable catalog. The platform auto-delivers renewed/expired/canceled to your `webhook_url` once a subscription exists — subscribe to `started`, HANDLE all four (Steps 2, 4). |
+| "I'll trust the balance the client sends me."                | Compute usage server-side and `POST /apps/balance` behind your own auth; read it back to confirm. Client-reported balance is spoofable (Step 5b).                                                                                              |
+| "Events are reliable — I don't need reconciliation."         | A missed webhook during downtime leaves stored state stale forever. `GET /apps/{app_id}/subscriptions` is the backstop (Step 5).                                                                                                               |
+| "I'll gate at the moment the event arrives."                 | Events are late/duplicated. Drive access from stored `status` + `end_date`, recomputed idempotently (Step 4).                                                                                                                                  |
+| "Demo-store subscription events should bill like real ones." | Skip billing logic when `store_type !== "live"`, or development installs corrupt real plan state (Step 3).                                                                                                                                     |
 
 ---
 

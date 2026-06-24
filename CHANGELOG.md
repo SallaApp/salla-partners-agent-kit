@@ -14,14 +14,28 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 ### Changed
 
+- **App events are auto-delivered — subscribe only to store events (kit-wide).** Corrected the
+  event-subscription model across the kit: `app.*` events (`app.installed`,
+  `app.store.authorize`, `app.updated`, `app.uninstalled`, `app.trial.*`, `app.subscription.*`,
+  `app.settings.updated`) arrive at the app's `webhook_url` automatically — the app is subscribed
+  to its own app events by default — so partners **set a `webhook_url` and HANDLE them**, never
+  `salla_events action=subscribe`. That action is now scoped to non-app **store** events
+  (`order.*`, `product.*`, `customer.*`, `cart.*`, store-side `shipment.*`). Fixed
+  `salla-app-billing` (Step 2 + gate + Red Flag + `references/subscription-events.md`),
+  `salla-publication-consistency` (Step 6b billing gate + Red Flags + step-app-config),
+  `salla-app-lifecycle` (Step 1 + tools table), `salla-app-auth` (Step 2 + Easy-Mode checklist),
+  `salla-addon-purchase` (Step 2), `salla-webhooks` (app-event vs store-event subscribe split),
+  and a `salla-live-testing` settings note. The MCP `salla_events` description now states app
+  events auto-deliver and `subscribe` is for store events. Cites the App Events ref
+  (`421413m0`).
 - **`salla-publication-consistency` is now the master publication router.** Added the
   `app_publish action=get` step to read the FULL current draft (`publication_last_save`) before
   filling/validating — resume/review without re-asking; per-step **reference docs**
   (`references/step-*.md`) carrying data retrieval + submission schema + how-to-submit, aligned
   with the front-end's steps; a **step-by-step validation** model (`set` = per-section format,
   `readiness` = completeness, `validate` = cross-field gate); a **billing-cycle submit gate**
-  (paid pricing → verify `app.subscription.*` subscribed + handlers confirmed, else save a draft
-  and wire the cycle first) with Red Flags; first-publish onboarding now **suggests the
+  (paid pricing → verify the `webhook_url` is set so `app.subscription.*` auto-delivers +
+  handlers confirmed, else save a draft and wire the cycle first) with Red Flags; first-publish onboarding now **suggests the
   publication-only monetization features** (addons, trials, promotions, comparison matrix,
   recommended plan, strikethrough pricing, adjustable features, unsubscribe rewards); and routes
   the partner to the **educational-video guide** when `video_url` is missing.

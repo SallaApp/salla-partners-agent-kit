@@ -30,10 +30,10 @@ Confirm live event payload schemas in the webhooks reference
 (https://docs.salla.dev/421119m0.md) before coding; never assume a shape. The **Salla
 Partners MCP** _performs actions_:
 
-| Tool           | Action               | What it does                                                                    |
-| -------------- | -------------------- | ------------------------------------------------------------------------------- |
-| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, custom headers (secret: Portal) |
-| `salla_events` | `list` / `subscribe` | Subscribe the app to store/lifecycle events                                     |
+| Tool           | Action               | What it does                                                                                 |
+| -------------- | -------------------- | -------------------------------------------------------------------------------------------- |
+| `salla_apps`   | `connect`            | Set the app's `webhook_url`, security strategy, custom headers (secret: Portal)              |
+| `salla_events` | `list` / `subscribe` | Subscribe the app to **store** events (`order.*`, …); app events auto-deliver — no subscribe |
 
 > New webhooks default to **version 2**. **Always set `webhook_security_strategy` explicitly**
 > (`signature` | `token` | `none`) — the Partners MCP now requires it on
@@ -53,9 +53,13 @@ Partners MCP** _performs actions_:
 
 1. **Which events** do you need? (lifecycle, orders, products, shipments…) — confirm exact
    names/payloads in the webhooks reference (https://docs.salla.dev/421119m0.md).
-2. **App-level or store-level?** App/lifecycle events → subscribe via the Partners MCP
-   (`salla_events`); store-level merchant webhooks → the Admin API `POST /webhooks/subscribe`
-   with a merchant token (`webhooks.read_write` scope).
+2. **App event or store event?** **App events** (`app.*` — install, authorize, update,
+   uninstall, trial, subscription, settings) are auto-delivered to the app's `webhook_url`:
+   the app is subscribed to its own app events by default, so you **don't** subscribe — just
+   set the `webhook_url` (`salla_apps action=connect`) and handle them. **Store events**
+   (`order.*`, `product.*`, `customer.*`, `cart.*`, store-side `shipment.*`) need a subscribe:
+   via the Partners MCP `salla_events action=subscribe` (app-installed-on-store events) or the
+   Admin API `POST /webhooks/subscribe` with a merchant token (`webhooks.read_write` scope).
 3. **Stack?** Node/Express (`@salla.sa/webhooks-actions`) or Laravel/PHP (Salla CLI)?
 
 > **`salla_events action=subscribe` REPLACES the whole subscription list** — include every
@@ -101,7 +105,14 @@ load [references/server-setup.md](references/server-setup.md).**
 
 ## Step 2 — Register / Subscribe to Events
 
-### App / lifecycle events (Partners MCP) ✅ for partner apps
+### App events + store-event subscriptions (Partners MCP) ✅ for partner apps
+
+**App events auto-deliver — setting the `webhook_url` is the whole job.** Every `app.*` event
+(install, `app.store.authorize`, update, uninstall, `app.trial.*`, `app.subscription.*`,
+`app.settings.updated`) lands on your `webhook_url` automatically because the app is
+subscribed to its own app events by default. You do **not** subscribe to them — just point
+them at your handler (step 1 below). The `salla_events action=subscribe` call (step 2 below)
+is **only** for store events the app reacts to (`order.*`, `product.*`, …).
 
 1. Set the receiver: `salla_apps action=connect`, `app_id`, `webhook_url`,
    `webhook_security_strategy` (**required** — `signature` | `token` | `none`),
@@ -120,8 +131,9 @@ load [references/server-setup.md](references/server-setup.md).**
    > Confirm **deployed env == Portal secret** before testing; a mismatch fails verification
    > and returns **401 on every delivery**.
 
-2. List + subscribe: `salla_events action=list`, `app_id` → `salla_events
-action=subscribe`, `app_id`, `events: [...]`.
+2. Subscribe to **store events** only (skip this if the app handles app events alone): list
+   valid slugs with `salla_events action=list`, `app_id`, then `salla_events action=subscribe`,
+   `app_id`, `events: ["order.created", …]` (store-side slugs — not `app.*`).
 
 ### Store-level webhooks (Admin API, merchant token)
 

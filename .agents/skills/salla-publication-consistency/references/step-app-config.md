@@ -14,19 +14,19 @@ Read current values from `app_publish action=get`:
 | Webhook URL       | `publication.webhook_url`                  | the receiver.                                        |
 | Security strategy | `publication.webhook_security_strategy`    | `signature` \| `token` \| `none`.                    |
 | Webhook secret    | `publication.webhook_secret`               | created/rotated in the Portal; read, never set here. |
-| Subscribed events | `publication.webhooks` (or `get.webhooks`) | array of event ids.                                  |
+| Subscribed events | `publication.webhooks` (or `get.webhooks`) | array of store-event ids (app events auto-deliver).  |
 | Custom headers    | `publication.webhook_headers`              | array of `{key,value}`.                              |
 
 ## Submission schema
 
 Not submitted via `app_publish`. Use the owning tools:
 
-| What                         | Tool                                                          |
-| ---------------------------- | ------------------------------------------------------------- |
-| Scopes (minimum needed)      | `salla_scopes action=set` → **salla-app-auth**                |
-| Webhook url/strategy/headers | `salla_apps action=connect` → **salla-webhooks**              |
-| Webhook secret               | create/rotate in the Portal; read via `salla_apps action=get` |
-| Event subscriptions          | `salla_events action=subscribe`                               |
+| What                         | Tool                                                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Scopes (minimum needed)      | `salla_scopes action=set` → **salla-app-auth**                                                                             |
+| Webhook url/strategy/headers | `salla_apps action=connect` → **salla-webhooks**                                                                           |
+| Webhook secret               | create/rotate in the Portal; read via `salla_apps action=get`                                                              |
+| Store-event subscriptions    | `salla_events action=subscribe` (store events only — `order.*`, `product.*`; app events auto-deliver to the `webhook_url`) |
 
 ## How to submit
 

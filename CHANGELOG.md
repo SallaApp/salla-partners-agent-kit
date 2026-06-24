@@ -10,6 +10,21 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.9] — 2026-06-24
+
+### Changed
+
+- **Addons are always one-time at the publication level — renewal is the single `support_renew`
+  flag.** Removed `price_model` and `frequency` from the addon publish shape (the platform now
+  ignores them and pins the addon to `once`). Partners send `{name, description, price, slug,
+support_renew}`: `support_renew:false` (default) ⇒ a one-time purchase, merchant receives addon
+  subscription events with type `once`; `support_renew:true` ⇒ an `external_recurring` addon — the
+  partner drives each renewal via the addon renewal API and must state the cycle plainly in the
+  addon title/description (the merchant can't infer it). Touches `salla-app-billing`
+  (`references/pricing-shapes.md` addon table + the Addons bullet) and
+  `salla-publication-consistency` (`references/step-pricing.md` Addons row). Renewal runtime
+  (webhook `once` vs `external_recurring`, the renew API) stays owned by `salla-addon-purchase`.
+
 ## [1.0.8] — 2026-06-24
 
 ### Changed

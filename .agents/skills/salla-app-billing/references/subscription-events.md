@@ -74,6 +74,11 @@ or the docs link before coding. To **read** the current subscription detail use
 | `app.trial.expired`         | Trial ended without upgrade | set `inactive`                 |
 | `app.trial.canceled`        | Trial cancelled             | set `inactive`                 |
 
+> **Subscribe vs. deliver.** Only `app.subscription.started` (+ the `app.trial.*` events) is
+> in the subscribable catalog. The platform delivers `app.subscription.renewed`/`expired`/
+> `canceled` to your `webhook_url` automatically once a subscription exists — handle all of
+> them here, but subscribe only to `started`/`app.trial.*` (→ SKILL Step 2).
+
 Filter on `data.item_type`:
 
 - `"plan"` → handle here (salla-app-billing).

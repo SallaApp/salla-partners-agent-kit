@@ -5,8 +5,8 @@ description: >
   Salla AWB model, App Functions inside Salla Partners, no backend) or Order Fulfilment
   (auto-dispatch across carriers). Create it, configure zones via salla_shipping,
   implement the sync App Functions shipment.creating (returns a Shipment with AWB + PDF
-  label) and shipment.cancelling (returns Resp). Use for any carrier, AWB, label, tracking,
-  COD, or return task. App Functions → salla-app-functions; OAuth → salla-app-auth; webhooks,
+  label) and shipment.cancelling (returns Resp). Use when building for any carrier, AWB, label,
+  tracking, COD, or return task. App Functions → salla-app-functions; OAuth → salla-app-auth; webhooks,
   publish → salla-webhooks, salla-app-builder.
 ---
 

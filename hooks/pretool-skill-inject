@@ -34,6 +34,10 @@ case "$short" in
   salla_snippets) skill='salla-snippets' ;;
   salla_events) skill='salla-webhooks' ;;
   app_publish) skill='salla-publication-consistency' ;;
+  # app_page_builder is the App Store listing builder — load its owner directly. It's
+  # publication-coupled (reads from / overrides the draft), but a standalone listing edit
+  # shouldn't drag in the full publish flow; salla-app-ui-builder routes to the publication skill
+  # when a draft/submit is actually involved.
   app_page_builder) skill='salla-app-ui-builder' ;;
   salla_apps) skill='salla-app-builder' ;;
   *) emit_noop ;;

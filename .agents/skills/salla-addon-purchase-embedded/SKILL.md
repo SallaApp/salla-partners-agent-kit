@@ -46,12 +46,18 @@ The purchase entry point is the embedded SDK **Checkout module** — three metho
 full flow:
 
 - `embedded.checkout.getAddons()` — fetch your app's add-ons (slugs, names, prices).
+  Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/add-ons.md
 - `embedded.checkout.create(input, config?)` — open the native checkout drawer.
+  Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/create.md
 - `embedded.checkout.onResult(callback)` — hear the payment result (incl. after a 3DS redirect).
+  Docs: https://docs.salla.dev/embedded-sdk/modules/checkout/result.md
 
-Signatures and payloads below are from the current Checkout module docs (cited per step);
-exact shapes are version-dependent across `@salla.sa/embedded-sdk` releases — confirm against
-the docs or the package, never hardcode slugs, prices, or URLs.
+These three Checkout-module docs are the source of truth for the **frontend purchase cycle**.
+SDK signatures and payloads are version-dependent across `@salla.sa/embedded-sdk` releases —
+confirm them against the docs or the package, and don't hardcode prices or URLs. The addon
+**`slug` is YOUR pre-known identifier** — you set it as the addon's `slug` at publish and match it
+as `item_slug` in the subscription webhooks + API — so referencing your own slug directly is
+expected.
 
 ---
 
@@ -205,6 +211,15 @@ app.subscription.started (addon) → activate entitlement → reveal feature
 ```
 
 ---
+
+## Red Flags
+
+| Tempting thought                                                 | Why it's wrong                                                                                                                                                                                                        |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "`onResult` returned success, so I'll unlock the addon now."     | The client result only moves the UI to a pending state — **activate the entitlement only on the signature-verified `app.subscription.started` webhook** (`item_type: "addon"`), via salla-addon-purchase (Steps 2–3). |
+| "I'll add my own card form / payment step in the embedded page." | **Salla owns billing.** Open the native drawer with `checkout.create({type:"addon", slug})` — never collect or store payment yourself (The Checkout module / Step 2).                                                 |
+| "I'll match the purchased addon by its name or array index."     | Match by **`item_slug`** — the stable identifier you set as the addon's `slug` and receive on every lifecycle event (Step 3).                                                                                         |
+| "I'll trust the client result to track what the merchant owns."  | Reconcile entitlement against the **server** (the webhook + the subscriptions API), not the client `onResult` — the token may even rotate mid-flow (`embedded.auth.refresh`) (Step 3).                                |
 
 ## Key Resources
 

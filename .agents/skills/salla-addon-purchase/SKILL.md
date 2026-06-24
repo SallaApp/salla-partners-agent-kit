@@ -96,6 +96,12 @@ Keep the stored entitlement in step with Salla — each event is the source of t
 - **`canceled`** → mark canceled, keep access **until `end_date`**.
 - **`expired`** → revoke the entitlement and re-gate the addon's features.
 
+> **`external_recurring` addons (`support_renew: true`) renew on YOUR call**, not automatically:
+> `POST /apps/subscriptions/{subscription_id}/renew` (`offline_access`; handle `not_renewable` /
+> `auto_renew_disabled` / `payment_failed` 403, `rate_limit_exceeded` 429). Salla-managed recurring
+> addons renew on their own and you only receive `renewed`. Full OpenAPI schema + error contract
+> (source of truth): https://docs.salla.dev/37396517e0.md · endpoint detail → **salla-app-billing**.
+
 Persistence patterns, recurring vs one-time, and stacking the addon on the plan →
 **salla-app-billing**.
 

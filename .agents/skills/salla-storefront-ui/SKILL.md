@@ -5,7 +5,7 @@ description: >
   theme. Build from native `<salla-*>` web components driven by the Storefront JS SDK, inherit
   Twilight CSS tokens, use Salla Icons (`sicon-*`), match the page's spacing, write
   Arabic-first/RTL, and verify with a LIVE screenshot on an installed demo store (`url`). Use
-  whenever a snippet draws visible UI. Injection recipe → salla-snippets. Embedded/dashboard
+  when a snippet draws visible UI. Injection recipe → salla-snippets. Embedded/dashboard
   UI → salla-embedded-ui.
 ---
 
@@ -41,6 +41,8 @@ Docs: theme https://docs.salla.dev/421877m0.md · Twilight JS SDK (theme engine 
 SDK; themes load Salla Icons) https://docs.salla.dev/422610m0.md ·
 CSS variables https://docs.salla.dev/421945m0.md · Salla Icons https://docs.salla.dev/422550m0.md ·
 single product page https://docs.salla.dev/422561m0.md
+
+**Gate:** "UI built from Twilight `<salla-*>` components + `sicon-*` icons inheriting theme tokens (literals only as fallback), Arabic-first/RTL — not hand-rolled HTML with hardcoded colors?"
 
 ## Verify LIVE (required)
 

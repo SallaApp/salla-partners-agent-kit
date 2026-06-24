@@ -25,9 +25,21 @@ Plan state is **event-driven** — drive it from verified `app.subscription.*` /
 `https://api.salla.dev/admin/v2` (OAuth, `offline_access`). Two real endpoints back this
 skill:
 
-- **`GET /apps/{app_id}/subscriptions`** — read plan state, entitlements,
-  `subscription_balance` (reconciliation; Step 5).
+- **`GET /apps/{app_id}/subscriptions`** — retrieve the app's subscription statuses + details
+  for **both plans AND addons** (filter by `item_type`): plan state, entitlements, dates,
+  `subscription_balance` (reconciliation; Step 5). Full OpenAPI schema (source of truth):
+  https://docs.salla.dev/5401098e0.md
 - **`POST /apps/balance`** — write back the Pay-As-You-Go usage balance (Step 5b).
+- **`POST /apps/subscriptions/{subscription_id}/renew`** — for **`external_recurring`** plans/addons
+  the **partner drives each renewal** (Salla does not auto-renew them). Take `subscription_id` from
+  the subscription webhook; needs `offline_access`. Returns the renewed subscription
+  (`item_type`/`item_slug`/`plan_*`/`start_date`/`end_date`/`subscription_balance`/`features`).
+  Handle the errors: `not_renewable`, `subscription_not_active`, `auto_renew_disabled`,
+  `payment_failed` (403), `rate_limit_exceeded` (429 — once/day). Applies to addons with
+  `support_renew: true`. (Salla-managed recurring renews automatically — you only receive
+  `app.subscription.renewed`.) **Read the exact request/response schema and the full
+  error-response contract from the live OpenAPI doc — it is the source of truth:**
+  https://docs.salla.dev/37396517e0.md (don't hand-code the shapes; mirror the doc).
 
 Confirm payloads and field shapes via the App Events reference
 (https://docs.salla.dev/421413m0.md) or `salla_events action=list` before coding. The
@@ -72,13 +84,18 @@ is **no separate pricing endpoint**; the Portal's Pricing wizard step is a UI he
 same section. The publish mechanics are owned by **salla-publication-consistency**; the
 `pricing` data shape is:
 
-- `plan_type` — `"free"` | `"recurring"` | `"once"` | `"on_demand"` (required; these are the exact API values — there is no `one_time` or `pay_as_you_go`).
-- `plans` — for recurring pricing: up to **8 plans** (0–4 monthly, 0–4 yearly), each carrying
-  bilingual `name {en,ar}`, `price`, a `recurring` field (`"monthly"` | `"yearly"` | `"free"`),
-  and `additional_features[]`.
-- Trial is set ONCE at the top level, not per plan: `plan_trial` (integer days, min 1, capped by
-  the company's max-trial-days — default 7) plus `trial_description` (30–1000 chars).
-- `addons` — extra purchasables, allowed with **all** pricing types.
+- `plan_type` — `"free"` | `"recurring"` | `"once"` | `"on_demand"` (required; exact API values — no `one_time` or `pay_as_you_go`). It selects which fields apply. **`free` is eligibility-gated** — only when `can_have_free_plan` is true (shipping/communication app or the `show_app_free_plan` feature); read it from app details before offering free (→ references/pricing-shapes.md).
+- **Recurring** — `plans[]` (≤8; 0–4 monthly, 0–4 yearly). Each plan: `name{ar,en}`, `subtitle{ar,en}`, `price`, `recurring` (`free` | `monthly` | `yearly` | **`one-time`**), `recommended`, `is_compare_included`, `hidden`, `initialization_cost`, `discount`, `additional_features[]`, `promotions[]` (max 1), `balance` (for one-time/on_demand), and `id` to update a plan in place. Plus the top-level `plan_features[]` comparison matrix.
+- **Once** — `one_time_price`, `one_time_old_price` (> price), `plan_additional_features[]` `{key,name,price,adjustable,min,max}`. No `plans[]`.
+- **On-demand** — `plans[]` with `balance` required + `on_demand_type` (`emails`|`messages`|`per-transaction`).
+- **Addons** (all types) — `{name,description,price,price_model (once|recurring|on_demand),frequency? (recurring),slug,support_renew}`.
+- Trial is top-level: `plan_trial` (days, min 1, capped by max-trial-days — default 7) + `trial_description` (30–1000). Churn: `unsubscribe_reward`, `unsubscribe_email_reward`.
+
+> **Naming traps:** `plan_type:"recurring"` (model) ≠ per-plan `recurring:"monthly"` (period);
+> and `plan_additional_features` (top-level, **once**) ≠ per-plan `additional_features` (**recurring**).
+
+**Full field tables, types, and server rules: load
+[references/pricing-shapes.md](references/pricing-shapes.md).**
 
 Set this section with `app_publish action=set section=pricing`, then `app_publish
 action=validate` (saves the draft). Full publish flow → **salla-publication-consistency**.
@@ -134,7 +151,9 @@ Wire the events via salla-app-lifecycle. The deltas that matter here:
 - **Skip billing logic when `store_type !== "live"`** (development/demo stores).
 
 Payload fields and full examples →
-[references/subscription-events.md](references/subscription-events.md).
+[references/subscription-events.md](references/subscription-events.md). Live docs — App
+Subscription Webhook Events: https://docs.salla.dev/2213496m0.md ; App Events reference (lifecycle
+webhooks with payload examples): https://docs.salla.dev/421413m0.md.
 
 **Gate:** "A demo-store subscription event upserts the stored plan with the right status?"
 

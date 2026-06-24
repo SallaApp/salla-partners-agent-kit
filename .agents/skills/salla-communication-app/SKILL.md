@@ -2,7 +2,7 @@
 name: salla-communication-app
 description: >
   Build a Salla Communication App that delivers SMS, WhatsApp, or email on the
-  merchant's behalf. Use for channel apps, OTP/notification delivery, or the
+  merchant's behalf. Use when building channel apps, OTP/notification delivery, or the
   communication.*.send events. Salla deltas: no sub_category_id, zero default
   webhooks, channels MUST be declared via supported-features before publish (else
   403), and each send event is an App Function trigger — prefer App Functions.
@@ -34,6 +34,8 @@ Selecting the Communication App category is what unlocks the **Supported Feature
 - **0 default webhooks** — nothing is subscribed for you (shipping apps get default shipment events; you get none).
 - `is_embedded` defaults to `true`.
 
+**Gate:** "App created with `type: "communication"`, and the Supported Features section is now visible?"
+
 ## Step 2 — Declare supported channels (publish-blocker)
 
 Supported Features declare which channels your app handles. Once a merchant installs your
@@ -56,6 +58,16 @@ ownership of that message type**. Before publishing you MUST declare at least on
 Publishing without features fails with **403 `communication_app_not_have_features`**
 (slug and channel values are surfaced by the `salla_settings` tool schema — verify
 current values via the Partners MCP or the Portal if they ever change).
+
+> **SMS apps need a CITC certification to publish.** A communication app that supports SMS
+> (`sms_local` / `sms_international`) must upload its **CITC certification** on the account
+> verification form (`https://portal.salla.partners/account`) — a Saudi regulatory requirement.
+> App details expose **`requires_citc`** (`app_publish action=get` / `salla_apps action=get`):
+> when `true`, the certificate is still needed. The partner verifies the account and uploads it
+> **before** the publish request; until then submission is blocked. Publication flow →
+> **salla-publication-consistency**.
+
+**Gate:** "At least one channel declared via `salla_settings action=set_features` — and, for an SMS app, `requires_citc` reads false?"
 
 ## Step 3 — Set up the provider
 
@@ -124,6 +136,8 @@ This app sends real customer messages, so keep `content`, `notifiable`, and `set
 credentials out of logs and validate the provider endpoint before calling it — full
 secret & PII rules in [references/communication-events.md](references/communication-events.md).
 
+**Gate:** "Each channel handled by an App Function that reads credentials from `context.settings` and returns `Resp.success()`/`Resp.error()` — no hardcoded keys, no custom server?"
+
 ## Step 5 — Test
 
 Two stages ([Test & Go Live](https://docs.salla.dev/2081250m0.md)):
@@ -139,6 +153,8 @@ Two stages ([Test & Go Live](https://docs.salla.dev/2081250m0.md)):
    (e.g. change an order status to fire `communication.*.send`) and confirm it arrives via
    your provider. Full demo-store run: [salla-live-testing](../salla-live-testing/SKILL.md).
 
+**Gate:** "A real `communication.*.send` event from the demo store delivered end-to-end through your provider?"
+
 ## Step 6 — Go live
 
 Standard publish flow via [salla-app-builder](../salla-app-builder/SKILL.md). Gate: Step 2
@@ -146,6 +162,15 @@ features are set and send handlers pass both test stages above. Edits stay in a 
 until you publish; merchants who already installed the app receive the updated function
 automatically once published — no reinstall.
 ([Test & Go Live](https://docs.salla.dev/2081250m0.md))
+
+## Red Flags
+
+| Tempting thought                                                   | Why it's wrong                                                                                                                                                                                                     |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "I'll declare the supported features later, after the code works." | Publishing with zero declared channels fails **403 `communication_app_not_have_features`** — declare ≥1 via `salla_settings action=set_features` BEFORE publish (Step 2).                                          |
+| "The SMS app is ready to submit once delivery works."              | An SMS app (`sms_local`/`sms_international`) stays blocked until the **CITC certificate** is uploaded on the account verification form — confirm `requires_citc` is false first (Step 2).                          |
+| "I'll stand up a webhook server to receive the send events."       | The send events are **App Function triggers** — implement them as App Functions (no server; credentials arrive in `context.settings`). Fall back to webhooks only if delivery must run on your own infra (Step 4). |
+| "I'll store the merchant's provider keys in my own database."      | Provider credentials are **per-merchant App Settings** read from `context.settings` at runtime — never hardcode them or store them outside `salla_settings` (Step 3).                                              |
 
 ## Resources
 

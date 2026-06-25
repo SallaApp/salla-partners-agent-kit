@@ -29,6 +29,12 @@ versions the **skill content as a whole** — the `version` field in `package.js
   returns the deploy id under the key `job`; the polling docs now use `job` to match, so an agent
   passes back the exact key it received. Touches `salla-app-functions-test` and
   `salla-app-functions-release`.
+- **Publication: section examples are now valid copy-paste payloads.** Replaced placeholder
+  values that weren't valid schemas (a `<demo>` `video_url`, a `<temporary-test-only>`
+  `trial_password`) with valid example values, so an agent that copies a section's example
+  produces a valid `app_publish action=set`. The rich per-section field schemas live in the
+  skill (the tool stays light). Touches `salla-publication-consistency`
+  (`step-basic-information`, `step-service-trial`).
 
 ## [1.0.9] — 2026-06-25
 

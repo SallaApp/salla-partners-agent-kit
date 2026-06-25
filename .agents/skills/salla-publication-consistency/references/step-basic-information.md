@@ -51,7 +51,7 @@ Builder-owned (NOT set here): `name`, `description`, `logo` → `app_page_builde
   },
   "main_category_id": 1,
   "categories": [4],
-  "video_url": "https://youtu.be/＜demo＞",
+  "video_url": "https://youtu.be/9bZkp7q19f0",
   "supported_countries": [1617628556],
 }
 ```

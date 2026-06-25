@@ -260,8 +260,8 @@ changed later.
   `salla_onboarding_steps action=create` (`icon`, `title`, `slug` all required — `title` is a
   single-language plain string, NOT `{ar,en}`; a step has **no `url`**; `fields` **required, same
   schema as public app settings**; `sort`, `required` optional), `action=sort` to reorder them
-  (change their display order — there is no separate "reorder" action), `action=list`/`delete`
-  to manage. Then — **after confirming the step exists with `action=list`**
+  (change their display order), `action=list`/`delete` to manage. Then — **after confirming the
+  step exists with `action=list`**
   (the trigger resolves from the saved step, so saving the handler first returns "Unknown
   trigger") — add the handler with `salla_functions action=save` (trigger
   `app.onboarding.step.creating.{slug}`,

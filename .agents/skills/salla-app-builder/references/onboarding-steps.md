@@ -27,8 +27,7 @@ the handler's trigger is resolved from the saved step, so it does not exist unti
 `action=update` (`app_id`, `step_id`) is a **full revalidation** — resend `icon`, `title`, and
 `slug` together; a partial payload 422s. `fields` stays required; `required` optional.
 `action=sort` is the **reorder** action — it changes the steps' display order; pass the full
-ordered `steps` id array (there is no separate "reorder" action). `action=list` /
-`action=delete` (`step_id`) manage them.
+ordered `steps` id array. `action=list` / `action=delete` (`step_id`) manage them.
 
 **Gate:** "Every onboarding step has non-empty `fields` AND a saved App Function with trigger
 `app.onboarding.step.creating.{slug}` (Step 2)? A step without both is incomplete."

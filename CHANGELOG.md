@@ -29,6 +29,10 @@ versions the **skill content as a whole** — the `version` field in `package.js
   returns the deploy id under the key `job`; the polling docs now use `job` to match, so an agent
   passes back the exact key it received. Touches `salla-app-functions-test` and
   `salla-app-functions-release`.
+- **App-Store builder: document the `items`/dropdown array value shape.** A `type: "items"`
+  element (`dropdown-list`/`radio-list`/`checkbox-list`) value is always an array — even a
+  single-select dropdown takes a one-element array; a scalar is rejected. Added to
+  `salla-app-ui-builder` (`references/payloads.md`).
 - **Publication: section examples are now valid copy-paste payloads.** Replaced placeholder
   values that weren't valid schemas (a `<demo>` `video_url`, a `<temporary-test-only>`
   `trial_password`) with valid example values, so an agent that copies a section's example

@@ -255,12 +255,15 @@ first install**. Common use cases: collecting credentials (e.g. email + password
 the app activates, gathering store profile info, or configuring settings that cannot be
 changed later.
 
-- **Yes** → each step is **two mandatory parts**: the step (with **non-empty `fields`**) and an
-  App Function handler. Create the step with `salla_onboarding_steps action=create` (`icon`,
-  `title`, `slug` all required — `title` is a single-language plain string, NOT `{ar,en}`; a
-  step has **no `url`**; `fields` **required, same schema as public app settings**; `sort`,
-  `required` optional), `action=sort` to order, `action=list`/`delete` to manage. Then add the
-  handler with `salla_functions action=save` (trigger `app.onboarding.step.creating.{slug}`,
+- **Yes** → each step is **two mandatory parts, built in order**: FIRST the step (the form, with
+  **non-empty `fields`**), THEN its App Function handler. Create the step with
+  `salla_onboarding_steps action=create` (`icon`, `title`, `slug` all required — `title` is a
+  single-language plain string, NOT `{ar,en}`; a step has **no `url`**; `fields` **required, same
+  schema as public app settings**; `sort`, `required` optional), `action=sort` to order,
+  `action=list`/`delete` to manage. Then — **after confirming the step exists with `action=list`**
+  (the trigger resolves from the saved step, so saving the handler first returns "Unknown
+  trigger") — add the handler with `salla_functions action=save` (trigger
+  `app.onboarding.step.creating.{slug}`,
   context `Onboarding`): the merchant's input arrives as `context.payload.data.fields` to
   validate or run custom logic; return `Resp.success()` (continue) or
   `Resp.error().setFields(...)` (stop + show feedback). **The handler must be re-entrant** — it

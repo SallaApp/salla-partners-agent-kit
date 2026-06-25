@@ -6,8 +6,10 @@ first install**. Common uses: collecting credentials (e.g. email + password) bef
 activates, gathering store profile info, or configuring settings that can't change later.
 
 A step is a **settings form, not an iframe** — there is **no `url`**. Every step is exactly two
-parts that you create together: (1) the step with **non-empty `fields`**, and (2) an App
-Function handler keyed to the step. Both are **mandatory** for each step.
+parts, built **in this order**: (1) the step with **non-empty `fields`** (the form), THEN (2) an
+App Function handler keyed to that step. Both are **mandatory**, and the order is load-bearing —
+the handler's trigger is resolved from the saved step, so it does not exist until the form does
+(Step 2). Build the form first, confirm it, then write the handler.
 
 ### 1. Create each step — `salla_onboarding_steps action=create`, `app_id`, with:
 
@@ -30,9 +32,17 @@ manage them.
 **Gate:** "Every onboarding step has non-empty `fields` AND a saved App Function with trigger
 `app.onboarding.step.creating.{slug}` (Step 2)? A step without both is incomplete."
 
-### 2. Add the step's handler — `salla_functions` (mandatory)
+### 2. Add the step's handler — `salla_functions` (mandatory, only after the form exists)
 
-Every step **must** have an App Function. Create it with `salla_functions action=save`,
+**First confirm the form exists.** Re-fetch with `salla_onboarding_steps action=list` and verify
+the step with this `slug` is present and its `fields` is non-empty. The handler's trigger
+`app.onboarding.step.creating.{slug}` is **resolved from the saved step**, so it only becomes
+valid once that step exists — saving the handler before the step does returns
+`Unknown trigger "app.onboarding.step.creating.{slug}"`. This trigger is **dynamic and per-step**,
+so it correctly does **not** appear in `salla_functions action=list_triggers` (that lists only the
+static catalog) — use the step's own slug directly; don't wait for it to show up in the list.
+
+Once the form is confirmed, create the handler with `salla_functions action=save`,
 `trigger: "app.onboarding.step.creating.{slug}"` (the step's own slug), `content` the full
 wrapper with `Onboarding` context. The settings the merchant entered arrive on the function as
 `context.payload.data.fields` (key/value); use them to **validate or run any custom logic** for
@@ -71,6 +81,17 @@ export default async (context: Onboarding): Promise<Resp> => {
   `settings` (existing app settings, or `null`). A step has **no `url`** — its inputs live
   under `data.fields`.
 
-**Gate:** "The handler trigger is exactly `app.onboarding.step.creating.{slug}` for the step's
-own `slug`, and the body reads the merchant input from `context.payload.data.fields` (not a
+**Gate:** "Confirmed via `salla_onboarding_steps action=list` that the step exists with non-empty
+`fields` BEFORE saving the handler (the trigger resolves from the step, so saving first returns
+'Unknown trigger'); the handler trigger is exactly `app.onboarding.step.creating.{slug}` for the
+step's own `slug`; and the body reads merchant input from `context.payload.data.fields` (not a
 top-level `fields`)?"
+
+## Red Flags
+
+| Tempting thought                                                                  | Why it's wrong                                                                                                                                                                        |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Write the handler first, then create the step."                                  | The trigger `app.onboarding.step.creating.{slug}` is resolved from the saved step — saving the handler before the step exists returns "Unknown trigger" (Step 2). Form first, always. |
+| "The trigger isn't in `list_triggers`, so onboarding functions aren't supported." | Onboarding triggers are **dynamic and per-step** — they never appear in the static `list_triggers` catalog. Pass the step's `slug` directly (Step 2).                                 |
+| "Create the step now with empty `fields`; I'll add the inputs later."             | A step with no `fields` collects nothing, and the handler's `context.payload.data.fields` is empty — the step is non-functional. `fields` is required at create (Step 1).             |
+| "`title` is bilingual like names/plans, so pass `{ar,en}`."                       | `title` is a **single-language plain string**; a JSON object is stored verbatim and renders as raw `{"ar":…}` in the merchant UI. Pass one localized string (Step 1).                 |

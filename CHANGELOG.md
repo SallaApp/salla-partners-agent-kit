@@ -10,6 +10,22 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.10] — 2026-06-25
+
+### Changed
+
+- **Onboarding: enforce form-before-handler ordering and a confirm-the-form-exists gate.** From
+  FlashTimer QA: an agent that saved the App Function before the step existed (or created a step
+  with empty `fields`) hit a confusing `Unknown trigger` and produced non-functional steps. The
+  onboarding contract now states the order explicitly — build the step (the form, with non-empty
+  `fields`) FIRST, confirm it with `salla_onboarding_steps action=list`, THEN save the handler —
+  because the trigger `app.onboarding.step.creating.{slug}` is resolved from the saved step and
+  only exists once the step does (saving first returns `Unknown trigger`; the trigger is
+  dynamic/per-step and correctly absent from `list_triggers`). Added a Red Flags table
+  (handler-before-form, the absent `list_triggers` entry, empty `fields`, `{ar,en}` `title`) and
+  strengthened the handler-step gate to require the form-exists confirmation. Touches
+  `salla-app-builder` (Step 5a + `references/onboarding-steps.md`).
+
 ## [1.0.9] — 2026-06-25
 
 ### Changed

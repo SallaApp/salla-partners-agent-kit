@@ -21,7 +21,7 @@ that URL needs.
 
 `save` returns a deploy `job`. The function isn't runnable until that deploy finishes:
 
-- Poll `salla_functions action=deploy_status`, `job_id` → `status` `COMPLETED` means ready;
+- Poll `salla_functions action=deploy_status`, `job` (the value action=save returns) → `status` `COMPLETED` means ready;
   `FAILED` → read `failure_reason` and fix.
 - Or just call `salla_functions action=preview` — it returns "still deploying … retry in
   ~30s" until it's ready.

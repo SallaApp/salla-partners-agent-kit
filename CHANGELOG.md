@@ -25,6 +25,10 @@ versions the **skill content as a whole** — the `version` field in `package.js
   (handler-before-form, the absent `list_triggers` entry, empty `fields`, `{ar,en}` `title`) and
   strengthened the handler-step gate to require the form-exists confirmation. Touches
   `salla-app-builder` (Step 5a + `references/onboarding-steps.md`).
+- **App Functions: poll `deploy_status` with `job`, not `job_id`.** `salla_functions action=save`
+  returns the deploy id under the key `job`; the polling docs now use `job` to match, so an agent
+  passes back the exact key it received. Touches `salla-app-functions-test` and
+  `salla-app-functions-release`.
 
 ## [1.0.9] — 2026-06-25
 

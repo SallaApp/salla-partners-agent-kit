@@ -29,6 +29,11 @@ versions the **skill content as a whole** — the `version` field in `package.js
   returns the deploy id under the key `job`; the polling docs now use `job` to match, so an agent
   passes back the exact key it received. Touches `salla-app-functions-test` and
   `salla-app-functions-release`.
+- **Skill ↔ tool coherence (FlashTimer QA round 2).** Updated skill notes to match the MCP's
+  new responses: `salla_apps` / `salla_embedded_pages` / `salla_snippets` updates now **echo the
+  changed fields** (not an empty `{}`), and `app_page_builder set` **normalizes a scalar dropdown
+  value to a one-element array** (so a scalar no longer 422s). Touches `salla-app-builder`,
+  `salla-embedded-app`, `salla-snippets`, `salla-app-ui-builder`.
 - **App-Store builder: document the `items`/dropdown array value shape.** A `type: "items"`
   element (`dropdown-list`/`radio-list`/`checkbox-list`) value is always an array — even a
   single-select dropdown takes a one-element array; a scalar is rejected. Added to

@@ -125,10 +125,10 @@ the next steps configure — App Keys (Client ID/Secret, OAuth mode), Scope, Web
 Trusted IPs, App Functions, Settings, Onboarding, Embedded Pages, Snippets, Custom Plans,
 Testing, and Publishing ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)).
 
-> **Note on `salla_apps action=update`:** it returns `{"app": {}}` (empty object) on
-> success — the Portal does not echo changed fields, so the response can't tell a success
-> from a silent failure. Per Grounding rule 2, always read back with `salla_apps action=get`
-> and confirm the changed field actually holds the new value before moving on.
+> **Note on `salla_apps action=update`:** the Portal returns no body, so the tool echoes the
+> fields you changed (`{ app: { id, …changed, updated: true } }`) as confirmation — it reflects
+> your input, not the server's stored state. For a high-stakes change, still read back with
+> `salla_apps action=get` to confirm the value actually persisted.
 
 **Manual fallback:** Portal → **My Apps → Create App**.
 

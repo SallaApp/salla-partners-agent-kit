@@ -73,9 +73,10 @@ the `app_id`, and:
   `https://dashboard.myapp.net/salla/embedded`). Salla appends `token`, `theme`, `lang`.
 - `default` — optional; mark this as the app's default landing page.
 
-Both `create` and `update` return `{"page": {}}` (empty object) on success — this is
-normal, not a failure. Call `salla_embedded_pages action=list` to get the page id and
-verify the change. Use `update` / `delete` to change or remove a page.
+`create` returns the new page; `update` returns no body from the Portal, so the tool echoes
+the fields you changed (`{ page: { id, route, iframe_url, default, updated: true } }`) as
+confirmation. Call `salla_embedded_pages action=list` for the authoritative current state. Use
+`update` / `delete` to change or remove a page.
 
 **Manual fallback:** Portal → **App Details → Embedded Pages → Add page**.
 

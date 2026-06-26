@@ -53,8 +53,9 @@ Upload first, then reference. An `image` element's current files are under `item
 ### Items (`dropdown-list` / `radio-list` / `checkbox-list`) → array of selected values
 
 A `type: "items"` element's value is ALWAYS an **array** of the chosen option values — even a
-single-select `dropdown-list` takes a one-element array. A scalar string is rejected (`must be an
-array`).
+single-select `dropdown-list` is a one-element array. Send the array form; if you pass a scalar
+the `app_page_builder set` tool wraps it to a one-element array for you (the raw Portal API
+rejects a scalar with `must be an array`).
 
 ```jsonc
 // schema: dropdown-list "view_section", options images | video | both

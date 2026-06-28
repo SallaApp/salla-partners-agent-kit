@@ -27,15 +27,15 @@ on skip, use a clearly-marked placeholder and tell them to replace it in the Por
 
 Server rules (`PublicationSectionRequest`, section `basic_information`):
 
-| Field                 | Type / rule                                                                      |
-| --------------------- | -------------------------------------------------------------------------------- |
-| `short_description`   | `{ar,en}`, string, **50–200** chars                                              |
-| `main_category_id`    | integer — a MAIN category id (`salla_reference action=categories`, `type:"app"`) |
-| `categories`          | integer[] — SUB-categories of that main category                                 |
-| `video_url`           | URL, max 255 — **required for completeness**                                     |
-| `demo_url`            | URL, max 255 — optional                                                          |
-| `search_terms`        | string[]                                                                         |
-| `supported_countries` | integer[] — country ids (`salla_reference action=countries`)                     |
+| Field                 | Type / rule                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `short_description`   | `{ar,en}`, string, **50–200** chars                                                                                          |
+| `main_category_id`    | integer — a MAIN category id (`salla_reference action=categories`, `type:"app"`)                                             |
+| `categories`          | integer[] — SUB-categories of that main category                                                                             |
+| `video_url`           | URL, max 255 — **required for completeness**                                                                                 |
+| `demo_url`            | URL, max 255 — optional                                                                                                      |
+| `search_terms`        | string[]                                                                                                                     |
+| `supported_countries` | integer[] — country ids (`salla_reference action=countries`); pass `[]` to support ALL countries (don't enumerate every one) |
 
 Builder-owned (NOT set here): `name`, `description`, `logo` → `app_page_builder` (**salla-app-ui-builder**).
 
@@ -51,7 +51,7 @@ Builder-owned (NOT set here): `name`, `description`, `logo` → `app_page_builde
   },
   "main_category_id": 1,
   "categories": [4],
-  "video_url": "https://youtu.be/＜demo＞",
+  "video_url": "https://youtu.be/9bZkp7q19f0",
   "supported_countries": [1617628556],
 }
 ```

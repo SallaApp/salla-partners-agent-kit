@@ -21,7 +21,7 @@ An app has **one function, keyed by its trigger**, so `get` / `save` / `delete` 
 - **Save:** `salla_functions action=save`, `app_id`, `trigger`, `content` (the whole function
   as a string), `name`. Keep the template's first line exactly. Returns a deploy `job` and
   triggers an **async deploy to the app's demo stores** — poll
-  `salla_functions action=deploy_status`, `job_id` until `COMPLETED`, then test it
+  `salla_functions action=deploy_status`, `job` (returned by action=save) until `COMPLETED`, then test it
   (**salla-app-functions-test**). One save covers deploy; there is no separate deploy action
   or versioning.
 - **Read:** `salla_functions action=get`, `app_id`, `trigger` → `template` + `types` (.d.ts

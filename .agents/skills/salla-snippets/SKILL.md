@@ -113,8 +113,8 @@ then **inject it as a storefront snippet** with the tool:
    double-render the UI and double-fire events. Read back with `salla_snippets action=list` /
    `get`: it returns the snippet **metadata** with the CDN **`url`** (the `.js` file) and
    `path`. `update` revalidates the **full** snippet — resend `name`, `place`, `tag`, and
-   `content` together (it is not a partial patch). `action=update` returns `{"snippet":{}}`
-   (empty object) on success — call `action=list` to verify the change.
+   `content` together (it is not a partial patch). `action=update` echoes a confirmation
+   (`{ snippet: { id, name, updated } }`); use `action=list` for the live CDN `url`.
 
    > **Manage snippets only through the `salla_snippets` MCP tool** — it owns field mapping
    > and validation (it maps `content` to the underlying field). Every snippet operation goes

@@ -50,6 +50,18 @@ Upload first, then reference. An `image` element's current files are under `item
 
 `salla_upload` is the media path: pass a `source_url`, get an integer `id`, put `[{ id, url }]` in the `set` value. Keep an existing image by leaving its `{ id, url }` in place.
 
+### Items (`dropdown-list` / `radio-list` / `checkbox-list`) → array of selected values
+
+A `type: "items"` element's value is ALWAYS an **array** of the chosen option values — even a
+single-select `dropdown-list` is a one-element array. Send the array form; if you pass a scalar
+the `app_page_builder set` tool wraps it to a one-element array for you (the raw Portal API
+rejects a scalar with `must be an array`).
+
+```jsonc
+// schema: dropdown-list "view_section", options images | video | both
+"view_section": ["images"] // single-select → a one-element array, NOT "images"
+```
+
 ### Telinput → flatten to the value string
 
 The phone widget holds `{ value, code }`; flatten to just the dialed string.

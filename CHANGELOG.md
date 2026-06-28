@@ -10,6 +10,41 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.10] — 2026-06-25
+
+### Changed
+
+- **Onboarding: enforce form-before-handler ordering and a confirm-the-form-exists gate.** From
+  FlashTimer QA: an agent that saved the App Function before the step existed (or created a step
+  with empty `fields`) hit a confusing `Unknown trigger` and produced non-functional steps. The
+  onboarding contract now states the order explicitly — build the step (the form, with non-empty
+  `fields`) FIRST, confirm it with `salla_onboarding_steps action=list`, THEN save the handler —
+  because the trigger `app.onboarding.step.creating.{slug}` is resolved from the saved step and
+  only exists once the step does (saving first returns `Unknown trigger`; the trigger is
+  dynamic/per-step and correctly absent from `list_triggers`). Added a Red Flags table
+  (handler-before-form, the absent `list_triggers` entry, empty `fields`, `{ar,en}` `title`) and
+  strengthened the handler-step gate to require the form-exists confirmation. Touches
+  `salla-app-builder` (Step 5a + `references/onboarding-steps.md`).
+- **App Functions: poll `deploy_status` with `job`, not `job_id`.** `salla_functions action=save`
+  returns the deploy id under the key `job`; the polling docs now use `job` to match, so an agent
+  passes back the exact key it received. Touches `salla-app-functions-test` and
+  `salla-app-functions-release`.
+- **Skill ↔ tool coherence (FlashTimer QA round 2).** Updated skill notes to match the MCP's
+  new responses: `salla_apps` / `salla_embedded_pages` / `salla_snippets` updates now **echo the
+  changed fields** (not an empty `{}`), and `app_page_builder set` **normalizes a scalar dropdown
+  value to a one-element array** (so a scalar no longer 422s). Touches `salla-app-builder`,
+  `salla-embedded-app`, `salla-snippets`, `salla-app-ui-builder`.
+- **App-Store builder: document the `items`/dropdown array value shape.** A `type: "items"`
+  element (`dropdown-list`/`radio-list`/`checkbox-list`) value is always an array — even a
+  single-select dropdown takes a one-element array; a scalar is rejected. Added to
+  `salla-app-ui-builder` (`references/payloads.md`).
+- **Publication: section examples are now valid copy-paste payloads.** Replaced placeholder
+  values that weren't valid schemas (a `<demo>` `video_url`, a `<temporary-test-only>`
+  `trial_password`) with valid example values, so an agent that copies a section's example
+  produces a valid `app_publish action=set`. The rich per-section field schemas live in the
+  skill (the tool stays light). Touches `salla-publication-consistency`
+  (`step-basic-information`, `step-service-trial`).
+
 ## [1.0.9] — 2026-06-25
 
 ### Changed

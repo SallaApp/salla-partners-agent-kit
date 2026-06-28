@@ -36,7 +36,7 @@ Set via `app_publish action=set section=service_trial` (`PublicationSectionReque
   "section": "service_trial",
   "service_link": "https://example.com/app",
   "trial_username": "reviewer@example.com",
-  "trial_password": "＜temporary-test-only＞",
+  "trial_password": "Demo-Review-2026",
   "trial_description": "Install via the demo link, open the dashboard, create a campaign, then view it on a product page.",
 }
 ```

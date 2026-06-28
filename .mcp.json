@@ -2,7 +2,7 @@
   "mcpServers": {
     "salla-partners": {
       "type": "http",
-      "url": "https://partners-mcp-dev-34.merchants.workers.dev"
+      "url": "https://partners.mcp.salla.dev"
     }
   }
 }

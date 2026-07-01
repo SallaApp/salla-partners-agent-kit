@@ -10,6 +10,22 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.11] — 2026-07-01
+
+### Changed
+
+- **Embedded UI: turn design guidance into binding, gated enforcement.** `salla-embedded-ui` was a
+  thin advisory file that only linked to the design guidelines, so an agent could ship a
+  foreign-looking iframe and call it done. Rewrote it into the kit's standard shape — a self-routing
+  binding description, a Step 0 that forces loading the single canonical token/pattern source
+  (`salla-embedded-app/references/design-guidelines.md`) instead of guessing brand values, numbered
+  steps each ending in a hard `Gate:` (layout-driven theme/locale/dir, No-Chrome SDK modules, dashboard
+  tokens in light + dark, RTL via logical properties, and a LIVE demo-store screenshot as the final
+  proof), a compliance checklist, and a Red Flags table defending every gate ("it renders" ≠ native,
+  guessed teal, in-iframe chrome, `window.confirm()`, RTL-later, light-only). Token tables stay owned by
+  the one `design-guidelines.md` reference — the skill points to it rather than duplicating. Touches
+  `salla-embedded-ui`.
+
 ## [1.0.10] — 2026-06-25
 
 ### Changed

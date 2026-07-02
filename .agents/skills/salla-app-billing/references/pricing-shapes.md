@@ -59,7 +59,7 @@ No `plans[]`. Top-level:
 | -------------------------- | --------------------------------------------------------------------------------------- |
 | `one_time_price`           | numeric, **SAR**, digits 1–5, min 1                                                              |
 | `one_time_old_price`       | numeric, **SAR**, digits 1–5 — **must be `>` `one_time_price`** (strikethrough)                  |
-| `plan_additional_features` | array: `{ key (alnum/hyphen, distinct), name{ar,en} ≤50, price (**SAR**), adjustable, min, max }` |
+| `plan_additional_features` | array: `{ key (alnum/hyphen, distinct), name{ar,en} ≤50, price, adjustable, min, max }` — `price` **SAR** |
 | `plan_trial`               | integer days                                                                            |
 
 ## On-demand (`plan_type: "on_demand"`, Pay As You Go)

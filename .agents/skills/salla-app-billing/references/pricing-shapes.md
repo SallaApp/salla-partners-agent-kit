@@ -4,6 +4,10 @@ The `pricing` section of the publication (`app_publish action=set section=pricin
 real `save` payloads + the server `PublishRequest` / `PublicationSectionRequest` rules + the FE
 Zod. `plan_type` selects which fields apply.
 
+> **Global pricing rule — all amounts are SAR.** Every numeric price field in this document
+> (`one_time_price`, plan `price`, `plan_additional_features[].price`, addon `price`, etc.) is in
+> Saudi Riyals. There is no currency field or selector anywhere in the pricing section.
+
 ## `plan_type` ∈ `free` | `once` | `recurring` | `on_demand`
 
 These are the exact API values — there is no `one_time` or `pay_as_you_go`.
@@ -31,16 +35,16 @@ action=get`) and only use `free` (as `plan_type`, or a plan's `recurring: "free"
 | `id`                  | existing plan id — round-trip it to UPDATE a plan in place (omit to create)         |
 | `name`                | `{ar,en}`, required                                                                 |
 | `subtitle`            | `{ar,en}`                                                                           |
-| `price`               | numeric (required unless `recurring: "free"`)                                       |
+| `price`               | numeric, **SAR** (required unless `recurring: "free"`)                              |
 | `recurring`           | `free` \| `monthly` \| `yearly` \| **`one-time`**                                   |
 | `recommended`         | bool — highlight this plan                                                          |
 | `is_compare_included` | bool — show in the comparison table                                                 |
 | `hidden`              | bool                                                                                |
-| `initialization_cost` | numeric, nullable — one-time setup fee                                              |
+| `initialization_cost` | numeric, **SAR**, nullable — one-time setup fee                                     |
 | `discount`            | bool                                                                                |
 | `additional_features` | array (per-plan)                                                                    |
 | `promotions`          | array, **max 1**: `{requirement 1–9, reward 1–6, start_date, end_date}`             |
-| `balance`             | numeric, nullable — **required for one-time / on_demand** plans, null for recurring |
+| `balance`             | numeric, **SAR**, nullable — **required for one-time / on_demand** plans, null for recurring |
 
 `plan_features[]` — the comparison **matrix**, pivoted across plans (NOT per-plan):
 `{ key, title{ar,en}, display_type: 1=checkbox | 2=text, display_value[] (one per plan), hidden[] (one per plan) }`.
@@ -53,9 +57,9 @@ No `plans[]`. Top-level:
 
 | Field                      | Type / rule                                                                             |
 | -------------------------- | --------------------------------------------------------------------------------------- |
-| `one_time_price`           | numeric, digits 1–5, min 1                                                              |
-| `one_time_old_price`       | numeric, digits 1–5 — **must be `>` `one_time_price`** (strikethrough)                  |
-| `plan_additional_features` | array: `{ key (alnum/hyphen, distinct), name{ar,en} ≤50, price, adjustable, min, max }` |
+| `one_time_price`           | numeric, **SAR**, digits 1–5, min 1                                                              |
+| `one_time_old_price`       | numeric, **SAR**, digits 1–5 — **must be `>` `one_time_price`** (strikethrough)                  |
+| `plan_additional_features` | array: `{ key (alnum/hyphen, distinct), name{ar,en} ≤50, price, adjustable, min, max }` — `price` **SAR** |
 | `plan_trial`               | integer days                                                                            |
 
 ## On-demand (`plan_type: "on_demand"`, Pay As You Go)
@@ -70,15 +74,17 @@ Usage balance is written back at runtime via `POST /apps/balance` (see salla-app
 
 ## Addons (allowed with ALL plan types)
 
-`addons[]` — each:
+`addons[]` — **max 5 per app**. Every entry must be complete — `name`, `price`, and `slug` are
+all **required** (the server rejects any addon missing one with a validation error). All prices
+are in **SAR** (Saudi Riyals); there is no currency field or selector.
 
-| Field           | Type / rule                                                                   |
-| --------------- | ----------------------------------------------------------------------------- |
-| `name`          | `{ar,en}`, required — state the renewal cycle here when `support_renew: true` |
-| `description`   | `{ar,en}` — state what recurs, how often, and what triggers a charge          |
-| `price`         | numeric, 1–999999.99                                                          |
-| `slug`          | string ≤100 — the `item_slug` you match on in lifecycle events                |
-| `support_renew` | bool, default `false` — opt in to a renewing (`external_recurring`) addon     |
+| Field           | Type / rule                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------- |
+| `name`          | `{ar,en}`, **required** — state the renewal cycle here when `support_renew: true`           |
+| `description`   | `{ar,en}` — state what recurs, how often, and what triggers a charge                        |
+| `price`         | numeric, **required**, 1–999999.99 **SAR** — no currency field; all prices are Saudi Riyals |
+| `slug`          | string ≤100, **required** — the `item_slug` you match in lifecycle events                   |
+| `support_renew` | bool, default `false` — opt in to a renewing (`external_recurring`) addon                   |
 
 Addons are **always one-time at the publication level**. Renewal is the single
 `support_renew` flag — that's the only addon recurring control:
@@ -95,7 +101,7 @@ In-app purchase of addons runs through the **checkout SDK** (frontend purchase c
 
 ## Top-level (any type)
 
-`unsubscribe_reward`, `unsubscribe_email_reward` — churn-prevention discounts (nullable).
+`unsubscribe_reward`, `unsubscribe_email_reward` — churn-prevention discounts, **SAR**, nullable.
 
 ## Reminder — paid pricing obliges a billing cycle
 

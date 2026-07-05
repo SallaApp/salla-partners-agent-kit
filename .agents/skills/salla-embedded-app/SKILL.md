@@ -236,6 +236,10 @@ Design tokens, brand colors, RTL patterns → [`references/design-guidelines.md`
 
 ## Step 5 — Wire SDK Modules
 
+> **Drawing visible UI?** Stop here and load → [salla-embedded-ui](../salla-embedded-ui/SKILL.md).
+> Its gates (native tokens, No-Chrome, RTL, live screenshot) are binding; return to
+> `salla-embedded-app` only for SDK wiring, not styling.
+
 Based on your needs from Step 0, implement the relevant modules:
 
 **Auth — refresh on recoverable expiry; destroy only when unrecoverable:**

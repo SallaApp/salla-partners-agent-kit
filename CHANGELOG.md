@@ -10,6 +10,29 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.12] — 2026-07-05
+
+### Changed
+
+- **Embedded UI: close review gaps that let agents route around or partially satisfy the
+  gated enforcement added in 1.0.11.** Fixed AGENTS.md's routing table, where the
+  `salla-embedded-app` and `salla-embedded-ui` rows overlapped closely enough that an agent
+  reached `salla-embedded-app` and never loaded `salla-embedded-ui`'s gates — the rows now
+  split cleanly on "SDK/auth wiring" vs. "any visible UI." Added a hand-off callout inside
+  `salla-embedded-app` Step 5 pointing to `salla-embedded-ui` the moment UI drawing begins.
+  Promoted bilingual `ar`/`en` copy and component-shape matching into Step 3's body and
+  `Gate:` (previously only in the post-gate checklist, so they were skippable). Named the
+  exact SDK methods for breadcrumbs (`embedded.ui.breadcrumbs.hide()`/`.show()`) and loading
+  (`embedded.ui.loading.show()`/`.hide()`) in Step 2, replacing bare-word mentions that let
+  agents ship custom spinners/breadcrumb trails. Narrowed the Step 4 RTL gate so it no longer
+  bans valid `text-align: center` — only `text-align: left` and physical properties. Added a
+  step-numbering callout in Step 0 clarifying that `design-guidelines.md`'s "SKILL.md Step N"
+  references point to `salla-embedded-app`'s steps, not this skill's own. Added `(Step N)`
+  citations to every Red Flags row and an admin-rejection notice. Moved the compliance
+  checklist out of the skill body into a new `references/compliance-report-template.md`
+  sidecar, and trimmed the description to drop its embedded workflow summary. Touches
+  `AGENTS.md`, `salla-embedded-app`, `salla-embedded-ui`.
+
 ## [1.0.11] — 2026-07-01
 
 ### Changed

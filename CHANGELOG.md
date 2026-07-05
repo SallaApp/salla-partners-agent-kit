@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.12] — 2026-07-05
+## [1.0.13] — 2026-07-05
 
 ### Changed
 
@@ -32,6 +32,21 @@ versions the **skill content as a whole** — the `version` field in `package.js
   checklist out of the skill body into a new `references/compliance-report-template.md`
   sidecar, and trimmed the description to drop its embedded workflow summary. Touches
   `AGENTS.md`, `salla-embedded-app`, `salla-embedded-ui`.
+
+## [1.0.12] — 2026-07-02
+
+### Fixed
+
+- **Billing: SAR currency rule + addon required fields.** All price fields across the pricing
+  section (`one_time_price`, `one_time_old_price`, plan `price`, `initialization_cost`, `balance`,
+  `plan_additional_features[].price`, addon `price`, `unsubscribe_reward`,
+  `unsubscribe_email_reward`) are now annotated **SAR** inline — there is no currency field or
+  selector anywhere in the pricing section. Added a global SAR rule at the top of
+  `references/pricing-shapes.md`. For addons specifically: `name`, `price`, and `slug` are marked
+  **required** on every entry (server rejects an incomplete addon), and the max-5-per-app cap is
+  documented. Added a Red Flags row for the "slug/price is optional" assumption. Touches
+  `salla-app-billing` (Step 1 + `references/pricing-shapes.md`) and
+  `salla-publication-consistency` (`references/step-pricing.md`).
 
 ## [1.0.11] — 2026-07-01
 

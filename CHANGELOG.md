@@ -10,44 +10,18 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.13] — 2026-07-05
-
-### Changed
-
-- **Embedded UI: close review gaps that let agents route around or partially satisfy the
-  gated enforcement added in 1.0.12.** Fixed AGENTS.md's routing table, where the
-  `salla-embedded-app` and `salla-embedded-ui` rows overlapped closely enough that an agent
-  reached `salla-embedded-app` and never loaded `salla-embedded-ui`'s gates — the rows now
-  split cleanly on "SDK/auth wiring" vs. "any visible UI." Added a hand-off callout inside
-  `salla-embedded-app` Step 5 pointing to `salla-embedded-ui` the moment UI drawing begins.
-  Promoted bilingual `ar`/`en` copy and component-shape matching into Step 3's body and
-  `Gate:` (previously only in the post-gate checklist, so they were skippable). Named the
-  exact SDK methods for breadcrumbs (`embedded.ui.breadcrumbs.hide()`/`.show()`) and loading
-  (`embedded.ui.loading.show()`/`.hide()`) in Step 2, replacing bare-word mentions that let
-  agents ship custom spinners/breadcrumb trails. Narrowed the Step 4 RTL gate so it no longer
-  bans valid `text-align: center` — only `text-align: left` and physical properties. Added a
-  step-numbering callout in Step 0 clarifying that `design-guidelines.md`'s "SKILL.md Step N"
-  references point to `salla-embedded-app`'s steps, not this skill's own. Added `(Step N)`
-  citations to every Red Flags row and an admin-rejection notice. Moved the compliance
-  checklist out of the skill body into a new `references/compliance-report-template.md`
-  sidecar, and trimmed the description to drop its embedded workflow summary. Touches
-  `AGENTS.md`, `salla-embedded-app`, `salla-embedded-ui`.
-
-## [1.0.12] — 2026-07-01
+## [1.0.12] — 2026-07-05
 
 ### Changed
 
 - **Embedded UI: turn design guidance into binding, gated enforcement.** `salla-embedded-ui` was a
-  thin advisory file that only linked to the design guidelines, so an agent could ship a
-  foreign-looking iframe and call it done. Rewrote it into the kit's standard shape — a self-routing
-  binding description, a Step 0 that forces loading the single canonical token/pattern source
-  (`salla-embedded-app/references/design-guidelines.md`) instead of guessing brand values, numbered
-  steps each ending in a hard `Gate:` (layout-driven theme/locale/dir, No-Chrome SDK modules, dashboard
-  tokens in light + dark, RTL via logical properties, and a LIVE demo-store screenshot as the final
-  proof), a compliance checklist, and a Red Flags table defending every gate ("it renders" ≠ native,
-  guessed teal, in-iframe chrome, `window.confirm()`, RTL-later, light-only). Token tables stay owned by
-  the one `design-guidelines.md` reference — the skill points to it rather than duplicating. Touches
-  `salla-embedded-ui`.
+  thin advisory file agents could satisfy without shipping a native-looking iframe. Rewrote it into
+  the kit's standard shape — Step 0 forces loading the canonical design-token source, Steps 1–5 each
+  end in a hard `Gate:` (theme/locale/dir, No-Chrome SDK modules, dashboard tokens + bilingual copy,
+  RTL, and a live demo-store screenshot), backed by a Red Flags table and a
+  `references/compliance-report-template.md` sidecar. Sharpened the `AGENTS.md` routing split against
+  `salla-embedded-app` and added a hand-off callout so agents reach these gates instead of routing
+  around them. Touches `AGENTS.md`, `salla-embedded-app`, `salla-embedded-ui`.
 
 ## [1.0.11] — 2026-07-02
 

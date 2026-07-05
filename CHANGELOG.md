@@ -15,7 +15,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 ### Changed
 
 - **Embedded UI: close review gaps that let agents route around or partially satisfy the
-  gated enforcement added in 1.0.11.** Fixed AGENTS.md's routing table, where the
+  gated enforcement added in 1.0.12.** Fixed AGENTS.md's routing table, where the
   `salla-embedded-app` and `salla-embedded-ui` rows overlapped closely enough that an agent
   reached `salla-embedded-app` and never loaded `salla-embedded-ui`'s gates — the rows now
   split cleanly on "SDK/auth wiring" vs. "any visible UI." Added a hand-off callout inside
@@ -33,22 +33,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
   sidecar, and trimmed the description to drop its embedded workflow summary. Touches
   `AGENTS.md`, `salla-embedded-app`, `salla-embedded-ui`.
 
-## [1.0.12] — 2026-07-02
-
-### Fixed
-
-- **Billing: SAR currency rule + addon required fields.** All price fields across the pricing
-  section (`one_time_price`, `one_time_old_price`, plan `price`, `initialization_cost`, `balance`,
-  `plan_additional_features[].price`, addon `price`, `unsubscribe_reward`,
-  `unsubscribe_email_reward`) are now annotated **SAR** inline — there is no currency field or
-  selector anywhere in the pricing section. Added a global SAR rule at the top of
-  `references/pricing-shapes.md`. For addons specifically: `name`, `price`, and `slug` are marked
-  **required** on every entry (server rejects an incomplete addon), and the max-5-per-app cap is
-  documented. Added a Red Flags row for the "slug/price is optional" assumption. Touches
-  `salla-app-billing` (Step 1 + `references/pricing-shapes.md`) and
-  `salla-publication-consistency` (`references/step-pricing.md`).
-
-## [1.0.11] — 2026-07-01
+## [1.0.12] — 2026-07-01
 
 ### Changed
 
@@ -63,6 +48,21 @@ versions the **skill content as a whole** — the `version` field in `package.js
   guessed teal, in-iframe chrome, `window.confirm()`, RTL-later, light-only). Token tables stay owned by
   the one `design-guidelines.md` reference — the skill points to it rather than duplicating. Touches
   `salla-embedded-ui`.
+
+## [1.0.11] — 2026-07-02
+
+### Fixed
+
+- **Billing: SAR currency rule + addon required fields.** All price fields across the pricing
+  section (`one_time_price`, `one_time_old_price`, plan `price`, `initialization_cost`, `balance`,
+  `plan_additional_features[].price`, addon `price`, `unsubscribe_reward`,
+  `unsubscribe_email_reward`) are now annotated **SAR** inline — there is no currency field or
+  selector anywhere in the pricing section. Added a global SAR rule at the top of
+  `references/pricing-shapes.md`. For addons specifically: `name`, `price`, and `slug` are marked
+  **required** on every entry (server rejects an incomplete addon), and the max-5-per-app cap is
+  documented. Added a Red Flags row for the "slug/price is optional" assumption. Touches
+  `salla-app-billing` (Step 1 + `references/pricing-shapes.md`) and
+  `salla-publication-consistency` (`references/step-pricing.md`).
 
 ## [1.0.10] — 2026-06-25
 

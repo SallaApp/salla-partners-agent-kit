@@ -10,6 +10,22 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.12] — 2026-07-07
+
+### Changed
+
+- **Shipping: `salla_shipping` now covers settings discovery/CRUD and policy options, not
+  just zones.** An audit against the live Partners Portal backend and frontend found the
+  tool only exposed `get_zones`/`set_zones`/`set_settings`, and `set_settings` could 404 on
+  a brand-new app because its `setting_id` had no discovery path — the skill told agents to
+  go copy it from the Portal UI. Added `list_settings`, `get_setting`, `create_setting`, and
+  `delete_setting` (full CRUD/discovery on the shipping-settings record), and
+  `set_policy_options` for the shipment policy/feature search-options shown on the app's
+  public listing — previously uncovered entirely. `set_zones`'s `shipping` payload is now
+  typed against the fields the Portal actually validates, instead of accepted unchecked.
+  Step 3 rewritten to drop the "not discoverable via the MCP" limitation and document the
+  discover-or-create flow and policy options. Touches `salla-shipping-app`.
+
 ## [1.0.11] — 2026-07-02
 
 ### Fixed

@@ -49,7 +49,7 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 | `app_publish`     | `open` / `set` / `validate`                | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                        |
 | `salla_events`    | `list` / `subscribe`                       | Subscribe to the async shipment events                                                                                  |
 | `salla_functions` | `list_triggers` / `save` / `preview`       | Implement + test the sync shipment App Functions                                                                        |
-| `salla_shipping`  | `get_zones` / `set_zones` / `set_settings` | Configure shipping zones + settings                                                                                     |
+| `salla_shipping`  | `get_zones` / `set_zones` / `list_settings` / `get_setting` / `create_setting` / `set_settings` / `delete_setting` / `set_policy_options` | Configure shipping zones, shipping settings (discoverable — no Portal round-trip needed), and policy search-options |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Carry the `app_id`
 > through every step. If a tool returns "Salla session expired", re-run the login flow.
@@ -135,25 +135,44 @@ Use `salla_shipping` instead of the Portal form:
    against the live `get_zones` response and the Portal Setup flow
    (https://docs.salla.dev/422996m0.md) before assuming a zone is yours.
 2. Set zones (regions/countries your carrier covers, package types, COD):
-   `salla_shipping action=set_zones`, `app_id`, `shipping: {…zones payload…}`.
-3. Set carrier settings: `salla_shipping action=set_settings`, `app_id`, `setting_id`,
-   `company_types`, `support_change_name`, `service_type_ids`.
-   > **Limitation:** on a brand-new shipping app `has_shipping_settings` is `false`
-   > and `set_settings` returns **404** because the `setting_id` does not exist yet
-   > and is **not discoverable via the MCP** (`get_zones` returns a zone id, not the
-   > setting id). The settings record is created through the Portal's shipping
-   > onboarding flow; retrieve the `setting_id` from there before calling
-   > `set_settings`.
+   `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone objects —
+   `country`, `city[]`, `fees{type: "fixed"|"rate"|"automatic", amount?}`,
+   `cash_on_delivery{status, fees?}`, `duration?`). This **replaces the full zone list** —
+   include every zone you want to keep, not just the one you're adding/changing.
+3. Discover or create the shipping settings record (country + company type + enabled
+   service types) — no more copying `setting_id` from the Portal by hand:
+   - `salla_shipping action=list_settings`, `app_id` (optional `status`
+     `"draft"`/`"publish"`, `per_page`) — returns existing settings with their ids. An
+     empty result means none exist yet.
+   - If none exist for the country you need, create one: `salla_shipping
+     action=create_setting`, `app_id`, `country_id`, `company_types` (1-2 of
+     `"fulfillment"` / `"shipping_delivery"` — labels, not numbers), `support_change_name`
+     (boolean), optional `service_type_ids`. One setting per country per app.
+   - Update an existing setting: `salla_shipping action=set_settings`, `app_id`,
+     `setting_id` (from `list_settings`), any of `company_types` / `support_change_name` /
+     `service_type_ids`.
+   - Inspect one in full or remove it: `action=get_setting` / `action=delete_setting`,
+     `app_id`, `setting_id`.
+4. Set the policy / shipment-feature search-options shown on the app's public listing
+   (allowed product types, packaging types, dimension/box-count support, and similar
+   required-option toggles): `salla_shipping action=set_policy_options`, `app_id`,
+   `search_options` (array of `{id, is_required?, values?}` — `id` is a search-option id,
+   `values` the selected search-option-value ids). This **replaces the current
+   selection** — include every option you want to keep.
 
 You still set a **Shipping Settings URL** in the Portal — the page Salla loads in the
-merchant dashboard to collect carrier credentials (API key, account number).
-Authenticate the merchant/session before showing or saving any credentials, store them
-encrypted, and never log them. (Embedded-page session auth → **`salla-embedded-app`**.)
+merchant dashboard to collect carrier credentials (API key, account number). This is a
+separate concept from the shipping-settings record above (country/company-type/service
+types) — the URL page collects the merchant's per-store carrier credentials, not your
+app's own configuration. Authenticate the merchant/session before showing or saving any
+credentials, store them encrypted, and never log them. (Embedded-page session auth →
+**`salla-embedded-app`**.)
 
 Setup guide: https://docs.salla.dev/422996m0.md
 
-**Gate:** "`salla_shipping action=get_zones` reflects your zones, and a demo-store
-merchant can enter carrier credentials on your Shipping Settings page."
+**Gate:** "`salla_shipping action=get_zones` reflects your zones, `action=list_settings`
+shows the settings you created/updated, and a demo-store merchant can enter carrier
+credentials on your Shipping Settings page."
 
 ---
 

@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.12] — 2026-07-07
+## [1.0.13] — 2026-07-07
 
 ### Changed
 
@@ -25,6 +25,19 @@ versions the **skill content as a whole** — the `version` field in `package.js
   typed against the fields the Portal actually validates, instead of accepted unchecked.
   Step 3 rewritten to drop the "not discoverable via the MCP" limitation and document the
   discover-or-create flow and policy options. Touches `salla-shipping-app`.
+
+## [1.0.12] — 2026-07-05
+
+### Changed
+
+- **Embedded UI: turn design guidance into binding, gated enforcement.** `salla-embedded-ui` was a
+  thin advisory file agents could satisfy without shipping a native-looking iframe. Rewrote it into
+  the kit's standard shape — Step 0 forces loading the canonical design-token source, Steps 1–5 each
+  end in a hard `Gate:` (theme/locale/dir, No-Chrome SDK modules, dashboard tokens + bilingual copy,
+  RTL, and a live demo-store screenshot), backed by a Red Flags table and a
+  `references/compliance-report-template.md` sidecar. Sharpened the `AGENTS.md` routing split against
+  `salla-embedded-app` and added a hand-off callout so agents reach these gates instead of routing
+  around them. Touches `AGENTS.md`, `salla-embedded-app`, `salla-embedded-ui`.
 
 ## [1.0.11] — 2026-07-02
 

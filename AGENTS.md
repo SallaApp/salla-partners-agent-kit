@@ -24,7 +24,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 | Install / trial / subscription events                         | `salla-app-lifecycle`           |
 | Serverless handlers on Salla triggers                         | `salla-app-functions`           |
 | Storefront JS / e-commerce events                             | `salla-snippets`                |
-| Dashboard iframe UI                                           | `salla-embedded-app`            |
+| Dashboard iframe — SDK boot, page registration, auth wiring   | `salla-embedded-app`            |
 | Public App-Store view / builder blocks                        | `salla-app-ui-builder`          |
 | Merchant settings                                             | `salla-app-settings`            |
 | Plans, addons, entitlements, balance, plan/subscription state | `salla-app-billing`             |
@@ -35,7 +35,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 | Carriers, shipments, labels                                   | `salla-shipping-app`            |
 | Direct Admin API calls                                        | `salla-api-core`                |
 | Native UI — storefront (store)                                | `salla-storefront-ui`           |
-| Native UI — embedded app (dashboard)                          | `salla-embedded-ui`             |
+| Dashboard iframe — ANY visible UI drawn in the iframe         | `salla-embedded-ui`             |
 | Test the app on a demo store                                  | `salla-live-testing`            |
 | Pre-submit publication consistency                            | `salla-publication-consistency` |
 | Find the right doc / API schema                               | `salla-docs`                    |

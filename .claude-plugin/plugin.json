@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "salla-partners",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Build Salla Apps with AI — 26 skills and a master agent covering the full app lifecycle: create, hook, monetize, publish.",
   "author": {
     "name": "Salla Dev Team",

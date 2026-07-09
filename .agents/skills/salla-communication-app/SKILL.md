@@ -30,7 +30,10 @@ Selecting the Communication App category is what unlocks the **Supported Feature
 (Step 2) — without it the channel options never appear.
 ([Channels Config](https://docs.salla.dev/2081234m0.md)) Deltas from a General App:
 
-- **No `sub_category_id`** — communication apps don't use one (only `app` and `shipping` types do).
+- **No `sub_category_id`** — communication apps don't use one (only `app` and `shipping` types
+  do). They still need a `main_category_id` at publish — that's the shared "App Theme"/"App
+  Impact" list (`salla_reference action=categories` → `main_categories`), not a
+  communication-specific tree.
 - **0 default webhooks** — nothing is subscribed for you (shipping apps get default shipment events; you get none).
 - `is_embedded` defaults to `true`.
 

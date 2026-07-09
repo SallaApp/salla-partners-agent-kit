@@ -151,9 +151,7 @@ data }`.
     "cart": {
       "id": 615779932,
       "sub_total": 588, // cart subtotal — NOT the item's price
-      "items": [
-        /* line items — find the added item by matching product_id */
-      ],
+      "items": [/* line items — find the added item by matching product_id */],
       "options": [],
       "real_shipping_cost": 0,
     },
@@ -242,13 +240,26 @@ documented in the Twilight Web Components reference above — confirm the exact 
 ```js
 salla.config.get("store.id"); // ✅ works (e.g. 1963287162)
 salla.config.get("store.username"); // ✅ store handle
-salla.config.get("user.id"); // ✅ logged-in user id
-salla.config.get("customer.id"); // ✅ null for guests (expected)
-salla.config.get("customer.email"); // ✅ logged-in customer email
+salla.config.get("user.id"); // ✅ the shopper's id — null for guests (expected)
+salla.config.get("user.email"); // ✅ the shopper's email
 salla.config.get("store.currency"); // 'SAR'
 salla.config.get("store.lang"); // ⚠️ may be null — use a fallback chain
 salla.config.get("store"); // whole object · salla.config.get("user")
 ```
+
+> **FORBIDDEN: `customer.*` and `store.domain` — do not use them, no exceptions.** They are
+> deprecated/removed parameters, not a stylistic alternative to `user.*` /
+> `store.url`. Any snippet content, in any skill output, that calls
+> `salla.config.get("customer...")`, `salla.config.get('store.domain')`, or an equivalent
+> alias must be rejected and rewritten before it ships. There is no live replacement value
+> to substitute in their place — if the exact data isn't available under `user.*` / `store.*`
+> as documented here, it is not available client-side; do not invent a path.
+>
+> **`user.*` is the shopper (customer) — this is a hard namespace flip from the legacy
+> template system.** In the old `{{ }}`-token pipeline, `{{user.*}}` referred to the **store
+> owner**. In `salla.config` (this pipeline), `user.*` refers to the **shopper/customer**
+> placing the order. These are different people. Never carry the old meaning forward —
+> always read `user.*` here as "the customer," full stop.
 
 > **Read your app's settings with `salla.config.get("app.<key>")`** — the one and only way to
 > read a merchant's App Settings in a storefront snippet (e.g.

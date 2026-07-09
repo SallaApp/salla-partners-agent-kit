@@ -10,6 +10,35 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.13] — 2026-07-09
+
+### Added
+
+- **New skill: `salla-snippets-migration`.** Salla retired the backend converter that
+  resolved `{{namespace.key}}` tokens server-side before a legacy HTML snippet reached the
+  browser — `salla_snippets` now only accepts pure JavaScript. Agents handed old HTML/Twig
+  content had no conversion guidance and no way to discover the problem before a failed
+  parse. The new skill owns the conversion (HTML→JS element mapping, token rewriting, the
+  `salla.onReady` bootstrap-timing rule) and hands back to `salla-snippets` to actually
+  deploy — it never calls the MCP tool itself. `.agents/skills/salla-snippets-migration/`.
+
+### Changed
+
+- **`hooks/pretool-skill-inject` content-sniffs `salla_snippets` create/update calls.**
+  Previously routed purely by MCP tool name. Now, when the payload contains HTML tags or a
+  `{{namespace.key}}` token, it points the agent at `salla-snippets-migration` instead of
+  `salla-snippets` — the concrete "on tool use" trigger for the migration hand-off.
+- **`salla-snippets` gains a forbidden-parameter rule.** `customer.*` and `store.domain` are
+  deprecated/removed parameters with no live replacement — using them is now a hard gate
+  failure in the create/update validate loop (Step 2 of that loop), not just a suggestion.
+  Clarified that `user.*` in `salla.config` means the shopper/customer — a hard namespace
+  flip from the legacy `{{ }}` template system, where `{{user.*}}` meant the store owner.
+  `references/device-mode.md`'s "Store context & language" catalog corrected to match (it
+  previously documented `customer.id`/`customer.email` as valid, which is now forbidden).
+  Added Step 0.5 (detect legacy content, hand off to `salla-snippets-migration` before
+  scaffolding) and both `docs.salla.dev` snippet docs to the Resources table. Touches
+  `AGENTS.md`, `salla-snippets`, `salla-snippets-migration`.
+
 ## [1.0.12] — 2026-07-05
 
 ### Changed

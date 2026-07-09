@@ -43,6 +43,26 @@ Use the answers to determine the right mode in Step 1.
 
 ---
 
+## Step 0.5 — Detect legacy content (Device Mode only)
+
+Before scaffolding, inspect whatever snippet content you were handed (pasted, exported
+from the Portal, or read back from an existing snippet):
+
+- **Does it contain HTML tags** (`<script`, `<style`, `<div`, `<link`, `<iframe`, …)?
+- **Does it contain a `{{namespace.key}}` token** (Twig-style double-brace)?
+
+If **either is true**, this is legacy content from the old server-side template pipeline —
+**stop here**. Hand off to **[salla-snippets-migration](../salla-snippets-migration/SKILL.md)**
+to convert it to pure JS first, then resume at Step 2 below with the converted output. Do
+not attempt to hand-patch HTML/Twig content into something that merely _looks_ like it
+might parse — the conversion has real rules (parameter model, `salla.onReady` timing) that
+skill owns.
+
+**Gate:** content contains no HTML tags and no bare `{{...}}` tokens before proceeding to
+Step 2.
+
+---
+
 ## Step 1 — Choose Integration Mode
 
 | Mode            | Where it runs                         | Best for                                          |
@@ -100,9 +120,11 @@ then **inject it as a storefront snippet** with the tool:
      Settings are how the merchant configured the app; events are what the shopper is doing.
      Define the keys and which are `public` in
      [salla-app-settings](../salla-app-settings/SKILL.md). Store/session config
-     (`user.id`, `store.username`, `customer.email`, whole `store`/`user` objects) and the
-     defensive-read patterns → _Store context & language_ in
-     [`references/device-mode.md`](references/device-mode.md).
+     (`user.id`, `user.email` — the shopper, `store.username`, whole `store`/`user`
+     objects) and the defensive-read patterns → _Store context & language_ in
+     [`references/device-mode.md`](references/device-mode.md). **`customer.*` and
+     `store.domain` are forbidden — deprecated/removed, never use them** (full rule in
+     `references/device-mode.md`).
 
 2. (Optional) Check available template variables: `salla_snippets action=parameters`,
    `app_id`.
@@ -136,13 +158,19 @@ the trigger for one loop, repeated until clean:
    as JS and are caught for free, because the snippet is served as a `.js` file. Fix any
    syntax error before saving; the MCP no longer guards content shape, so the body parsing
    cleanly is the author's responsibility. → [`references/device-mode.md`](references/device-mode.md).
-2. **Config-key check** — for **every** `salla.config.get("app.<key>")` the snippet reads,
+2. **Forbidden-parameter check** — grep the content for `salla.config.get("customer` /
+   `salla.config.get('customer` and `salla.config.get("store.domain` /
+   `salla.config.get('store.domain`. **Reject on any match, no exceptions** — `customer.*`
+   and `store.domain` are deprecated/removed (full rule → _Store context & language_ in
+   [`references/device-mode.md`](references/device-mode.md)). Rewrite to `user.*` (the
+   shopper) before continuing; there is no other substitute.
+3. **Config-key check** — for **every** `salla.config.get("app.<key>")` the snippet reads,
    confirm `<key>` is a defined setting marked `public: true` in the app's settings. A key
    that's missing or not `public` reads `undefined` on the storefront. The settings define
    the contract → cross-check [salla-app-settings](../salla-app-settings/SKILL.md).
-3. **Browser test** — run the DevTools-console recipe below (load marker, no errors, expected
+4. **Browser test** — run the DevTools-console recipe below (load marker, no errors, expected
    `e.data` and config values).
-4. **Fix → re-`update` via the tool → re-validate** until all three pass.
+5. **Fix → re-`update` via the tool → re-validate** until all four pass.
 
 #### Test the snippet in the browser
 
@@ -262,11 +290,23 @@ correctly."
 
 ---
 
+## Red Flags
+
+| Tempting thought                                                            | Why it's wrong                                                                                                                                                                       |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "I'll just strip the HTML tags and keep going, it's mostly JS already"      | Legacy content has real conversion rules (parameter model, `salla.onReady` timing) — hand-patching skips them and ships broken/undefined reads. Route to `salla-snippets-migration`. |
+| "`customer.email` reads fine in my test, I'll ship it"                      | `customer.*` is forbidden regardless of whether a call happens to resolve — it's deprecated/removed, not a style choice. Use `user.*` (the shopper).                                 |
+| "It's just one legacy `{{store.id}}` token, I'll leave it and fix the rest" | The content must parse as valid JS to deploy at all — `{{ }}` ships as literal text and breaks the script (or the `salla_snippets` save itself). Convert every token before saving.  |
+
+---
+
 ## Resources
 
-| Topic                  | Link                                |
-| ---------------------- | ----------------------------------- |
-| Device Mode Usage      | https://docs.salla.dev/1724504m0.md |
-| Cloud Mode Usage       | https://docs.salla.dev/1724667m0.md |
-| App Functions Overview | https://docs.salla.dev/1726814m0.md |
-| App Functions Events   | https://docs.salla.dev/1726818m0.md |
+| Topic                   | Link                                |
+| ----------------------- | ----------------------------------- |
+| Device Mode Usage       | https://docs.salla.dev/1724504m0.md |
+| Cloud Mode Usage        | https://docs.salla.dev/1724667m0.md |
+| App Functions Overview  | https://docs.salla.dev/1726814m0.md |
+| App Functions Events    | https://docs.salla.dev/1726818m0.md |
+| App Snippets Overview   | https://docs.salla.dev/2220706m0.md |
+| HTML→JS Migration Guide | https://docs.salla.dev/2247590m0.md |

@@ -43,6 +43,17 @@ case "$short" in
   *) emit_noop ;;
 esac
 
+# salla_snippets create/update carrying legacy HTML/Twig content (HTML tags or a
+# {{namespace.key}} token) → route to the migration skill instead of salla-snippets.
+# Heuristic grep on the raw payload, not a JSON parser (consistent with the tool_name
+# extraction above); false positives/negatives are fine — this hook only ever adds
+# advisory context, never blocks.
+if [ "$short" = "salla_snippets" ] \
+  && printf '%s' "$payload" | grep -Eq '"action"[[:space:]]*:[[:space:]]*"(create|update)"' \
+  && printf '%s' "$payload" | grep -Eq '<(script|style|link|div|iframe|meta)[ >]|\{\{[A-Za-z_]'; then
+  skill='salla-snippets-migration'
+fi
+
 # Dedup per (session, tool): inject each tool's rules once per session.
 session=$(printf '%s' "$payload" \
   | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' 2>/dev/null)

@@ -204,7 +204,11 @@ call** — don't build separate flows for them:
      `is_shipping_policy === false` AND `categories` includes the response's
      `shipping_category` id.
    (This mirrors exactly how the live Shipping Settings page filters the same catalog —
-   don't re-derive different criteria.)
+   don't re-derive different criteria.) **Known gap:** live testing found `meta` can come
+   back empty (no `shipping_category` id) in some environments. If that happens, don't
+   guess a category id — check whether every option's `categories` array shares a single
+   common id (in practice they have; that shared id is the shipping category), and treat
+   an ambiguous result as a blocker to raise, not something to silently work around.
 2. **Understand each option's `type` before building a selection:**
    - `"multi_select"` / `"select"` — choose one or more entries from that option's
      `values[]` by `id`.

@@ -10,6 +10,19 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.15] — 2026-07-12
+
+### Fixed
+
+- **Shipping: note the `list_search_options` `meta.shipping_category` gap.** Live
+  functional testing after v1.0.14's rescoping found `meta` can come back empty in some
+  environments (no `shipping_category` id), which the Policy Options / Shipment Features
+  split in Step 3 depends on. Added a fallback note — check whether every option's
+  `categories` array shares one common id, and treat an ambiguous result as a blocker to
+  raise, not something to silently work around. (The `set_zones` country/city-lock bug
+  found in the same test pass was a `partners-mcp`-side fix, not a skill-content change —
+  see partners-mcp#36.) Touches `salla-shipping-app`.
+
 ## [1.0.14] — 2026-07-12
 
 ### Changed

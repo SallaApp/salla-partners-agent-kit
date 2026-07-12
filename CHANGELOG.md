@@ -10,6 +10,23 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.18] — 2026-07-12
+
+### Changed
+
+- **Shipping: added a guided merchant/partner interview to Step 3a/3b — never invent
+  business decisions the agent can't know.** Rates, coverage, delivery duration, COD
+  support, packaging type, dimensions, company type, and similar are all facts only the
+  merchant/partner knows — nothing an agent should infer from the app or its category.
+  Added an inline interview sub-step to both 3a (zones: one country at a time, looped,
+  asking rate type/amount/duration/COD per zone) and 3b (policy options/shipment
+  features: fetch the live catalog first, then present Policy Options and Shipment
+  Features as two batched questions using their real labels/values, asking Required
+  explicitly on Policy Options only, per the confirmed UI asymmetry). Both branch on
+  first-time setup (interview from scratch) vs. an update (summarize current state via
+  `get_zones`/`salla_apps action=get`, ask only what's changing). Touches
+  `salla-shipping-app`.
+
 ## [1.0.17] — 2026-07-12
 
 ### Fixed

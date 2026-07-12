@@ -157,7 +157,22 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
    - Using a `salla_reference`/general country id here will not error — the Portal
      silently accepts the write and no-ops it, which reads exactly like a bug. Always
      source `country`/`city` from `list_zone_countries`/`list_zone_cities`, never guess.
-3. **Submit:** `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone
+3. **Interview the merchant/partner for every zone field — don't invent business
+   decisions.** Rates, coverage, delivery duration, and COD support are facts only they
+   know; nothing here is inferable from the app or its category.
+   - If `get_zones` (step 1) shows only the pre-seeded default zone, this is first-time
+     setup — run the full interview below. If real zones already exist, summarize them
+     and ask specifically what's changing (add a country, edit a rate, remove a zone)
+     instead of re-asking everything from scratch.
+   - First-time interview, **one country at a time**: ask which country/region to add
+     first, resolve its id (step 2), then ask for that zone's rate type (fixed or
+     variable-by-weight), the amount(s), delivery duration text, and whether COD is
+     supported (and its fee if so). Confirm the zone back to them, then ask "any other
+     countries?" and repeat until they say they're done — don't assume a single-country
+     answer means the interview is over.
+   - Never fill in a plausible-looking rate, duration, or COD default on the merchant's
+     behalf. If they haven't told you, ask — don't submit a guess.
+4. **Submit:** `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone
    objects). Per zone:
 
    | Field | Required? | Notes |
@@ -249,13 +264,31 @@ call** — don't build separate flows for them:
      Features have no such control in the UI. The API technically accepts `is_required`
      on any option, but setting it on a Shipment Feature has no equivalent in the live
      merchant experience — leave it unset there unless you have a specific reason not to.
-3. **Submit both groups together, in one call:** `salla_shipping action=set_policy_options`,
+3. **Interview the merchant/partner using the real catalog — don't guess which values
+   apply to their carrier.** Every option's correct value is a business fact only they
+   know (their packaging, their coverage, their company type); the catalog only tells
+   you what's *possible* to answer, not the answer itself.
+   - Check `salla_apps action=get`'s `search_options` field first. Empty or absent means
+     first-time setup — run the full interview below. If selections already exist,
+     summarize them and ask specifically what's changing, rather than re-asking
+     everything.
+   - First-time interview, **batched by group**: present all 4 Policy Options together
+     in one message, using each option's real `name.ar`/`name.en` label and its real
+     `values[]` choices from step 1 (never invented options) — ask for a value on each,
+     **and explicitly ask whether it should be Required**. Then present all 5 Shipment
+     Features together in a second message, same real-label/real-value treatment, with
+     no Required question (per the asymmetry above). Skip a message entirely for
+     whichever group is empty if the live catalog ever has zero options in it.
+   - `support_change_name` (Shipment Feature) needs a plain-language ask, not a jargon
+     one — its real meaning is "can the merchant rename how your carrier appears at their
+     store's checkout?"; ask it that way, not by reading the slug aloud.
+4. **Submit both groups together, in one call:** `salla_shipping action=set_policy_options`,
    `app_id`, `search_options` (array of `{id, is_required?, values}` — `id` is the
-   search-option id, `values` the selected `values[].id`s from step 2, `is_required` an
-   optional per-option toggle). Mix Policy Options and Shipment Features entries in the
+   search-option id, `values` the selected `values[].id`s gathered in step 3, `is_required`
+   an optional per-option toggle). Mix Policy Options and Shipment Features entries in the
    same array — the split is informational, not structural. This call **replaces the
    current selection** — include every option (from both groups) you want to keep.
-4. **Verify what actually saved.** `salla_shipping` has no read-back action for the
+5. **Verify what actually saved.** `salla_shipping` has no read-back action for the
    app's *current* selections — `action=list_search_options` only ever returns the
    static catalog (every possible option/value), unaffected by what you've saved.
    To confirm what's actually selected, call `salla_apps action=get` and read its
@@ -266,6 +299,15 @@ call** — don't build separate flows for them:
 **Gate:** "`salla_shipping action=set_policy_options` succeeded, and `salla_apps
 action=get`'s `search_options` field shows every option you intended to keep — nothing
 dropped by omission."
+
+### Red Flags — zones & policy options
+
+| Tempting thought | Why it's wrong |
+| --- | --- |
+| "I'll use a reasonable-looking rate/duration so I don't have to ask." | The merchant's rate is their business decision, not something inferable — a plausible-looking number that's wrong ships real pricing errors to real customers (3a). |
+| "They named one country — that's probably their full coverage." | Merchants often don't volunteer their whole list unprompted — always ask explicitly whether there are more before ending the zones interview (3a). |
+| "I'll skip the Required question and leave it optional." | Required vs. optional is real checkout-blocking behavior for the merchant, not a formality — ask it explicitly for every Policy Option (3b). |
+| "The slug name explains itself — no need to translate it for the merchant." | `support_change_name` and similar don't read as their real meaning from the slug alone (e.g. it's about overriding a displayed name at checkout) — ask in plain language, not jargon (3b). |
 
 ---
 

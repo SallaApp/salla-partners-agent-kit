@@ -167,11 +167,11 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
    | `city` (array) | ✅ always | From `list_zone_cities` (or `[-1]` for All). |
    | `cities_excluded` (array) | optional | Cities to exclude within an otherwise-included country/city selection. Only meaningful when country/city aren't the "All" sentinel. |
    | `fees.type` | ✅ always | `"fixed"` \| `"rate"` \| `"automatic"`. |
-   | `fees.amount` | ✅ if `type: "fixed"` | The flat cost. |
-   | `fees.amount_per_unit`, `fees.up_to_weight`, `fees.per_unit` | ✅ if `type: "rate"` | Variable-rate pricing: cost per unit weight past a threshold. |
+   | `fees.amount` | ✅ if `type: "fixed"` | The flat cost. **Must be 1–9999** — enforced by `set_zones` before it ever reaches the Portal (see below). |
+   | `fees.amount_per_unit`, `fees.up_to_weight`, `fees.per_unit` | ✅ if `type: "rate"` | Variable-rate pricing: cost per unit weight past a threshold. All three required together; `amount_per_unit`/`per_unit` > 0, `up_to_weight` 1–9999, all capped at 9999. |
    | `duration` | ✅ always | Free text, e.g. `"2-3 business days"` — not a structured value. |
    | `cash_on_delivery.status` | ✅ always (boolean) | — |
-   | `cash_on_delivery.fees` | ✅ if `cash_on_delivery.status: true` | — |
+   | `cash_on_delivery.fees` | ✅ if `cash_on_delivery.status: true` | Must be > 0, capped at 9999. |
 
    This call **replaces the full zone list** — include every zone you want to keep.
 
@@ -180,8 +180,22 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
 > COD. `set_zones` rejects any submitted zone whose `id` matches an existing zone but
 > whose `country`/`city` differ — create a new zone instead of trying to "move" one.
 
+> **The Portal does not reject bad fee data — it silently corrupts it.** Live testing
+> confirmed: a `"rate"`-type zone missing `amount_per_unit`/`up_to_weight`/`per_unit`
+> gets created anyway with all three defaulted to `0` (a permanently-free-shipping zone,
+> not an error); a negative `fees.amount` gets silently clamped to `0`; and an
+> out-of-range fee (e.g. `999999`) causes the Portal to silently drop the **entire**
+> submitted batch — not just the bad zone — while still reporting success. `set_zones`
+> now validates every fee field against the bounds in the table above before making any
+> network call, **and** re-reads the zone list after every write to confirm it actually
+> reflects the submission — if a "successful" write didn't fully persist, the call fails
+> with a clear message instead of silently lying. If you ever see `set_zones` fail with
+> a "post-write zone count doesn't match" message, do not resubmit the same batch blindly
+> — inspect each zone in it individually.
+
 **Gate:** "`salla_shipping action=get_zones` reflects your zones (right countries/cities/
-rates/COD), and no zone's `country`/`city` was changed on an existing `id`."
+rates/COD), no zone's `country`/`city` was changed on an existing `id`, and `set_zones`
+returned success — not a post-write mismatch error."
 
 ### 3b — Policy Options & Shipment Features (required)
 

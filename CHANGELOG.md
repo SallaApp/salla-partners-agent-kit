@@ -10,6 +10,24 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.16] — 2026-07-12
+
+### Fixed
+
+- **Shipping: document the Portal's silent fee-data corruption and the new
+  `set_zones` write-verification guardrail.** A second round of live QA testing found
+  the Portal silently corrupts or drops shipping-zone writes instead of rejecting them:
+  a `"rate"`-type zone missing its required sub-fields gets created as permanently-free
+  shipping (all defaulted to `0`) instead of erroring; a negative `fees.amount` is
+  silently clamped to `0`; and an out-of-range fee causes the **entire** submitted batch
+  to be silently dropped while still reporting success. The paired `partners-mcp` fix
+  (partners-mcp#36) now validates every fee field against the live frontend's own bounds
+  before any network call, and re-reads the zone list after every write to catch a
+  silently-failed "success." Step 3a's field table now states the enforced 1–9999 / must-
+  be-positive bounds, and documents what a post-write mismatch error means and how to
+  respond to one (inspect each zone individually — don't blindly resubmit). Touches
+  `salla-shipping-app`.
+
 ## [1.0.15] — 2026-07-12
 
 ### Fixed

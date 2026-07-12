@@ -10,6 +10,27 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.19] — 2026-07-12
+
+### Fixed
+
+- **Shipping: 3 documentation-fidelity gaps found by a full end-to-end journey test.**
+  A complete first-time-setup walkthrough (fresh app → zones interview → policy-options
+  interview → update scenario) confirmed every tool-level fix from prior rounds holds,
+  but found the skill's own text was wrong or incomplete in three places: (1) the `-1`
+  "All Countries"/"All Cities" sentinel was documented as returned by
+  `list_zone_countries`/`list_zone_cities` — confirmed against `AppShippingSettings.vue`
+  that it's actually prepended client-side by the live page, never returned by the API;
+  corrected to say the sentinel must be used directly, not searched for in the list.
+  (2) No guidance existed for the real first-zone decision point — whether to keep or
+  remove the pre-seeded catch-all zone once a merchant adds real country-specific
+  zones — added as an explicit interview question. (3) The live search-option catalog
+  has entries (geographic-coverage-shaped, e.g. `destination_countries`) that satisfy
+  neither the Policy Option nor Shipment Feature split rule — confirmed these belong to
+  the same unreleased `shipping_settings_page` flow already out of scope, and that the
+  live page ignores them by the same rule; documented this as by-design instead of
+  leaving it unexplained. Touches `salla-shipping-app`.
+
 ## [1.0.18] — 2026-07-12
 
 ### Changed

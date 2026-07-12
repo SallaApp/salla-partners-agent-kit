@@ -149,14 +149,18 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
    Cities, fixed fee) — a non-empty response does not mean you've already configured it.
 2. **Discover real country/city ids before writing a zone.** These are **not**
    `salla_reference` ids — zones use their own id space:
-   - `salla_shipping action=list_zone_countries`, `app_id` → real country ids, plus the
-     sentinel `id: -1` meaning "All Countries."
+   - `salla_shipping action=list_zone_countries`, `app_id` → real country ids.
    - `salla_shipping action=list_zone_cities`, `app_id`, `country_id` (optional
-     `keyword` to search) → real city ids for that country, plus the sentinel `id: -1`
-     meaning "All Cities" for that country.
+     `keyword` to search) → real city ids for that country.
+   - **The `id: -1` "All Countries"/"All Cities" sentinel is never returned by either
+     list** — confirmed live: the API only ever returns real ids. `-1` is a convention
+     the live Shipping Settings page prepends client-side for display; use it directly
+     in a zone's `country`/`city` when the merchant means "everywhere," don't search
+     the list response for it.
    - Using a `salla_reference`/general country id here will not error — the Portal
      silently accepts the write and no-ops it, which reads exactly like a bug. Always
-     source `country`/`city` from `list_zone_countries`/`list_zone_cities`, never guess.
+     source `country`/`city` from `list_zone_countries`/`list_zone_cities` (or the `-1`
+     sentinel), never guess.
 3. **Interview the merchant/partner for every zone field — don't invent business
    decisions.** Rates, coverage, delivery duration, and COD support are facts only they
    know; nothing here is inferable from the app or its category.
@@ -170,6 +174,10 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
      supported (and its fee if so). Confirm the zone back to them, then ask "any other
      countries?" and repeat until they say they're done — don't assume a single-country
      answer means the interview is over.
+   - Once the merchant has added at least one real zone, **explicitly ask whether to
+     keep or remove the pre-seeded All Countries/All Cities catch-all zone** — don't
+     silently decide either way. Keeping it means unlisted countries still get a
+     (probably wrong) default rate; removing it means unlisted countries get none.
    - Never fill in a plausible-looking rate, duration, or COD default on the merchant's
      behalf. If they haven't told you, ask — don't submit a guess.
 4. **Submit:** `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone
@@ -238,6 +246,13 @@ call** — don't build separate flows for them:
    guess a category id — check whether every option's `categories` array shares a single
    common id (in practice they have; that shared id is the shipping category), and treat
    an ambiguous result as a blocker to raise, not something to silently work around.
+   **You will see catalog entries that satisfy neither rule** (confirmed live: geographic-
+   coverage-shaped slugs like `included_destination_cities`, `destination_countries`, and
+   similar — `is_filter: false` AND `is_shipping_policy: false`). These belong to the
+   newer, unreleased shipping-settings flow (gated behind the `shipping_settings_page`
+   backend feature flag, out of scope for this skill — see the note at the top of this
+   step). The live Shipping Settings page ignores them too, by the same split rule —
+   don't ask the merchant about them; this is by design, not a bug in the split logic.
 
    Confirmed live catalog (illustrative — always read the actual response, Salla can add/
    remove options; don't hard-code these slugs as an exhaustive list):

@@ -174,10 +174,12 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
      supported (and its fee if so). Confirm the zone back to them, then ask "any other
      countries?" and repeat until they say they're done — don't assume a single-country
      answer means the interview is over.
-   - Once the merchant has added at least one real zone, **explicitly ask whether to
-     keep or remove the pre-seeded All Countries/All Cities catch-all zone** — don't
-     silently decide either way. Keeping it means unlisted countries still get a
-     (probably wrong) default rate; removing it means unlisted countries get none.
+   - **After** the merchant says they're done adding countries (not after the first
+     one — the decision below only makes sense once their real coverage list is
+     complete), **explicitly ask whether to keep or remove the pre-seeded All
+     Countries/All Cities catch-all zone** — don't silently decide either way. Keeping
+     it means unlisted countries still get a (probably wrong) default rate; removing it
+     means unlisted countries get none.
    - Never fill in a plausible-looking rate, duration, or COD default on the merchant's
      behalf. If they haven't told you, ask — don't submit a guess.
 4. **Submit:** `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone

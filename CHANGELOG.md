@@ -10,6 +10,18 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.20] — 2026-07-12
+
+### Fixed
+
+- **Shipping: clarify when to ask about the pre-seeded catch-all zone.** A targeted
+  re-verification of the v1.0.19 fixes flagged one residual ambiguity: the instruction
+  to ask the merchant whether to keep or remove the pre-seeded All Countries/All Cities
+  zone didn't say *when* in the zones interview to ask it — immediately after the first
+  real zone, or after the merchant's whole coverage list is complete. Specified it's the
+  latter (the decision only makes sense once their real coverage is fully known).
+  Touches `salla-shipping-app`.
+
 ## [1.0.19] — 2026-07-12
 
 ### Fixed

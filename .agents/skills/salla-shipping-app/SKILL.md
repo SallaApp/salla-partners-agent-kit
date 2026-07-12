@@ -49,7 +49,7 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 | `app_publish`     | `open` / `set` / `validate`                | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                        |
 | `salla_events`    | `list` / `subscribe`                       | Subscribe to the async shipment events                                                                                  |
 | `salla_functions` | `list_triggers` / `save` / `preview`       | Implement + test the sync shipment App Functions                                                                        |
-| `salla_shipping`  | `get_zones` / `set_zones` / `list_settings` / `get_setting` / `create_setting` / `set_settings` / `delete_setting` / `set_policy_options` | Configure shipping zones, shipping settings (discoverable — no Portal round-trip needed), and policy search-options |
+| `salla_shipping`  | `get_zones` / `set_zones` / `set_policy_options` / `list_zone_countries` / `list_zone_cities` / `list_search_options` | Configure shipping rate zones and the policy-options / shipment-features search-options — the two things the live Shipping Settings page manages today |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Carry the `app_id`
 > through every step. If a tool returns "Salla session expired", re-run the login flow.
@@ -124,55 +124,114 @@ these concerns there — don't reimplement them here.
 > **A shipping app has no merchant settings form.** Don't call `salla_settings
 define_form` — that form is for public/private/communication apps, and the Portal rejects
 > `POST /settings` for a shipping app. Shipping configuration is the `salla_shipping` zones
-> and settings below; carrier credentials go through the Shipping Settings URL. The
+> and search-options below; carrier credentials go through the Shipping Settings URL. The
 > settings-form concept itself → [salla-app-settings](../salla-app-settings/SKILL.md).
 
-Use `salla_shipping` instead of the Portal form:
+> **This step covers exactly what the live Shipping Settings page manages today — nothing
+> more.** There is a newer, richer shipping-settings model (per-country company type,
+> enabled service types, structured duration) sitting behind a backend feature flag that
+> is **not released** and has no merchant-facing page yet — don't build against it, and
+> don't be surprised `salla_shipping` has no actions for it. If the flag ever releases,
+> this step gets a new sub-step; until then, zones + search-options are the whole surface.
 
-1. Inspect current zones: `salla_shipping action=get_zones`, `app_id`. **Note:** a newly
-   created shipping app already has a pre-seeded default zone (All Countries → All Cities,
-   fixed fee) — a non-empty response does not mean you've already configured it. Verify
-   against the live `get_zones` response and the Portal Setup flow
-   (https://docs.salla.dev/422996m0.md) before assuming a zone is yours.
-2. Set zones (regions/countries your carrier covers, package types, COD):
-   `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone objects —
-   `country`, `city[]`, `fees{type: "fixed"|"rate"|"automatic", amount?}`,
-   `cash_on_delivery{status, fees?}`, `duration?`). This **replaces the full zone list** —
-   include every zone you want to keep, not just the one you're adding/changing.
-3. Discover or create the shipping settings record (country + company type + enabled
-   service types) — no more copying `setting_id` from the Portal by hand:
-   - `salla_shipping action=list_settings`, `app_id` (optional `status`
-     `"draft"`/`"publish"`, `per_page`) — returns existing settings with their ids. An
-     empty result means none exist yet.
-   - If none exist for the country you need, create one: `salla_shipping
-     action=create_setting`, `app_id`, `country_id`, `company_types` (1-2 of
-     `"fulfillment"` / `"shipping_delivery"` — labels, not numbers), `support_change_name`
-     (boolean), optional `service_type_ids`. One setting per country per app.
-   - Update an existing setting: `salla_shipping action=set_settings`, `app_id`,
-     `setting_id` (from `list_settings`), any of `company_types` / `support_change_name` /
-     `service_type_ids`.
-   - Inspect one in full or remove it: `action=get_setting` / `action=delete_setting`,
-     `app_id`, `setting_id`.
-4. Set the policy / shipment-feature search-options shown on the app's public listing
-   (allowed product types, packaging types, dimension/box-count support, and similar
-   required-option toggles): `salla_shipping action=set_policy_options`, `app_id`,
-   `search_options` (array of `{id, is_required?, values?}` — `id` is a search-option id,
-   `values` the selected search-option-value ids). This **replaces the current
-   selection** — include every option you want to keep.
+`salla_shipping` manages **two independent things**, saved through two different calls —
+zones, and a combined set of two option groups. Handle them as two separate sub-flows.
+
+### 3a — Rate Zones (required)
+
+A zone is a rate rule scoped to a country + set of cities. **There is no per-zone
+create/update/delete endpoint** — `set_zones` always replaces the *entire* zone list in
+one call. To add a zone, resend every existing zone plus the new one. To edit a zone,
+resend every zone with that one changed. To delete a zone, resend every zone *except* it.
+
+1. **Fetch current state:** `salla_shipping action=get_zones`, `app_id`. **Note:** a
+   newly created shipping app already has a pre-seeded default zone (All Countries → All
+   Cities, fixed fee) — a non-empty response does not mean you've already configured it.
+2. **Discover real country/city ids before writing a zone.** These are **not**
+   `salla_reference` ids — zones use their own id space:
+   - `salla_shipping action=list_zone_countries`, `app_id` → real country ids, plus the
+     sentinel `id: -1` meaning "All Countries."
+   - `salla_shipping action=list_zone_cities`, `app_id`, `country_id` (optional
+     `keyword` to search) → real city ids for that country, plus the sentinel `id: -1`
+     meaning "All Cities" for that country.
+   - Using a `salla_reference`/general country id here will not error — the Portal
+     silently accepts the write and no-ops it, which reads exactly like a bug. Always
+     source `country`/`city` from `list_zone_countries`/`list_zone_cities`, never guess.
+3. **Submit:** `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone
+   objects). Per zone:
+
+   | Field | Required? | Notes |
+   |---|---|---|
+   | `id` | omit/`0` for a new zone | Existing zone id to update it in place. |
+   | `country` | ✅ always | From `list_zone_countries` (or `-1` for All). |
+   | `city` (array) | ✅ always | From `list_zone_cities` (or `[-1]` for All). |
+   | `cities_excluded` (array) | optional | Cities to exclude within an otherwise-included country/city selection. Only meaningful when country/city aren't the "All" sentinel. |
+   | `fees.type` | ✅ always | `"fixed"` \| `"rate"` \| `"automatic"`. |
+   | `fees.amount` | ✅ if `type: "fixed"` | The flat cost. |
+   | `fees.amount_per_unit`, `fees.up_to_weight`, `fees.per_unit` | ✅ if `type: "rate"` | Variable-rate pricing: cost per unit weight past a threshold. |
+   | `duration` | ✅ always | Free text, e.g. `"2-3 business days"` — not a structured value. |
+   | `cash_on_delivery.status` | ✅ always (boolean) | — |
+   | `cash_on_delivery.fees` | ✅ if `cash_on_delivery.status: true` | — |
+
+   This call **replaces the full zone list** — include every zone you want to keep.
+
+> **Business rule, strictly enforced — a zone's `country`/`city` are locked once it
+> exists.** You cannot change an existing zone's country or city, only its rates/duration/
+> COD. `set_zones` rejects any submitted zone whose `id` matches an existing zone but
+> whose `country`/`city` differ — create a new zone instead of trying to "move" one.
+
+**Gate:** "`salla_shipping action=get_zones` reflects your zones (right countries/cities/
+rates/COD), and no zone's `country`/`city` was changed on an existing `id`."
+
+### 3b — Policy Options & Shipment Features (required)
+
+These are **two semantically different option groups that share one catalog and one save
+call** — don't build separate flows for them:
+
+- **Policy Options** — waybill/shipment detail fields (packaging type, product type,
+  dimensions, and similar) that "help identify the shipment details for an easy shipping
+  experience." These describe the *shipment itself*.
+- **Shipment Features** — App-Store discovery/filter metadata ("aid in the process of
+  searching for the shipping App by type and coverage"). These help a merchant *find*
+  your app in the marketplace — they are not shipment data.
+
+1. **Fetch the catalog:** `salla_shipping action=list_search_options`, `app_id` → every
+   available option, each `{id, slug, type, is_filter, is_shipping_policy, categories,
+   name: {ar, en}, values: [{id, slug, name: {ar, en}}]}`, plus a `shipping_category` id
+   in the response meta. Split it yourself:
+   - **Policy Options** = options where `is_shipping_policy === true`.
+   - **Shipment Features** = options where `is_filter === true` AND
+     `is_shipping_policy === false` AND `categories` includes the response's
+     `shipping_category` id.
+   (This mirrors exactly how the live Shipping Settings page filters the same catalog —
+   don't re-derive different criteria.)
+2. **Understand each option's `type` before building a selection:**
+   - `"multi_select"` / `"select"` — choose one or more entries from that option's
+     `values[]` by `id`.
+   - `"boolean"` — not a raw true/false: select the **single value object** whose `slug`
+     is `"true"` or `"false"` (each boolean option has both as real `values[]` entries).
+     Selecting neither means "not answered."
+3. **Submit both groups together, in one call:** `salla_shipping action=set_policy_options`,
+   `app_id`, `search_options` (array of `{id, is_required?, values}` — `id` is the
+   search-option id, `values` the selected `values[].id`s from step 2, `is_required` an
+   optional per-option toggle). Mix Policy Options and Shipment Features entries in the
+   same array — the split is informational, not structural. This call **replaces the
+   current selection** — include every option (from both groups) you want to keep.
+
+**Gate:** "`salla_shipping action=set_policy_options` succeeded, and re-fetching
+`action=list_search_options` plus your own saved-selection tracking confirms every
+option you intended to keep is still selected — nothing dropped by omission."
+
+---
 
 You still set a **Shipping Settings URL** in the Portal — the page Salla loads in the
 merchant dashboard to collect carrier credentials (API key, account number). This is a
-separate concept from the shipping-settings record above (country/company-type/service
-types) — the URL page collects the merchant's per-store carrier credentials, not your
-app's own configuration. Authenticate the merchant/session before showing or saving any
-credentials, store them encrypted, and never log them. (Embedded-page session auth →
-**`salla-embedded-app`**.)
+separate concept from zones/search-options above — the URL page collects the merchant's
+per-store carrier credentials, not your app's own configuration. Authenticate the
+merchant/session before showing or saving any credentials, store them encrypted, and
+never log them. (Embedded-page session auth → **`salla-embedded-app`**.)
 
 Setup guide: https://docs.salla.dev/422996m0.md
-
-**Gate:** "`salla_shipping action=get_zones` reflects your zones, `action=list_settings`
-shows the settings you created/updated, and a demo-store merchant can enter carrier
-credentials on your Shipping Settings page."
 
 ---
 

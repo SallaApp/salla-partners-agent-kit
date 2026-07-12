@@ -10,6 +10,31 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.14] — 2026-07-12
+
+### Changed
+
+- **Shipping: `salla_shipping` rescoped to the legacy flow actually live today — settings
+  CRUD removed, zone/search-option discovery added, country/city lock enforced strictly.**
+  A requirements pass against the live frontend (`ShippingSettings.vue` →
+  `AppShippingSettings.vue` + `AppShippingPolicy.vue`/`AppSearchOptions.vue`) confirmed the
+  `ShippingSetting` CRUD actions added in v1.0.13 (`list_settings`/`get_setting`/
+  `create_setting`/`set_settings`/`delete_setting`) target a resource gated behind the
+  unreleased `shipping_settings_page` backend feature flag with **zero live frontend
+  consumer** — removed from `salla_shipping` entirely. In their place: `list_zone_countries`
+  and `list_zone_cities` (the zones-scoped country/city catalog — confirmed as a
+  **different id space** from `salla_reference`'s countries, the root cause of a false
+  "regression" report during live testing) and `list_search_options` (the catalog backing
+  both Policy Options and Shipment Features). Also added **strict, code-level
+  enforcement**: a zone's `country`/`city` are locked once it has an `id` — mirroring the
+  frontend's `disableEdit` behavior exactly — `set_zones` now rejects any submitted zone
+  that changes country/city on an existing id, rather than silently accepting it. Step 3
+  rewritten into two sub-flows (zones; policy options + shipment features) with a full
+  required/optional/locked field table and the exact filtering logic
+  (`is_shipping_policy`/`is_filter`/`categories`) that splits the shared search-option
+  catalog into the two groups, mirroring `ShippingSettingsContent.vue`'s `initData()`
+  exactly. Touches `salla-shipping-app`.
+
 ## [1.0.13] — 2026-07-07
 
 ### Changed

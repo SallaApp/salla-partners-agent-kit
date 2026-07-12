@@ -10,6 +10,25 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.17] — 2026-07-12
+
+### Fixed
+
+- **Shipping: fixed a gate that pointed at an endpoint that can't verify anything, added
+  the confirmed live search-option catalog with real business meaning.** Step 3b's gate
+  told agents to re-fetch `action=list_search_options` to confirm a `set_policy_options`
+  save — but that action only ever returns the **static catalog** (every possible option/
+  value), never the app's current selections, so it structurally cannot verify a save.
+  Corrected the gate to `salla_apps action=get`'s `search_options` field, the actual
+  source of truth (confirmed via live testing — this is exactly how a prior test verified
+  its own saved selections). Also added the confirmed live 9-option catalog (4 Policy
+  Options + 5 Shipment Features) with real Arabic labels and semantic meaning, most
+  notably `support_change_name` — not discovery metadata despite living in the Shipment
+  Features group, but a real merchant-facing toggle for overriding the carrier's
+  displayed name at checkout — and documented that only Policy Options expose a
+  per-option "Required" toggle in the live UI, confirmed against the live page's actual
+  rendered labels. Touches `salla-shipping-app`.
+
 ## [1.0.16] — 2026-07-12
 
 ### Fixed

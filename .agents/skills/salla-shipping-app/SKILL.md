@@ -45,7 +45,7 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 | ----------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | `salla_reference` | `categories`                               | Get the shipping `type`; pick `sub_category_id` from `sub_categories`                                                   |
 | `salla_upload`    | —                                          | Upload the logo → file `id`                                                                                             |
-| `salla_apps`      | `create` / `connect` / `set_status`        | Create + configure OAuth/webhooks; a private app is published by the partner from its app-details page, not via the MCP |
+| `salla_apps`      | `create` / `get` / `connect` / `set_status` | Create + configure OAuth/webhooks; `get` reads app state, including current `search_options` selections; a private app is published by the partner from its app-details page, not via the MCP |
 | `app_publish`     | `open` / `set` / `validate`                | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                        |
 | `salla_events`    | `list` / `subscribe`                       | Subscribe to the async shipment events                                                                                  |
 | `salla_functions` | `list_triggers` / `save` / `preview`       | Implement + test the sync shipment App Functions                                                                        |
@@ -223,22 +223,49 @@ call** — don't build separate flows for them:
    guess a category id — check whether every option's `categories` array shares a single
    common id (in practice they have; that shared id is the shipping category), and treat
    an ambiguous result as a blocker to raise, not something to silently work around.
+
+   Confirmed live catalog (illustrative — always read the actual response, Salla can add/
+   remove options; don't hard-code these slugs as an exhaustive list):
+
+   | Group | `slug` | Arabic label | What it means |
+   |---|---|---|---|
+   | Policy Option | `shipment_content_type` | أنواع الشحن | Product/content type inside the shipment (e.g. Electronics). |
+   | Policy Option | `packaging_type` | أنواع التغليف | How the shipment is packaged. |
+   | Policy Option | `support_dimensions` | أبعاد الشحنة | Whether the merchant must provide package dimensions. |
+   | Policy Option | `support_number_of_box` | عدد الصناديق | Whether the merchant must provide a box count. |
+   | Shipment Feature | `delivery_service_type` | طرق الاستلام والتسليم | Pickup/delivery method(s) the carrier offers. |
+   | Shipment Feature | `shipping_cover_type` | نطاق تغطية الشحن | Geographic coverage range (e.g. domestic/international). |
+   | Shipment Feature | `company_type` | نوع الشركة | Carrier company type/classification. |
+   | Shipment Feature | `services` | الخدمات | Carrier service offerings. |
+   | Shipment Feature | `support_change_name` | الإسم المعروض للشركة | **Not discovery metadata** — a real merchant-facing toggle: whether the merchant can override your carrier's displayed name at the storefront checkout. Treat it with the same care as any other operational setting, even though it lives in the Shipment Features group. |
 2. **Understand each option's `type` before building a selection:**
    - `"multi_select"` / `"select"` — choose one or more entries from that option's
      `values[]` by `id`.
    - `"boolean"` — not a raw true/false: select the **single value object** whose `slug`
      is `"true"` or `"false"` (each boolean option has both as real `values[]` entries).
      Selecting neither means "not answered."
+   - `is_required` is only meaningful on **Policy Options** — the live Shipping Settings
+     page renders a per-option "Required" checkbox for Policy Options only; Shipment
+     Features have no such control in the UI. The API technically accepts `is_required`
+     on any option, but setting it on a Shipment Feature has no equivalent in the live
+     merchant experience — leave it unset there unless you have a specific reason not to.
 3. **Submit both groups together, in one call:** `salla_shipping action=set_policy_options`,
    `app_id`, `search_options` (array of `{id, is_required?, values}` — `id` is the
    search-option id, `values` the selected `values[].id`s from step 2, `is_required` an
    optional per-option toggle). Mix Policy Options and Shipment Features entries in the
    same array — the split is informational, not structural. This call **replaces the
    current selection** — include every option (from both groups) you want to keep.
+4. **Verify what actually saved.** `salla_shipping` has no read-back action for the
+   app's *current* selections — `action=list_search_options` only ever returns the
+   static catalog (every possible option/value), unaffected by what you've saved.
+   To confirm what's actually selected, call `salla_apps action=get` and read its
+   `search_options` field (array of `{id, values}` for the current app) — that's the
+   only source of truth for current selections. Don't try to track it yourself across
+   turns; re-read it.
 
-**Gate:** "`salla_shipping action=set_policy_options` succeeded, and re-fetching
-`action=list_search_options` plus your own saved-selection tracking confirms every
-option you intended to keep is still selected — nothing dropped by omission."
+**Gate:** "`salla_shipping action=set_policy_options` succeeded, and `salla_apps
+action=get`'s `search_options` field shows every option you intended to keep — nothing
+dropped by omission."
 
 ---
 

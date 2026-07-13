@@ -53,6 +53,10 @@ details, and storefront. → salla-embedded-ui / salla-storefront-ui
 | Shipping      | Shipping sub-category; `shipment.creating`/`shipment.cancelling` are sync App Functions; Salla-set Company ID → [salla-shipping-app](../salla-shipping-app/SKILL.md) |
 | Communication | No sub-category; must declare channels before publish → [salla-communication-app](../salla-communication-app/SKILL.md)                                               |
 
+`sub_category_id` above is create-time only and type-scoped. The publish-time `main_category_id`
+("App Theme"/"App Impact") is a separate, SHARED list — same for all four rows — set later via
+`app_publish` (→ [salla-publication-consistency](../salla-publication-consistency/references/step-basic-information.md)).
+
 ## Choosing the surface (the hookable rule)
 
 Every behavior attaches at exactly one surface. Decide in this order:

@@ -10,6 +10,24 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.15] — 2026-07-13
+
+### Changed
+
+- **Publication: the app-publish `main_category_id` is now an "App Theme"/"App Impact" id,
+  a shared list independent of the app/shipping/communication type.** A backend change
+  moved the publish-time main category off the app/shipping category tree onto a new
+  `app_impact` category type — one set for every app type. `salla_reference
+  action=categories` now returns THREE independent lists per call instead of two:
+  `main_categories` (type `app_impact` — publish `main_category_id`), `categories` (type
+  `app`, always — publish `categories` array), and `sub_categories` (type `sub_app` /
+  `sub_shipping`, per the caller's `type` — create's `sub_category_id`, unchanged). Updated
+  `salla_reference` and `app_publish` tool descriptions in the MCP, and the affected
+  guidance in `salla-publication-consistency` (`step-basic-information.md`),
+  `salla-app-builder`, `salla-shipping-app` (which previously — incorrectly — pointed
+  publish's `main_category_id` at the shipping category tree), `salla-communication-app`,
+  and `salla-app-expert`.
+
 ## [1.0.14] — 2026-07-13
 
 ### Added

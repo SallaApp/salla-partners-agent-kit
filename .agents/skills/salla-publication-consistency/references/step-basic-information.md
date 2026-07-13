@@ -11,8 +11,8 @@ Read current values from `app_publish action=get` → `publication.*`:
 | Field                               | Path                                          | Notes                                                                                  |
 | ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Short description `{ar,en}`         | `publication.short_description`               | 50–200 chars. Set here.                                                                |
-| Main category id                    | `publication.main_category_id`                | `salla_reference action=categories` for valid ids.                                     |
-| Categories (sub-categories)         | `publication.categories`                      | array of sub-category ids of the main category.                                        |
+| Main category id                    | `publication.main_category_id`                | "App Theme"/"App Impact" id — `salla_reference action=categories` → `main_categories` (category type `app_impact`, one SHARED set for every app type — general, private, shipping, communication). NOT the app/shipping-specific category picked at create. |
+| Categories                          | `publication.categories`                      | array of ids from that same tool's `categories` list (category type `app`, always — not scoped by the app's own type). A separate list from both `main_categories` (`app_impact`) and the create-time `sub_categories` (`sub_app`/`sub_shipping`) tree — three independent lists, don't mix them up. |
 | Video URL                           | `publication.video_url`                       | **REQUIRED** for completeness (readiness flags it when blank).                         |
 | Demo URL                            | `publication.demo_url`                        | optional.                                                                              |
 | Search terms                        | `publication.search_terms`                    | array of strings.                                                                      |
@@ -30,8 +30,8 @@ Server rules (`PublicationSectionRequest`, section `basic_information`):
 | Field                 | Type / rule                                                                                                                  |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `short_description`   | `{ar,en}`, string, **50–200** chars                                                                                          |
-| `main_category_id`    | integer — a MAIN category id (`salla_reference action=categories`, `type:"app"`)                                             |
-| `categories`          | integer[] — SUB-categories of that main category                                                                             |
+| `main_category_id`    | integer — an "App Theme"/"App Impact" id (`salla_reference action=categories` → `main_categories`, category type `app_impact`)  |
+| `categories`          | integer[] — from that same tool's `categories` list (category type `app`) — NOT sub-ids of `main_category_id` and NOT the create-time `sub_category_id` tree |
 | `video_url`           | URL, max 255 — **required for completeness**                                                                                 |
 | `demo_url`            | URL, max 255 — optional                                                                                                      |
 | `search_terms`        | string[]                                                                                                                     |

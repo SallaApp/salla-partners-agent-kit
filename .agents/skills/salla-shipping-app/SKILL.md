@@ -43,7 +43,7 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 
 | Tool              | Action                                     | What it does                                                                                                            |
 | ----------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `salla_reference` | `categories`                               | Get the shipping `type`; pick `sub_category_id` from `sub_categories`                                                   |
+| `salla_reference` | `categories`                               | `type=shipping` → pick `sub_category_id` from `sub_categories`; `main_category_id`/`categories` for publish come from the same call's `main_categories`/`categories` (App Theme, not shipping-scoped) |
 | `salla_upload`    | —                                          | Upload the logo → file `id`                                                                                             |
 | `salla_apps`      | `create` / `get` / `connect` / `set_status` | Create + configure OAuth/webhooks; `get` reads app state, including current `search_options` selections; a private app is published by the partner from its app-details page, not via the MCP |
 | `app_publish`     | `open` / `set` / `validate`                | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                        |
@@ -73,13 +73,14 @@ Ask before starting:
 
 ## Step 1 — Create the App
 
-1. Resolve the category: `salla_reference action=categories type=shipping` → returns
-   `main_categories` and `sub_categories`. The `sub_category_id` **must be a shipping
-   sub-category** picked from `sub_categories` — a non-shipping sub-category is rejected.
-   (Currently Fulfillment / Other / Drop-shipping = ids `45 / 46 / 54`; these ids are
-   illustrative — always read the live values from `salla_reference action=categories`
-   rather than hard-coding them. The `main_category_id` used at publish comes from
-   `main_categories`.)
+1. Resolve the category: `salla_reference action=categories type=shipping` → `sub_categories`.
+   The `sub_category_id` **must be a shipping sub-category** picked from `sub_categories` — a
+   non-shipping sub-category is rejected. (Currently Fulfillment / Other / Drop-shipping = ids
+   `45 / 46 / 54`; these ids are illustrative — always read the live values rather than
+   hard-coding them.) **Don't** reuse that same call's `main_categories`/`categories` for the
+   publish-time `main_category_id`/`categories` — those are a separate, type-independent "App
+   Theme"/"App Impact" list, not shipping-specific →
+   [step-basic-information.md](../salla-publication-consistency/references/step-basic-information.md).
 2. Upload the logo: `salla_upload` (square 1:1, ≥ 250×250 px) → file `id`.
 3. Create it: `salla_apps action=create` with `type` = shipping, `sub_category_id`,
    `name`, `short_description` (50–200), `app_url`, `email`, `logo`. Set the app **public**

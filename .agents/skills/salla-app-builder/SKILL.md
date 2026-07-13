@@ -83,12 +83,15 @@ Use the answers to tailor Steps 1, 4–7.
 ## Step 1 — Create the App
 
 1. **Resolve the category.** Call `salla_reference` with `action: "categories"` and the
-   `type` (`"app"` or `"shipping"`). It returns both `main_categories` and
-   `sub_categories`. Private apps use `type: "app"` here — `"private"` is **not** a valid
-   `salla_reference` category type. For `app` / `shipping`, a `sub_category_id` is
-   required and **must be a sub-category id** (pick from `sub_categories` — for `app`
-   these are POS, OMS, Subscription, Cross-sell/Upsell, Manage Store, AI, Others). The
-   `main_category_id` used at publish is a **main** category (from `main_categories`).
+   `type` (`"app"` or `"shipping"`) to get `sub_categories` — pick **create**'s
+   `sub_category_id` from there (a non-matching sub-category is rejected). Private apps use
+   `type: "app"` here — `"private"` is **not** a valid `salla_reference` category type. For
+   `app` / `shipping`, `sub_category_id` is required at create (for `app` the choices are
+   POS, OMS, Subscription, Cross-sell/Upsell, Manage Store, AI, Others). That same call also
+   returns `main_categories`/`categories` — don't reach for them yet, they're a separate,
+   type-independent "App Theme"/"App Impact" list for **publish**'s `main_category_id`/
+   `categories`, not this step →
+   [salla-publication-consistency](../salla-publication-consistency/references/step-basic-information.md).
 2. **Upload the logo.** Call `salla_upload` with a public image `source_url`. The logo
    must be a **square (1:1) image, ≥ 250×250 px** — ensure the source image satisfies
    that **before** uploading. The result returns only `{id, url}` (no dimensions are

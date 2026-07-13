@@ -161,9 +161,12 @@ the trigger for one loop, repeated until clean:
 2. **Forbidden-parameter check** — grep the content for `salla.config.get("customer` /
    `salla.config.get('customer` and `salla.config.get("store.domain` /
    `salla.config.get('store.domain`. **Reject on any match, no exceptions** — `customer.*`
-   and `store.domain` are deprecated/removed (full rule → _Store context & language_ in
-   [`references/device-mode.md`](references/device-mode.md)). Rewrite to `user.*` (the
-   shopper) before continuing; there is no other substitute.
+   and `store.domain` are deprecated/removed, with no mechanical substitute (full catalog
+   → _Store context & language_ in [`references/device-mode.md`](references/device-mode.md)).
+   `user.*` is a **different concept** (the shopper), not a 1:1 rename target — check what
+   data the snippet actually needs against that catalog before rewriting; if the exact data
+   isn't available under `user.*`/`store.*` as documented there, it is not available
+   client-side, don't invent a path.
 3. **Config-key check** — for **every** `salla.config.get("app.<key>")` the snippet reads,
    confirm `<key>` is a defined setting marked `public: true` in the app's settings. A key
    that's missing or not `public` reads `undefined` on the storefront. The settings define

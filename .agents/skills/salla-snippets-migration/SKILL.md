@@ -50,7 +50,9 @@ against the raw Salla docs, and do not soften any of the FORBIDDEN language belo
   the **store owner**. In `salla.config`, `user.*` means the **shopper**. Different people.
   Never carry the old meaning forward when converting a token that used to read
   `{{user.*}}` — it is not a 1:1 rewrite to `user.*`; check what data it actually needs
-  against the catalog below.
+  against the catalog below. Never assume every shopper is a logged-in customer — call
+  `salla.config.isGuest()` before branching on any converted `user.*` field; see the
+  guest-shopper note in the catalog below.
 - **`store.contacts.*`** (e.g. `store.contacts.whatsapp`) is real and live, but
   **merchant-conditional** — it only resolves if that merchant configured that contact
   channel. Always read it defensively: `''` fallback, and a presence check before using

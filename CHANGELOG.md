@@ -32,12 +32,18 @@ versions the **skill content as a whole** — the `version` field in `package.js
   deprecated/removed parameters with no live replacement — using them is now a hard gate
   failure in the create/update validate loop (Step 2 of that loop), not just a suggestion.
   Clarified that `user.*` in `salla.config` means the shopper/customer — a hard namespace
-  flip from the legacy `{{ }}` template system, where `{{user.*}}` meant the store owner.
-  `references/device-mode.md`'s "Store context & language" catalog corrected to match (it
-  previously documented `customer.id`/`customer.email` as valid, which is now forbidden).
-  Added Step 0.5 (detect legacy content, hand off to `salla-snippets-migration` before
-  scaffolding) and both `docs.salla.dev` snippet docs to the Resources table. Touches
-  `AGENTS.md`, `salla-snippets`, `salla-snippets-migration`.
+  flip from the legacy `{{ }}` template system, where `{{user.*}}` meant the store owner —
+  and, consistent with `salla-snippets-migration`, that `user.*` is **not** a mechanical
+  1:1 rename target for `customer.*`: check what data is actually needed against the
+  catalog rather than substituting the namespace. `references/device-mode.md`'s "Store
+  context & language" catalog corrected to match (it previously documented
+  `customer.id`/`customer.email` as valid, which is now forbidden), and extended with
+  `user.mobile` and `salla.config.isGuest()` — call it before branching on any `user.*`
+  field; never write code that assumes every visitor is an authenticated customer. Added
+  Step 0.5 (detect legacy content, hand off to `salla-snippets-migration`
+  before scaffolding) and both `docs.salla.dev`
+  snippet docs to the Resources table. Touches `AGENTS.md`, `salla-snippets`,
+  `salla-snippets-migration`.
 
 ## [1.0.13] — 2026-07-13
 

@@ -240,7 +240,7 @@ documented in the Twilight Web Components reference above — confirm the exact 
 ```js
 salla.config.get("store.id"); // ✅ works (e.g. 1963287162)
 salla.config.get("store.username"); // ✅ store handle
-salla.config.get("user.id"); // ✅ the shopper's id — null for guests (expected)
+salla.config.get("user.id"); // ✅ the shopper's id — exists for guests too
 salla.config.get("user.email"); // ✅ the shopper's email
 salla.config.get("user.mobile"); // ✅ the shopper's phone number
 salla.config.isGuest(); // ✅ true until the shopper logs in / creates an account
@@ -250,11 +250,11 @@ salla.config.get("store"); // whole object · salla.config.get("user")
 ```
 
 > **Call `salla.config.isGuest()` before branching on any `user.*` field.** A shopper is a
-> guest until they log in or create an account. `user.*` fields still resolve for a
-> guest — `user.id` returns `null`, not undefined, which is why it's documented as `null`
-> "for guests" above. Never write code that assumes every visitor is an authenticated,
-> known customer; gate that logic on `salla.config.isGuest()` first, not a manual
-> `user.*` field comparison.
+> guest until they log in or create an account, and `user.*` fields resolve for a guest
+> too — `user.id` is populated, not `null`. A non-null `user.id` does NOT mean the
+> shopper is a known, logged-in customer. Never write code that assumes every visitor is
+> an authenticated customer; gate that logic on `salla.config.isGuest()` first, not on
+> whether a `user.*` field is present.
 
 > **FORBIDDEN: `customer.*` and `store.domain` — do not use them, no exceptions.** They are
 > deprecated/removed parameters, not a stylistic alternative to `user.*` /

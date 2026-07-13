@@ -37,10 +37,12 @@ against the raw Salla docs, and do not soften any of the FORBIDDEN language belo
 - **`{{app.<key>}}` → `salla.config.get('app.<key>', '')`.** Unchanged in both the old and
   new systems. Scoped per-app via that App Setting's own `Public` flag
   ([salla-app-settings](../salla-app-settings/SKILL.md)) — not a fixed global list.
-- **`customer.*` — FORBIDDEN. Do not use it. No exceptions, no aliases, no
-  "equivalent" substitute.** It is deprecated/removed. Any converted output containing
+- **`customer.*` — FORBIDDEN. Do not use it. No exceptions, no aliases, no mechanical
+  rename to another namespace.** It is deprecated/removed. Any converted output containing
   `salla.config.get('customer...')` (or `"customer...`) is wrong and must be rewritten
-  before it is handed back.
+  before it is handed back. This does **not** mean the underlying data is unreachable —
+  most of it has a real, correct replacement under `user.*`. Find it by meaning, per the
+  guided lookup in Step 3, and use it; don't leave real data unfetched out of over-caution.
 - **`store.domain` — FORBIDDEN. Do not use it. No exceptions.** Deprecated/removed, same
   as `customer.*`. There is no live value to substitute in its place — if the exact data
   isn't available under `user.*` / `store.*` per the catalog below, it is simply not
@@ -88,8 +90,28 @@ equivalent — re-implement only if genuinely needed).
 
 ## Step 3 — Rewrite every `{{namespace.key}}` token
 
-Apply the parameter model above, token by token. Always include the `''` fallback second
-argument to `salla.config.get(...)`.
+For every token, resolve it by **meaning, not by name** — a forbidden token is never
+mechanically renamed, but the data it was fetching usually does have a correct, available
+replacement. Work through each token in this order:
+
+1. **State the underlying data need.** What was this token actually fetching — the
+   shopper's email, their phone number, the store's currency? Name the *meaning*, not the
+   old token spelling.
+2. **Look it up in the real catalog** — [`salla-snippets/references/device-mode.md`](../salla-snippets/references/device-mode.md)'s
+   _Store context & language_ section is the single source of truth for what's actually
+   available under `user.*`/`store.*`. Find the field that carries that same meaning.
+3. **If a matching field exists, use it** — e.g. `{{customer.email}}` → the shopper's email
+   is `user.email`, so `salla.config.get('user.email', '')`. This is expected and common;
+   don't leave available data unused out of over-caution about the forbidden-parameter
+   rule — the rule forbids the *old namespace*, not the *underlying data*.
+4. **If no field carries that meaning, it is not available client-side** — do not invent
+   a path, alias, or approximate substitute. Rewrite the surrounding logic to work without
+   that data (e.g. drop a personalized greeting rather than fake one from `store.*` data
+   that means something else).
+5. **`{{app.<key>}}` and `store.contacts.*` convert directly** per the parameter model
+   above — no meaning lookup needed, they're unchanged/already-real fields.
+
+Always include the `''` fallback second argument to `salla.config.get(...)`.
 
 **Gate:**
 
@@ -97,6 +119,8 @@ argument to `salla.config.get(...)`.
 - **Zero** occurrences of `salla.config.get('customer...` / `"customer...` or
   `salla.config.get('store.domain'...` / `"store.domain"...` in the output. This is a hard
   gate, not a style preference — if either appears, the conversion is not done.
+- Every token that had a real available replacement uses it — the output isn't missing
+  data that `device-mode.md`'s catalog shows is actually accessible.
 - Every merchant-conditional read (`store.contacts.*`) is null-checked before use.
 
 ---
@@ -151,6 +175,7 @@ tool.
 | "`store.contacts.whatsapp` resolved when I tested it, I'll read it unguarded"                | It's real but merchant-conditional — only present if that merchant configured WhatsApp as a contact channel. Ship it unguarded and it breaks for every merchant who hasn't set it.                                                             |
 | "No live replacement for `{{store.domain}}`, I'll approximate with `store.url`"              | `store.url` is not confirmed in this kit's parameter model. Fabricating a plausible-looking replacement is exactly what's forbidden — flag the data as unavailable and surface that instead.                                                   |
 | "The worked example in the raw doc reads `salla.config.get` at the top level, I'll match it" | That raw doc predates/omits this kit's bootstrap-timing rule. `window.salla` exists immediately, but its config isn't guaranteed hydrated until `salla.onReady` fires. Wrap it (Step 4).                                                       |
+| "`customer.*` is forbidden, so I'll just drop the data entirely rather than look for a replacement" | Over-caution, not correctness — most `customer.*` reads have a real, available replacement under `user.*` (Step 3's meaning lookup). Dropping data that's actually reachable is a regression the merchant will notice; only omit it after confirming the catalog has no matching field. |
 
 ---
 

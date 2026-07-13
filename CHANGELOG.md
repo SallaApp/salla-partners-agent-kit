@@ -20,7 +20,12 @@ versions the **skill content as a whole** — the `version` field in `package.js
   content had no conversion guidance and no way to discover the problem before a failed
   parse. The new skill owns the conversion (HTML→JS element mapping, token rewriting, the
   `salla.onReady` bootstrap-timing rule) and hands back to `salla-snippets` to actually
-  deploy — it never calls the MCP tool itself. `.agents/skills/salla-snippets-migration/`.
+  deploy — it never calls the MCP tool itself. Forbidden `customer.*`/`store.domain` tokens
+  are never mechanically renamed, but Step 3 actively guides finding each token's real,
+  available replacement by meaning (e.g. `{{customer.email}}` → `user.email`) against the
+  live `device-mode.md` catalog — data isn't left unfetched just because its old namespace
+  is forbidden; it's only dropped once confirmed unavailable.
+  `.agents/skills/salla-snippets-migration/`.
 
 ### Changed
 

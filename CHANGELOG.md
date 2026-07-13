@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.13] — 2026-07-09
+## [1.0.14] — 2026-07-13
 
 ### Added
 
@@ -38,6 +38,15 @@ versions the **skill content as a whole** — the `version` field in `package.js
   Added Step 0.5 (detect legacy content, hand off to `salla-snippets-migration` before
   scaffolding) and both `docs.salla.dev` snippet docs to the Resources table. Touches
   `AGENTS.md`, `salla-snippets`, `salla-snippets-migration`.
+
+## [1.0.13] — 2026-07-13
+
+### Added
+
+- **Shipping settings support.** `salla_shipping` now covers rate zones and the shipping
+  policy/shipment-feature search-options, with a guided merchant/partner interview so an
+  agent asks for rates, coverage, and packaging details instead of inventing them. Touches
+  `salla-shipping-app`.
 
 ## [1.0.12] — 2026-07-05
 

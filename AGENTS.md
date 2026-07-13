@@ -24,6 +24,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 | Install / trial / subscription events                         | `salla-app-lifecycle`           |
 | Serverless handlers on Salla triggers                         | `salla-app-functions`           |
 | Storefront JS / e-commerce events                             | `salla-snippets`                |
+| Legacy HTML/Twig snippet → pure-JS conversion                 | `salla-snippets-migration`      |
 | Dashboard iframe — SDK boot, page registration, auth wiring   | `salla-embedded-app`            |
 | Public App-Store view / builder blocks                        | `salla-app-ui-builder`          |
 | Merchant settings                                             | `salla-app-settings`            |
@@ -65,7 +66,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 - `gemini-extension.json` — **Gemini CLI** manifest: `contextFileName: "AGENTS.md"` loads
   this router at session start, and `mcpServers` inlines the Salla MCP (Gemini's `httpUrl`
   field). Skills come from the auto-discovered `.agents/skills/` tree.
-- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 26
+- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 27
   skills + MCP wiring), `install.sh` (clones the repo and symlinks `.hermes-plugin/` next
   to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
   canonical skill tree). No CLI passthrough — partners act through the MCP.
@@ -86,7 +87,9 @@ agent). One routing brain, three surfaces — keep them in sync.
   - **PreToolUse** (`pretool-skill-inject`, matcher `mcp__salla-partners__.*`) maps each Salla
     MCP tool to its owning skill and emits the same Vercel-style load directive
     (`You must run the Skill(<skill>) tool.` / `Load the /<skill> skill.`), deduped once per
-    (session, tool); no-op on any non-Salla tool.
+    (session, tool); no-op on any non-Salla tool. For `salla_snippets` `create`/`update`
+    specifically, it also content-sniffs the payload for HTML tags or a `{{namespace.key}}`
+    token and, if found, points at `salla-snippets-migration` instead of `salla-snippets`.
 - **No `.cursor/skills` or `.github/skills` symlinks** — tracked in-tree symlinks crash the
   Codex/Cursor installers (`fs.cp` → `ERR_FS_CP_EINVAL`). CI enforces this via
   `scripts/check-no-symlinks.sh`; skills live only in `.agents/skills/`.

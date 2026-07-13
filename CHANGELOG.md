@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.14] — 2026-07-09
+## [1.0.15] — 2026-07-13
 
 ### Changed
 
@@ -28,21 +28,54 @@ versions the **skill content as a whole** — the `version` field in `package.js
   publish's `main_category_id` at the shipping category tree), `salla-communication-app`,
   and `salla-app-expert`.
 
-## [1.0.13] — 2026-07-07
+## [1.0.14] — 2026-07-13
+
+### Added
+
+- **New skill: `salla-snippets-migration`.** Salla retired the backend converter that
+  resolved `{{namespace.key}}` tokens server-side before a legacy HTML snippet reached the
+  browser — `salla_snippets` now only accepts pure JavaScript. Agents handed old HTML/Twig
+  content had no conversion guidance and no way to discover the problem before a failed
+  parse. The new skill owns the conversion (HTML→JS element mapping, token rewriting, the
+  `salla.onReady` bootstrap-timing rule) and hands back to `salla-snippets` to actually
+  deploy — it never calls the MCP tool itself. Forbidden `customer.*`/`store.domain` tokens
+  are never mechanically renamed, but Step 3 actively guides finding each token's real,
+  available replacement by meaning (e.g. `{{customer.email}}` → `user.email`) against the
+  live `device-mode.md` catalog — data isn't left unfetched just because its old namespace
+  is forbidden; it's only dropped once confirmed unavailable.
+  `.agents/skills/salla-snippets-migration/`.
 
 ### Changed
 
-- **Shipping: `salla_shipping` now covers settings discovery/CRUD and policy options, not
-  just zones.** An audit against the live Partners Portal backend and frontend found the
-  tool only exposed `get_zones`/`set_zones`/`set_settings`, and `set_settings` could 404 on
-  a brand-new app because its `setting_id` had no discovery path — the skill told agents to
-  go copy it from the Portal UI. Added `list_settings`, `get_setting`, `create_setting`, and
-  `delete_setting` (full CRUD/discovery on the shipping-settings record), and
-  `set_policy_options` for the shipment policy/feature search-options shown on the app's
-  public listing — previously uncovered entirely. `set_zones`'s `shipping` payload is now
-  typed against the fields the Portal actually validates, instead of accepted unchecked.
-  Step 3 rewritten to drop the "not discoverable via the MCP" limitation and document the
-  discover-or-create flow and policy options. Touches `salla-shipping-app`.
+- **`hooks/pretool-skill-inject` content-sniffs `salla_snippets` create/update calls.**
+  Previously routed purely by MCP tool name. Now, when the payload contains HTML tags or a
+  `{{namespace.key}}` token, it points the agent at `salla-snippets-migration` instead of
+  `salla-snippets` — the concrete "on tool use" trigger for the migration hand-off.
+- **`salla-snippets` gains a forbidden-parameter rule.** `customer.*` and `store.domain` are
+  deprecated/removed parameters with no live replacement — using them is now a hard gate
+  failure in the create/update validate loop (Step 2 of that loop), not just a suggestion.
+  Clarified that `user.*` in `salla.config` means the shopper/customer — a hard namespace
+  flip from the legacy `{{ }}` template system, where `{{user.*}}` meant the store owner —
+  and, consistent with `salla-snippets-migration`, that `user.*` is **not** a mechanical
+  1:1 rename target for `customer.*`: check what data is actually needed against the
+  catalog rather than substituting the namespace. `references/device-mode.md`'s "Store
+  context & language" catalog corrected to match (it previously documented
+  `customer.id`/`customer.email` as valid, which is now forbidden), and extended with
+  `user.mobile` and `salla.config.isGuest()` — call it before branching on any `user.*`
+  field; never write code that assumes every visitor is an authenticated customer. Added
+  Step 0.5 (detect legacy content, hand off to `salla-snippets-migration`
+  before scaffolding) and both `docs.salla.dev`
+  snippet docs to the Resources table. Touches `AGENTS.md`, `salla-snippets`,
+  `salla-snippets-migration`.
+
+## [1.0.13] — 2026-07-13
+
+### Added
+
+- **Shipping settings support.** `salla_shipping` now covers rate zones and the shipping
+  policy/shipment-feature search-options, with a guided merchant/partner interview so an
+  agent asks for rates, coverage, and packaging details instead of inventing them. Touches
+  `salla-shipping-app`.
 
 ## [1.0.12] — 2026-07-05
 

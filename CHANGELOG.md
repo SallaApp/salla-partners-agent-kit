@@ -10,6 +10,32 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.16] — 2026-09-14
+
+### Added
+
+- **New skill: `salla-theme-builder`** — partner-side Twilight themes through the new
+  `salla_themes` MCP tool (`list`, `get`, `github_config`, `create`). Themes were entirely
+  absent from the kit. The skill covers what's non-obvious about the Portal's theme API:
+  a theme is a GitHub repository, so creating one needs a GitHub App installation and is
+  not safe to retry; a theme's components and global settings are readable only from its
+  `twilight.json` (`github_config`), never from the theme record; the Portal forces
+  `price = 250` on every new theme; and a 401 on `get`/`create` while `list` still works
+  means the company isn't on the themes allowlist — reconnecting won't fix it. Writes the
+  MCP doesn't support yet (details, price, components, settings, publishing) are routed to
+  the Partners Portal, with notes on why several are destructive if done naively.
+- The PreToolUse hook now maps `salla_themes` → `salla-theme-builder`; the routing brain
+  (`AGENTS.md`, `salla-app-expert`, the `salla-app-expert` agent) and the SessionStart
+  context route theme work to it.
+
+### Fixed
+
+- `AGENTS.md`'s editing rule said to bump the version in only `package.json` and
+  `.claude-plugin/plugin.json`. The validator enforces all five manifests; the rule now
+  lists them.
+- `README.md` counted 26 skills and omitted `salla-snippets-migration` (added in 1.0.14).
+  Now 28, with both skills listed.
+
 ## [1.0.15] — 2026-07-13
 
 ### Changed
@@ -18,7 +44,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
   a shared list independent of the app/shipping/communication type.** A backend change
   moved the publish-time main category off the app/shipping category tree onto a new
   `app_impact` category type — one set for every app type. `salla_reference
-  action=categories` now returns THREE independent lists per call instead of two:
+action=categories` now returns THREE independent lists per call instead of two:
   `main_categories` (type `app_impact` — publish `main_category_id`), `categories` (type
   `app`, always — publish `categories` array), and `sub_categories` (type `sub_app` /
   `sub_shipping`, per the caller's `type` — create's `sub_category_id`, unchanged). Updated

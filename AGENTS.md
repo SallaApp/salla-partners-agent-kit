@@ -34,6 +34,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 | In-app addon purchase UX (embedded flow)                      | `salla-addon-purchase-embedded` |
 | SMS / WhatsApp / email apps                                   | `salla-communication-app`       |
 | Carriers, shipments, labels                                   | `salla-shipping-app`            |
+| Twilight themes — find, inspect, create (partner-side)        | `salla-theme-builder`           |
 | Direct Admin API calls                                        | `salla-api-core`                |
 | Native UI — storefront (store)                                | `salla-storefront-ui`           |
 | Dashboard iframe — ANY visible UI drawn in the iframe         | `salla-embedded-ui`             |
@@ -66,7 +67,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 - `gemini-extension.json` — **Gemini CLI** manifest: `contextFileName: "AGENTS.md"` loads
   this router at session start, and `mcpServers` inlines the Salla MCP (Gemini's `httpUrl`
   field). Skills come from the auto-discovered `.agents/skills/` tree.
-- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 27
+- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 28
   skills + MCP wiring), `install.sh` (clones the repo and symlinks `.hermes-plugin/` next
   to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
   canonical skill tree). No CLI passthrough — partners act through the MCP.
@@ -107,5 +108,7 @@ agent). One routing brain, three surfaces — keep them in sync.
   **Red Flags** table ("tempting thought → why it's wrong"). Push heavy code/payloads/tables
   into the skill's `references/` sidecar and point at it from the step.
 - New or changed skills: follow **`docs/skill-anatomy.md`**, add a `CHANGELOG.md` entry, and
-  bump the version in `package.json` + `.claude-plugin/plugin.json`.
+  bump the version in **all five** manifests — `package.json`, `.claude-plugin/plugin.json`,
+  `.plugin/plugin.json`, `.hermes-plugin/plugin.yaml`, `gemini-extension.json` (the validator
+  fails on any mismatch).
 - Format Markdown with Prettier before committing: `pnpx prettier . --write`.

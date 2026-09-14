@@ -61,6 +61,7 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    - In-app addon purchase UX (embedded flow) → `salla-addon-purchase-embedded`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
+   - Twilight themes (find / inspect / create) → `salla-theme-builder`
    - Direct Admin API calls → `salla-api-core`
    - Native UI — storefront (store) → `salla-storefront-ui`
    - Native UI — embedded app (dashboard) → `salla-embedded-ui`

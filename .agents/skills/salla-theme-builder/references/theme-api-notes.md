@@ -7,12 +7,12 @@ call returns something the skill doesn't describe.
 
 The field list is in SKILL.md Step 4. This is what the Portal does with it:
 
-| Field             | Portal rule                                                     | Notes                                                                          |
-| ----------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `name`            | Required per locale (`ar` + `en`), string, ≤ 50                 | The tool sends `{ en: name, ar: name_ar ?? name }` — a plain string would 422. |
-| `installation_id` | Required integer; one of the company's GitHub App installations | The tool rejects a non-numeric id and resolves it when exactly one exists.     |
-| `type`            | `store` · `landing` · `bundle`                                  | Anything else is rejected by the tool schema before the call.                  |
-| `categories`      | 1–3 existing theme category ids                                 | The ids come from `salla_themes action=categories` (the store activities).     |
+| Field             | Portal rule                                                                         | Notes                                                                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`            | Required per locale (`ar` + `en`), string, ≤ 50; unique across **all** Salla themes | The tool sends `{ en: name, ar: name_ar ?? name }` — a plain string would 422. On a 422 for `name.en` / `name.ar`, the name is taken: agree a different name with the partner. |
+| `installation_id` | Required integer; one of the company's GitHub App installations                     | The tool rejects a non-numeric id and resolves it when exactly one exists.                                                                                                     |
+| `type`            | `store` · `landing` · `bundle`                                                      | Anything else is rejected by the tool schema before the call.                                                                                                                  |
+| `categories`      | 1–3 existing theme category ids                                                     | The ids come from `salla_themes action=categories` (the store activities).                                                                                                     |
 
 **Server-side, not from input:** every new theme gets `price = 250`, and the company's mobile
 number as `author_mobile`. Price bounds when the partner changes it later: public themes
@@ -25,17 +25,17 @@ The Portal gates theme routes twice: a **permission** check on every theme route
 the **`theme_allowed_users` allowlist** (401) on `get`, `create` and the GitHub installation
 lookup that `create` runs first — but not on `list` or `github_config`.
 
-| Call                     | What comes back                              | Meaning                                                                    | Do                                                                           |
-| ------------------------ | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| any                      | 403 — "lacks the `manage-themes` permission" | This user's role is missing the theme permission                           | Company owner grants `manage-themes` (`manage-bundles`) in the Portal.       |
-| `list` / `github_config` | 401 — "not behind the themes allowlist"      | Session expired                                                            | Partner reconnects the connector; retry.                                     |
-| `get` / `create`         | 401, while `list` still works                | Company not on the `theme_allowed_users` allowlist                         | Stop. Partner asks Salla to enable themes. Reconnecting won't help.          |
-| `get` / `create`         | 401, and `list` also 401s                    | Session expired                                                            | Partner reconnects the connector; retry.                                     |
-| `create`                 | 401 before anything was created              | The installation lookup is allowlisted too — same meaning as the row above | Same as `get` / `create` 401.                                                |
-| `create`                 | "no GitHub App installation" + install URL   | No installation to own the repo; nothing was created                       | Give the partner the URL; create again after they install.                   |
-| `create`                 | "N GitHub App installations … one of: …"     | Repo owner is ambiguous; nothing was created                               | Ask the partner which account; create again with `installation_id`.          |
-| `create`                 | Tool error listing field problems (422)      | A Portal validation rule failed                                            | Fix the named field with the partner — don't guess a value to make it pass.  |
-| any                      | "Salla Portal error (5xx) on salla_themes"   | Portal-side failure                                                        | For `create`, run `list` with `q`=name before retrying — it may have landed. |
+| Call                               | What comes back                              | Meaning                                                                    | Do                                                                           |
+| ---------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| any theme route (not `categories`) | 403 — "lacks the `manage-themes` permission" | This user's role is missing the theme permission                           | Company owner grants `manage-themes` (`manage-bundles`) in the Portal.       |
+| `list` / `github_config`           | 401 — "not behind the themes allowlist"      | Session expired                                                            | Partner reconnects the connector; retry.                                     |
+| `get` / `create`                   | 401, while `list` still works                | Company not on the `theme_allowed_users` allowlist                         | Stop. Partner asks Salla to enable themes. Reconnecting won't help.          |
+| `get` / `create`                   | 401, and `list` also 401s                    | Session expired                                                            | Partner reconnects the connector; retry.                                     |
+| `create`                           | 401 before anything was created              | The installation lookup is allowlisted too — same meaning as the row above | Same as `get` / `create` 401.                                                |
+| `create`                           | "no GitHub App installation" + install URL   | No installation to own the repo; nothing was created                       | Give the partner the URL; create again after they install.                   |
+| `create`                           | "N GitHub App installations … one of: …"     | Repo owner is ambiguous; nothing was created                               | Ask the partner which account; create again with `installation_id`.          |
+| `create`                           | Tool error listing field problems (422)      | A Portal validation rule failed                                            | Fix the named field with a value the partner confirms.                       |
+| any                                | "Salla Portal error (5xx) on salla_themes"   | Portal-side failure                                                        | For `create`, run `list` with `q`=name before retrying — it may have landed. |
 
 A successful `github_config` does not prove themes are enabled either — it is not allowlisted.
 Every 401/403 message also carries the upstream body; if it names a different cause, follow it.
@@ -51,7 +51,7 @@ by the Portal**. Only these keys arrive:
 - **`settings`** — the theme's global settings: `id`, `type`, `label`, `format`, and the
   current value.
 - **`features`**, **`tags`**, **`templates`**, plus **`all_features`** (every feature the
-  Portal knows) and **`branches`**.
+  Portal knows — store and landing themes only, never bundles) and **`branches`**.
 - **`twilight_json`** — the filtered object above, as returned.
 
 ## Not yet in the MCP

@@ -90,7 +90,7 @@ salla_themes action=github_config theme_id=<id>
 
 Returns the theme's config file — `twilight.json`, or `twilight-bundle.json` for a bundle —
 **filtered by the Portal** to `features`, `settings`, `components`, `tags` and `templates`,
-plus `all_features` and `branches`. Other keys in the file never arrive. It is the **only**
+plus `all_features` (store and landing themes only) and `branches`. Other keys in the file never arrive. It is the **only**
 read path for components and settings; the record from `get` carries neither.
 
 Summarize from what came back. Quote component `key`s and setting `id`s from this theme's
@@ -151,15 +151,15 @@ the `theme_id` and its `repo`, then route what they do next:
 
 ## Red Flags
 
-| Tempting thought                                                        | Why it's wrong                                                                                                                                               |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "`list` worked, so themes are enabled for this partner." (Step 2)       | `list` isn't allowlisted. A non-enabled company lists fine and then gets 401 on `get` / `create`. Only those calls answer the question.                      |
-| "It's a 401 on `get` — tell them to reconnect." (Step 2)                | If `list` still works, the session is fine; it's the themes allowlist. Reconnecting wastes the partner's time and changes nothing.                           |
-| "It's a 403 — the session expired." (Step 1)                            | A 403 is the user's role missing `manage-themes`. Only the company owner can fix it; reconnecting changes nothing.                                           |
-| "Several GitHub installations — I'll just take the first." (Step 4)     | That picks which GitHub account owns the partner's theme repo. It's the partner's decision, and a wrong pick means a repo in the wrong place.                |
-| "Create timed out — retry it." (Step 4)                                 | Create isn't idempotent: a retry can leave a second theme and a second repo. `list` with `q` first to see whether the first call landed.                     |
-| "The theme costs 250, that's what they chose." (Step 4)                 | 250 is set server-side on every new theme. Reporting it as the partner's chosen price misleads them into publishing at the wrong price.                      |
-| "No tool for settings — I'll send the updated settings some other way." | Out of scope for the MCP today, and the Portal's settings write replaces the **whole** settings array — a partial write wipes the rest. Route to the Portal. |
+| Tempting thought                                                                 | Why it's wrong                                                                                                                                               |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "`list` worked, so themes are enabled for this partner." (Step 1)                | `list` isn't allowlisted. A non-enabled company lists fine and then gets 401 on `get` / `create`. Only those calls answer the question.                      |
+| "It's a 401 on `get` — tell them to reconnect." (Step 2)                         | If `list` still works, the session is fine; it's the themes allowlist. Reconnecting wastes the partner's time and changes nothing.                           |
+| "It's a 403 — the session expired." (Step 1)                                     | A 403 is the user's role missing `manage-themes`. Only the company owner can fix it; reconnecting changes nothing.                                           |
+| "Several GitHub installations — I'll just take the first." (Step 4)              | That picks which GitHub account owns the partner's theme repo. It's the partner's decision, and a wrong pick means a repo in the wrong place.                |
+| "Create timed out — retry it." (Step 4)                                          | Create isn't idempotent: a retry can leave a second theme and a second repo. `list` with `q` first to see whether the first call landed.                     |
+| "The theme costs 250, that's what they chose." (Step 4)                          | 250 is set server-side on every new theme. Reporting it as the partner's chosen price misleads them into publishing at the wrong price.                      |
+| "No tool for settings — I'll send the updated settings some other way." (Step 5) | Out of scope for the MCP today, and the Portal's settings write replaces the **whole** settings array — a partial write wipes the rest. Route to the Portal. |
 
 ## References
 

@@ -29,15 +29,19 @@ SALLA_RE='salla|merchant|storefront|salla_themes|twilight[ ._-]?(theme|json|cli|
 printf '%s' "$prompt" | grep -Eiq "$SALLA_RE" || emit_noop
 
 # Which product? A Twilight theme is not an app, so its prompts go straight to
-# salla-theme-builder instead of spending the one nudge on the app expert. Theme intent:
-# an explicit Twilight/Salla/storefront theme phrase, or a matched Salla prompt that talks
-# about themes — except an app listing's "App Theme" category, which is app publication.
-THEME_RE='twilight[ ._-]?(theme|json|cli|bundle)|salla[ _-]?themes?|storefront[ _-]?(themes?|design)|salla_themes'
+# salla-theme-builder instead of spending the one nudge on the app expert.
+# - Unambiguous theme signals always win: salla_themes, twilight.json, the Twilight CLI,
+#   twilight-bundle.
+# - Weaker ones ("twilight theme", "salla theme", any "theme(s)" in a Salla prompt) count only
+#   when the prompt carries no app context — app storefront UI ("storefront design", "my app's
+#   snippet on Twilight theme stores") and an app listing's "App Theme" category are app work.
+THEME_STRONG_RE='salla_themes|twilight[ ._-]?(json|cli|bundle)'
+APP_CONTEXT_RE='(^|[^a-z])(apps?|snippets?|widgets?|embedded|webhooks?|merchants?|ui|design)([^a-z]|$)'
 SKILL='salla-app-expert'
-if printf '%s' "$prompt" | grep -Eiq "$THEME_RE"; then
+if printf '%s' "$prompt" | grep -Eiq "$THEME_STRONG_RE"; then
   SKILL='salla-theme-builder'
 elif printf '%s' "$prompt" | grep -Eiq '(^|[^a-z])themes?([^a-z]|$)' \
-  && ! printf '%s' "$prompt" | grep -Eiq 'app[ _-]?(theme|impact)'; then
+  && ! printf '%s' "$prompt" | grep -Eiq "$APP_CONTEXT_RE"; then
   SKILL='salla-theme-builder'
 fi
 

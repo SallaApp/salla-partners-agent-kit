@@ -27,7 +27,8 @@ versions the **skill content as a whole** — the `version` field in `package.js
   the Partners Portal, with notes on why several are destructive if done naively.
 - The PreToolUse hook now maps `salla_themes` → `salla-theme-builder`; the routing brain
   (`AGENTS.md`, `salla-app-expert`, the `salla-app-expert` agent) and the SessionStart
-  context route theme work to it.
+  context route theme work to it; the prompt nudge also matches "twilight", and both
+  SessionStart fallback messages name theme work.
 
 ### Fixed
 

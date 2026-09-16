@@ -29,18 +29,19 @@ Every theme action goes through **`salla_themes`**.
 
 ## What the MCP covers today — and what it doesn't
 
-| Partner wants to…                                                     | Do                                                            |
-| --------------------------------------------------------------------- | ------------------------------------------------------------- |
-| List / search their themes                                            | `salla_themes action=list`                                    |
-| Read a theme's record (price, status, repo, preview store)            | `salla_themes action=get`                                     |
-| Read its components and global settings                               | `salla_themes action=github_config`                           |
-| Look up theme category ids                                            | `salla_themes action=categories`                              |
-| Create a new theme                                                    | `salla_themes action=create` (Step 4)                         |
-| Edit details / price / support contact, components, settings, publish | **Not in the MCP yet** — Partners Portal or `salla theme` CLI |
+| Partner wants to…                                                     | Do                                       |
+| --------------------------------------------------------------------- | ---------------------------------------- |
+| List / search their themes                                            | `salla_themes action=list`               |
+| Read a theme's record (price, status, repo, preview store)            | `salla_themes action=get`                |
+| Read its components and global settings                               | `salla_themes action=github_config`      |
+| Look up theme category ids                                            | `salla_themes action=categories`         |
+| Create a new theme                                                    | `salla_themes action=create` (Step 4)    |
+| Edit details / price / support contact, components, settings, publish | **Not in the MCP yet** — Partners Portal |
+| Develop and preview the theme's code locally                          | Salla CLI (`salla theme …`)              |
 
-When a request lands in the last row, say so plainly and route the write to the
-[Partners Portal](https://portal.salla.partners) theme page or the Salla CLI
-(`salla theme …`) — see [theme-api-notes.md](references/theme-api-notes.md#not-yet-in-the-mcp)
+When a request is a write the MCP doesn't cover yet, say so plainly and route it to the
+[Partners Portal](https://portal.salla.partners) theme page — the CLI is for local development,
+not these writes. See [theme-api-notes.md](references/theme-api-notes.md#not-yet-in-the-mcp)
 for why several of those writes are destructive if done naively.
 
 ## Step 1 — Confirm the partner can reach themes

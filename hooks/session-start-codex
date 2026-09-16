@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 rm -f "${TMPDIR:-/tmp}/salla-prompt-nudge.on" 2>/dev/null || true
 
 context_raw=$(cat "${SCRIPT_DIR}/session-start-context.md" 2>/dev/null \
-  || echo "Salla Partners Agent Kit: for Salla app development tasks, invoke salla-partners:salla-app-expert FIRST.")
+  || echo "Salla Partners Agent Kit: for Salla app development or partner-side Twilight theme tasks, invoke salla-partners:salla-app-expert FIRST.")
 
 escape_for_json() {
     local s="$1"

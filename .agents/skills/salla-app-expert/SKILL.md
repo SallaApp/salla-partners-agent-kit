@@ -2,11 +2,11 @@
 name: salla-app-expert
 description: >
   FIRST stop for Salla app development — load before generic brainstorming or
-  planning. Use when building, configuring, or debugging a Salla app, when the
-  task is broad ("build a Salla app", "add X to my app"), or when unsure which
-  Salla skill applies. Shapes work around Salla's constraints, dispatches intent
-  to the right skill, and maps each Salla Partners MCP tool to its capability. For
-  a specific subsystem (OAuth, webhooks, settings, billing, publishing…), go
+  planning. Use when building, configuring, or debugging a Salla app or
+  partner-side Twilight theme, when the task is broad ("build a Salla app", "add
+  X to my app"), or when unsure which Salla skill applies. Dispatches intent to
+  the right skill and maps each Salla Partners MCP tool to its capability. For a
+  specific subsystem (OAuth, webhooks, settings, billing, publishing…), go
   straight to its skill.
 ---
 
@@ -84,7 +84,7 @@ Every behavior attaches at exactly one surface. Decide in this order:
 | In-app addon purchase UX (embedded flow)                                                             | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | SMS / WhatsApp / email channel apps                                                                  | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                       | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
-| Twilight themes — find, inspect, create a theme (partner-side)                                       | [salla-theme-builder](../salla-theme-builder/SKILL.md)                     |
+| Twilight themes — find, inspect, create (partner-side)                                               | [salla-theme-builder](../salla-theme-builder/SKILL.md)                     |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                   | [salla-api-core](../salla-api-core/SKILL.md)                               |
 | Native UI — storefront (store)                                                                       | [salla-storefront-ui](../salla-storefront-ui/SKILL.md)                     |
 | Native UI — embedded app (dashboard)                                                                 | [salla-embedded-ui](../salla-embedded-ui/SKILL.md)                         |
@@ -105,7 +105,7 @@ of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `acti
 | Embedded pages                        | `salla_embedded_pages` · `list` `create` `update` `delete`                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Onboarding steps                      | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | App settings & features               | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`                                                                                                                                                                                                                                                                                                                                                                                                |
-| Twilight themes                       | `salla_themes` · `list` `get` `github_config` (components + settings) `create` — needs a GitHub App installation; see [salla-theme-builder](../salla-theme-builder/SKILL.md)                                                                                                                                                                                                                                                                                                        |
+| Twilight themes                       | `salla_themes` · `list` `get` `github_config` (components + settings) `categories` `create` — needs a GitHub App installation; see [salla-theme-builder](../salla-theme-builder/SKILL.md)                                                                                                                                                                                                                                                                                           |
 | Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | App Functions                         | `salla_functions` · `list_triggers` / `get` / `save` (upsert) / `delete` — save is live on demo stores, publish for production; operator-gated — see [salla-app-functions](../salla-app-functions/SKILL.md)                                                                                                                                                                                                                                                                         |
 | File upload (logos)                   | `salla_upload`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |

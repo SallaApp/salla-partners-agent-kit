@@ -107,7 +107,7 @@ Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibi
 | `salla_onboarding_steps` | `list` `create` `update` `delete` `sort`                          | Post-install onboarding steps              |
 | `salla_settings`         | `define_form` `set_validation_url` `list_features` `set_features` | Merchant settings form + feature flags     |
 | `salla_shipping`         | `get_zones` `set_zones` `set_settings`                            | Shipping zones + carrier settings          |
-| `salla_themes`           | `list` `get` `github_config` `create`                             | Find, inspect, and create Twilight themes  |
+| `salla_themes`           | `list` `get` `github_config` `categories` `create`                | Find, inspect, and create Twilight themes  |
 | `salla_upload`           | —                                                                 | Upload images/docs → returns a file `id`   |
 | `salla_reference`        | `categories` `countries` `cities`                                 | Read-only lookups                          |
 | `salla_scopes`           | `get` `set`                                                       | Read/update an app's OAuth scopes          |

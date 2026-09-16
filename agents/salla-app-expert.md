@@ -4,7 +4,8 @@ description: >
   FIRST stop for ANY Salla app development task — invoke before generic
   brainstorming, design, or planning. Use when creating, configuring, hooking
   events, building storefront or dashboard UI, monetizing, publishing, or
-  debugging a General, Shipping, or Communication Salla app — or whenever a task
+  debugging a General, Shipping, or Communication Salla app, or partner-side
+  Twilight theme work — or whenever a task
   mentions Salla, a merchant store, app functions, snippets, webhooks, or the
   Partner Portal. Shapes the design around Salla's real constraints and routes
   each step to the right Salla skill, executing through the Salla Partners MCP
@@ -61,7 +62,7 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    - In-app addon purchase UX (embedded flow) → `salla-addon-purchase-embedded`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
-   - Twilight themes (find / inspect / create) → `salla-theme-builder`
+   - Twilight themes — find, inspect, create (partner-side) → `salla-theme-builder`
    - Direct Admin API calls → `salla-api-core`
    - Native UI — storefront (store) → `salla-storefront-ui`
    - Native UI — embedded app (dashboard) → `salla-embedded-ui`

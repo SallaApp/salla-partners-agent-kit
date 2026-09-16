@@ -21,21 +21,23 @@ repository, so a create is never safe to repeat blindly.
 
 ## Error decision table
 
-The Portal gates theme routes twice: a **permission** check on every theme route (403), and
-the **`theme_allowed_users` allowlist** (401) on `get`, `create` and the GitHub installation
-lookup that `create` runs first — but not on `list` or `github_config`.
+The Portal gates the `/theme` routes (`list`, `get`, `github_config`, `create`) twice: a
+**permission** check on all of them (403), and the **`theme_allowed_users` allowlist** (401) on
+`get`, `create` and the GitHub installation lookup that `create` runs first — but not on `list`
+or `github_config`. `categories` reads a public route with neither check, so its errors are
+reported as ordinary Portal errors.
 
-| Call                               | What comes back                              | Meaning                                                                    | Do                                                                           |
-| ---------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| any theme route (not `categories`) | 403 — "lacks the `manage-themes` permission" | This user's role is missing the theme permission                           | Company owner grants `manage-themes` (`manage-bundles`) in the Portal.       |
-| `list` / `github_config`           | 401 — "not behind the themes allowlist"      | Session expired                                                            | Partner reconnects the connector; retry.                                     |
-| `get` / `create`                   | 401, while `list` still works                | Company not on the `theme_allowed_users` allowlist                         | Stop. Partner asks Salla to enable themes. Reconnecting won't help.          |
-| `get` / `create`                   | 401, and `list` also 401s                    | Session expired                                                            | Partner reconnects the connector; retry.                                     |
-| `create`                           | 401 before anything was created              | The installation lookup is allowlisted too — same meaning as the row above | Same as `get` / `create` 401.                                                |
-| `create`                           | "no GitHub App installation" + install URL   | No installation to own the repo; nothing was created                       | Give the partner the URL; create again after they install.                   |
-| `create`                           | "N GitHub App installations … one of: …"     | Repo owner is ambiguous; nothing was created                               | Ask the partner which account; create again with `installation_id`.          |
-| `create`                           | Tool error listing field problems (422)      | A Portal validation rule failed                                            | Fix the named field with a value the partner confirms.                       |
-| any                                | "Salla Portal error (5xx) on salla_themes"   | Portal-side failure                                                        | For `create`, run `list` with `q`=name before retrying — it may have landed. |
+| Call                                        | What comes back                              | Meaning                                                                    | Do                                                                           |
+| ------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `list` / `get` / `github_config` / `create` | 403 — "lacks the `manage-themes` permission" | This user's role is missing the theme permission                           | Company owner grants `manage-themes` (`manage-bundles`) in the Portal.       |
+| `list` / `github_config`                    | 401 — "not behind the themes allowlist"      | Session expired                                                            | Partner reconnects the connector; retry.                                     |
+| `get` / `create`                            | 401, while `list` still works                | Company not on the `theme_allowed_users` allowlist                         | Stop. Partner asks Salla to enable themes. Reconnecting won't help.          |
+| `get` / `create`                            | 401, and `list` also 401s                    | Session expired                                                            | Partner reconnects the connector; retry.                                     |
+| `create`                                    | 401 before anything was created              | The installation lookup is allowlisted too — same meaning as the row above | Same as `get` / `create` 401.                                                |
+| `create`                                    | "no GitHub App installation" + install URL   | No installation to own the repo; nothing was created                       | Give the partner the URL; create again after they install.                   |
+| `create`                                    | "N GitHub App installations … one of: …"     | Repo owner is ambiguous; nothing was created                               | Ask the partner which account; create again with `installation_id`.          |
+| `create`                                    | Tool error listing field problems (422)      | A Portal validation rule failed                                            | Fix the named field with a value the partner confirms.                       |
+| any                                         | "Salla Portal error (5xx) on salla_themes"   | Portal-side failure                                                        | For `create`, run `list` with `q`=name before retrying — it may have landed. |
 
 A successful `github_config` does not prove themes are enabled either — it is not allowlisted.
 Every 401/403 message also carries the upstream body; if it names a different cause, follow it.

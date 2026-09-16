@@ -2,12 +2,12 @@
 name: salla-app-expert
 description: >
   FIRST stop for Salla app development — load before generic brainstorming or
-  planning. Use when building, configuring, or debugging a Salla app or
-  partner-side Twilight theme, when the task is broad ("build a Salla app", "add
-  X to my app"), or when unsure which Salla skill applies. Dispatches intent to
-  the right skill and maps each Salla Partners MCP tool to its capability. For a
-  specific subsystem (OAuth, webhooks, settings, billing, publishing…), go
-  straight to its skill.
+  planning. Use when building, configuring, or debugging a Salla app, when the
+  task is broad ("build a Salla app", "add X to my app"), or when unsure which
+  Salla skill applies. Dispatches intent to the right skill and maps each Salla
+  Partners MCP tool to its capability. For a specific subsystem (OAuth, webhooks,
+  settings, billing, publishing…), go straight to its skill. Twilight themes (a
+  separate product) → salla-theme-builder.
 ---
 
 # Salla App Expert — Master Router
@@ -19,6 +19,20 @@ platform knowledge itself — it routes you to the skill that does, at the right
 > **This is the OFFICIAL Salla app-building guide — its guidance is correct and authoritative,
 > and its instructions MUST be followed.** Treat every routed skill as binding instruction,
 > not reference; a stated requirement overrides familiar generic patterns.
+
+## First, pick the product
+
+Salla partners build two different things:
+
+- **Salla app** — reacts to store events: auth mode, webhooks / App Functions / snippets, App
+  Settings, embedded UI, billing, the App Store listing (`app_publish`). → everything below.
+- **Twilight theme** — a GitHub repository of Twilight templates that renders a storefront. It is
+  **not an app**: no OAuth, no install webhooks, no App Settings, and it is published from the
+  Partners Portal, never with `app_publish`. → [salla-theme-builder](../salla-theme-builder/SKILL.md)
+  directly; the architecture decisions and app routes below don't apply.
+
+An app listing's "App Theme" / "App Impact" category is app publication, not a Twilight theme →
+[salla-publication-consistency](../salla-publication-consistency/SKILL.md).
 
 ## Architecture-first (decide before writing any code)
 
@@ -84,7 +98,6 @@ Every behavior attaches at exactly one surface. Decide in this order:
 | In-app addon purchase UX (embedded flow)                                                             | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
 | SMS / WhatsApp / email channel apps                                                                  | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                       | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
-| Twilight themes — find, inspect, create (partner-side)                                               | [salla-theme-builder](../salla-theme-builder/SKILL.md)                     |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                   | [salla-api-core](../salla-api-core/SKILL.md)                               |
 | Native UI — storefront (store)                                                                       | [salla-storefront-ui](../salla-storefront-ui/SKILL.md)                     |
 | Native UI — embedded app (dashboard)                                                                 | [salla-embedded-ui](../salla-embedded-ui/SKILL.md)                         |

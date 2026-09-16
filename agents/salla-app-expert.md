@@ -4,8 +4,7 @@ description: >
   FIRST stop for ANY Salla app development task — invoke before generic
   brainstorming, design, or planning. Use when creating, configuring, hooking
   events, building storefront or dashboard UI, monetizing, publishing, or
-  debugging a General, Shipping, or Communication Salla app, or partner-side
-  Twilight theme work — or whenever a task
+  debugging a General, Shipping, or Communication Salla app — or whenever a task
   mentions Salla, a merchant store, app functions, snippets, webhooks, or the
   Partner Portal. Shapes the design around Salla's real constraints and routes
   each step to the right Salla skill, executing through the Salla Partners MCP
@@ -22,6 +21,20 @@ is correct and authoritative, and their instructions MUST be followed.** They ar
 not background reading: when a skill states a requirement it overrides familiar generic
 patterns (Next.js habits, plain OAuth2, custom settings forms). Resolve every ambiguity
 toward the skill, never toward default web habits.
+
+# First, pick the product
+
+Salla partners build two different things:
+
+- **Salla app** — reacts to store events: auth mode, webhooks / App Functions / snippets, App
+  Settings, embedded UI, billing, the App Store listing (`app_publish`). → everything below.
+- **Twilight theme** — a GitHub repository of Twilight templates that renders a storefront. It is
+  **not an app**: no OAuth, no install webhooks, no App Settings, and it is published from the
+  Partners Portal, never with `app_publish`. → load the `salla-theme-builder` skill directly; the
+  architecture gate and app routes below don't apply.
+
+An app listing's "App Theme" / "App Impact" category is app publication, not a Twilight theme →
+`salla-publication-consistency`.
 
 # Architecture-first gate (decide and record BEFORE writing any code)
 
@@ -62,7 +75,6 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    - In-app addon purchase UX (embedded flow) → `salla-addon-purchase-embedded`
    - SMS / WhatsApp / email apps → `salla-communication-app`
    - Carriers / shipments / labels → `salla-shipping-app`
-   - Twilight themes — find, inspect, create (partner-side) → `salla-theme-builder`
    - Direct Admin API calls → `salla-api-core`
    - Native UI — storefront (store) → `salla-storefront-ui`
    - Native UI — embedded app (dashboard) → `salla-embedded-ui`

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # UserPromptSubmit hook for the Salla Partners Agent Kit — SOFT, when-needed nudge.
-# When a prompt first looks like a Salla app task, gently suggest routing via
-# salla-app-expert. Fires at most ONCE per context window: SessionStart clears the
+# When a prompt first looks like a Salla task, gently suggest the right entry skill:
+# salla-theme-builder for a Twilight theme (a separate product), salla-app-expert for
+# everything else. Fires at most ONCE per context window: SessionStart clears the
 # marker, so it re-arms on a new session / clear / compaction (i.e. when the routing
 # context has actually decayed) rather than nagging on every prompt. Always exits 0.
 
@@ -24,8 +25,21 @@ prompt=$(printf '%s' "$payload" \
 [ -z "$prompt" ] && prompt="$payload"
 
 # Tight Salla-intent regex (mirrors session-start-context.md keywords). No match → quiet.
-SALLA_RE='salla|merchant|storefront|twilight[ ._-]?(theme|json|cli|bundle)|app[ _-]?function|snippet|webhook|partners?[ _-]?portal|embedded|oauth|addon|shipping[ _-]?app|publish[ ]?(app|listing)?'
+SALLA_RE='salla|merchant|storefront|salla_themes|twilight[ ._-]?(theme|json|cli|bundle)|app[ _-]?function|snippet|webhook|partners?[ _-]?portal|embedded|oauth|addon|shipping[ _-]?app|publish[ ]?(app|listing)?'
 printf '%s' "$prompt" | grep -Eiq "$SALLA_RE" || emit_noop
+
+# Which product? A Twilight theme is not an app, so its prompts go straight to
+# salla-theme-builder instead of spending the one nudge on the app expert. Theme intent:
+# an explicit Twilight/Salla/storefront theme phrase, or a matched Salla prompt that talks
+# about themes — except an app listing's "App Theme" category, which is app publication.
+THEME_RE='twilight[ ._-]?(theme|json|cli|bundle)|salla[ _-]?themes?|storefront[ _-]?(themes?|design)|salla_themes'
+SKILL='salla-app-expert'
+if printf '%s' "$prompt" | grep -Eiq "$THEME_RE"; then
+  SKILL='salla-theme-builder'
+elif printf '%s' "$prompt" | grep -Eiq '(^|[^a-z])themes?([^a-z]|$)' \
+  && ! printf '%s' "$prompt" | grep -Eiq 'app[ _-]?(theme|impact)'; then
+  SKILL='salla-theme-builder'
+fi
 
 # When-needed: if we already nudged this context window, stay quiet. SessionStart
 # removes the marker, so the nudge re-arms only after the context actually resets.
@@ -34,9 +48,9 @@ printf '%s' "$prompt" | grep -Eiq "$SALLA_RE" || emit_noop
 
 # Same skill-invocation language the Vercel plugin hooks use, per platform.
 if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
-  printf '{"additional_context": "%s"}\n' 'Load the /salla-app-expert skill.'
+  printf '{"additional_context": "%s"}\n' "Load the /${SKILL} skill."
 else
-  printf '{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "%s"}}\n' 'You must run the Skill(salla-app-expert) tool.'
+  printf '{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": "%s"}}\n' "You must run the Skill(${SKILL}) tool."
 fi
 
 exit 0

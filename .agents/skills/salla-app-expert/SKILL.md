@@ -34,6 +34,9 @@ Salla partners build two different things:
 An app listing's "App Theme" / "App Impact" category is app publication, not a Twilight theme →
 [salla-publication-consistency](../salla-publication-consistency/SKILL.md).
 
+**Gate:** "Which product is this — a Salla app or a Twilight theme?" Answer it before the
+architecture decisions below.
+
 ## Architecture-first (decide before writing any code)
 
 Make each of these three decisions explicitly, up front — they are **required** and shape
@@ -128,6 +131,14 @@ of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `acti
 | Lookups (categories/countries/cities) | `salla_reference`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 The routed skills drive these tools step by step — follow the skill, not the raw API.
+
+## Red Flags
+
+| Tempting thought                                                                 | Why it's wrong                                                                                                                                                                               |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "A theme is an app, so the app flow applies." (First, pick the product)          | A Twilight theme is a GitHub repository of templates: no OAuth, no install webhooks, no App Settings. Planning auth mode or webhooks for it is wasted work — route to `salla-theme-builder`. |
+| "The theme is ready — publish it with `app_publish`." (First, pick the product)  | `app_publish` is the App Store listing flow for apps. A theme is published from the Partners Portal.                                                                                         |
+| "The partner said 'App Theme', so this is theme work." (First, pick the product) | "App Theme" / "App Impact" is an app listing's category → `salla-publication-consistency`. A Twilight theme is a different product.                                                          |
 
 ## Resources
 

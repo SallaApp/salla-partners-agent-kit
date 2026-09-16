@@ -30,8 +30,11 @@ versions the **skill content as a whole** — the `version` field in `package.js
   product" branch: a Twilight theme is not an app (no OAuth, install webhooks, App Settings or
   `app_publish`) and goes straight to `salla-theme-builder`, so it never meets the app
   architecture gate. The theme row moved out of the app routing table, the UserPromptSubmit nudge
-  targets `salla-theme-builder` for theme prompts (an app listing's "App Theme" category stays
-  with the app expert), and both SessionStart fallback messages branch the same way.
+  targets `salla-theme-builder` only for explicit theme signals (`salla_themes`, `twilight.json`,
+  the Twilight CLI, or "twilight/salla/storefront theme" without an app artifact); a bare
+  "theme" and an app listing's "App Theme" category stay with the app expert. The product
+  choice is a `Gate:` in the `salla-app-expert` skill and agent, defended by a new Red Flags
+  table in the skill, and both SessionStart fallback messages branch the same way.
 - The PreToolUse hook now maps `salla_themes` → `salla-theme-builder`; the routing brain
   (`AGENTS.md`, `salla-app-expert`, the `salla-app-expert` agent) and the SessionStart
   context route theme work to it; the prompt nudge also matches Twilight theme prompts

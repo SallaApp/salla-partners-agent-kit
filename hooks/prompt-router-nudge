@@ -29,25 +29,21 @@ SALLA_RE='salla|merchant|storefront|salla_themes|twilight[ ._-]?(theme|json|cli|
 printf '%s' "$prompt" | grep -Eiq "$SALLA_RE" || emit_noop
 
 # Which product? A Twilight theme is not an app, so its prompts go straight to
-# salla-theme-builder instead of spending the one nudge on the app expert. Signals are graded:
+# salla-theme-builder instead of spending the one nudge on the app expert. Only explicit theme
+# signals count — a bare "theme" is common in app prompts ("the store theme", "theme picker"):
 # - strong  (salla_themes, twilight.json, the Twilight CLI, twilight-bundle) → theme, always;
-# - medium  ("twilight theme", "salla theme") → theme unless the prompt names an app artifact
-#   (app, snippet, widget, embedded, webhook) — "my app snippet breaks on twilight theme stores";
-# - weak    (any other "theme(s)") → theme only without app artifacts or app-UI words (ui,
-#   design, merchant) — "improve the storefront design of my salla app".
-# An app listing's "App Theme"/"App Impact" category names "app", so it stays app work.
+# - medium  ("twilight theme", "salla theme", "storefront theme") → theme unless the prompt names
+#   an app artifact (app, snippet, widget, embedded, webhook, addon).
+# Anything else — including an app listing's "App Theme" category — stays with salla-app-expert.
 THEME_STRONG_RE='salla_themes|twilight[ ._-]?(json|cli|bundle)'
-THEME_MEDIUM_RE='(twilight|salla)[ _-]?themes?'
-APP_ARTIFACT_RE='(^|[^a-z])(apps?|snippets?|widgets?|embedded|webhooks?)([^a-z]|$)'
-APP_UI_RE='(^|[^a-z])(ui|design|merchants?)([^a-z]|$)'
+THEME_MEDIUM_RE='(twilight|salla|storefront)[ _-]?themes?'
+APP_ARTIFACT_RE='(^|[^a-z])(apps?|snippets?|widgets?|embedded|webhooks?|addons?)([^a-z]|$)'
 has() { printf '%s' "$prompt" | grep -Eiq "$1"; }
 SKILL='salla-app-expert'
 if has "$THEME_STRONG_RE"; then
   SKILL='salla-theme-builder'
-elif has "$THEME_MEDIUM_RE"; then
-  has "$APP_ARTIFACT_RE" || SKILL='salla-theme-builder'
-elif has '(^|[^a-z])themes?([^a-z]|$)'; then
-  has "$APP_ARTIFACT_RE" || has "$APP_UI_RE" || SKILL='salla-theme-builder'
+elif has "$THEME_MEDIUM_RE" && ! has "$APP_ARTIFACT_RE"; then
+  SKILL='salla-theme-builder'
 fi
 
 # When-needed: if we already nudged this context window, stay quiet. SessionStart

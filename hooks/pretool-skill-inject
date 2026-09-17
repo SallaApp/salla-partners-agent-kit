@@ -40,6 +40,7 @@ case "$short" in
   # when a draft/submit is actually involved.
   app_page_builder) skill='salla-app-ui-builder' ;;
   salla_apps) skill='salla-app-builder' ;;
+  salla_themes) skill='salla-theme-builder' ;;
   *) emit_noop ;;
 esac
 

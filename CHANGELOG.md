@@ -10,6 +10,45 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.16] — 2026-09-16
+
+### Added
+
+- **New skill: `salla-theme-builder`** — partner-side Twilight themes through the new
+  `salla_themes` MCP tool (`list`, `get`, `github_config`, `categories`, `create`). Themes were entirely
+  absent from the kit. The skill covers what's non-obvious about the Portal's theme API:
+  a theme is a GitHub repository, so creating one needs a GitHub App installation and is
+  not safe to retry; a theme's components and global settings are readable only from its
+  `twilight.json` (`github_config`), never from the theme record; the Portal forces
+  `price = 250` on every new theme; a 403 is the user's role missing `manage-themes`, while a
+  401 on `get`/`create` with `list` still working means the company isn't on the themes
+  allowlist — reconnecting fixes neither. Writes the
+  MCP doesn't support yet (details, price, components, settings, publishing) are routed to
+  the Partners Portal, with notes on why several are destructive if done naively.
+- **Apps and Twilight themes are routed as separate products.** `AGENTS.md`, the
+  `salla-app-expert` skill and agent, and the SessionStart context now open with a "pick the
+  product" branch: a Twilight theme is not an app (no OAuth, install webhooks, App Settings or
+  `app_publish`) and goes straight to `salla-theme-builder`, so it never meets the app
+  architecture gate. The theme row moved out of the app routing table, the UserPromptSubmit nudge
+  targets `salla-theme-builder` only for explicit theme signals (`salla_themes`, `twilight.json`,
+  the Twilight CLI, or "twilight/salla/storefront theme" without an app artifact); a bare
+  "theme" and an app listing's "App Theme" category stay with the app expert. The product
+  choice is a `Gate:` in the `salla-app-expert` skill and agent, defended by a new Red Flags
+  table in the skill, and both SessionStart fallback messages branch the same way.
+- The PreToolUse hook now maps `salla_themes` → `salla-theme-builder`; the routing brain
+  (`AGENTS.md`, `salla-app-expert`, the `salla-app-expert` agent) and the SessionStart
+  context route theme work to it; the prompt nudge also matches Twilight theme prompts
+  (`twilight theme` / `twilight.json` / `twilight cli` / `twilight-bundle`, not a bare
+  "twilight") and "partners portal", and both SessionStart fallback messages name theme work.
+
+### Fixed
+
+- `AGENTS.md`'s editing rule said to bump the version in only `package.json` and
+  `.claude-plugin/plugin.json`. The validator enforces all five manifests; the rule now
+  lists them.
+- `README.md` counted 26 skills and omitted `salla-snippets-migration` (added in 1.0.14).
+  Now 28, with both skills listed.
+
 ## [1.0.15] — 2026-07-13
 
 ### Changed

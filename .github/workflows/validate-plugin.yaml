@@ -14,6 +14,16 @@ permissions:
   contents: read
 
 jobs:
+  # Fan-in gate for the org "Tested & Coverage" ruleset: the required check is
+  # matched by this job's rendered name, and it inherits `needs` semantics, so it
+  # is skipped (never green) when validation fails.
+  aggregate-tests:
+    name: Testing Ready
+    runs-on: ${{ fromJson(vars.RUNS_ON) }}
+    needs: validate
+    steps:
+      - run: echo "Testing Ready"
+
   validate:
     name: Validate plugin structure
     runs-on: ${{ fromJSON(vars.RUNS_ON) }}

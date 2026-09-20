@@ -2,9 +2,9 @@
 name: salla-theme-builder
 description: >
   Partner-side Salla Twilight themes through the `salla_themes` MCP tool — find and
-  inspect themes, read a theme's twilight.json (components + global settings), and
-  create a new store, landing-page, or bundle theme. Use when a partner wants to start,
-  find, or understand a Salla theme. Not an app listing's "App Theme" category →
+  inspect themes, create one, edit its details, price, media, components and global
+  settings, and submit it for publication. Use when a partner wants to start, find,
+  change, or publish a Salla theme. Not an app listing's "App Theme" category →
   salla-publication-consistency. App UI inside the storefront → salla-storefront-ui.
   Storefront JS for an app → salla-snippets. Twilight docs → salla-docs.
 ---
@@ -21,26 +21,23 @@ Every theme action goes through **`salla_themes`**.
 
 ## When to use / hand-offs
 
-- **Use this skill** to list, inspect, or create a partner's Twilight theme.
-- **Two paths:** _Inspect_ → Step 1, then Steps 2–3. _Create_ → Step 1, then Step 4.
+- **Use this skill** to list, inspect, create, edit or publish a partner's Twilight theme.
+- **Three paths:** _Inspect_ → Step 1, then Steps 2–3. _Create_ → Step 1, then Step 4.
+  _Edit or publish_ → Steps 1–3, then Steps 5–7.
 - **Hand-offs:** an app listing's "App Theme" / "App Impact" category →
   `salla-publication-consistency`; app UI inside a storefront → `salla-storefront-ui`;
   Twilight concepts and schemas → `salla-docs`.
 
 ## What `salla_themes` covers
 
-Every theme task is one action on `salla_themes`. Reads: `list`, `get`, `github_config`,
-`categories`, `components`, `component_get`, `settings`, `screenshots`, `publishing`,
-`preview_stores`, `sample_stores`. Writes: `create` (Step 4), `update_details` and the
-`screenshot_*` pair (Step 5), `component_*` and `settings_update` (Step 6), `publish`,
-`publish_withdraw`, `set_status` and the `preview_store_*` / `sample_store_*` /
-`default_preview_store` family (Step 7).
+Every theme task is one action on `salla_themes`: reads (`list`, `get`, `github_config`,
+`categories`, `components`, `settings`, `screenshots`, `publishing`, the store lists) and writes
+— `create` (Step 4), `update_details` and `screenshot_*` (Step 5), `component_*` and
+`settings_update` (Step 6), `publish`, `set_status` and the store families (Step 7). The theme's
+own code is not the MCP's: that is the Salla CLI (`salla theme …`).
 
-The theme's own code — templates, styles, JS — is not the MCP's: that is the Salla CLI
-(`salla theme …`) in the partner's repository.
-
-Every write here changes the partner's live theme: component and settings writes are **commits to
-its GitHub repository**, and publishing submits it to Salla's review team. Read
+Every write changes the partner's live theme — component and settings writes are **commits to its
+GitHub repository**, publishing goes to Salla's review team. Read
 [theme-api-notes.md](references/theme-api-notes.md) before the first write in a session.
 
 ## Step 1 — Confirm the partner can reach themes
@@ -65,6 +62,7 @@ Narrow the list rather than paging blindly, then read the record:
 
 ```
 salla_themes action=list q="<name>" status=development|live|archive type=store|landing|bundle
+# `published` is accepted but the Portal's list filter ignores it
 salla_themes action=get theme_id=<id>
 ```
 
@@ -95,7 +93,7 @@ and `action=settings` read the same thing, narrowed to one list. Component `key`
 
 Collect these values from the partner:
 
-The fields and their Portal rules are in
+Collect the values from the partner — the fields and their Portal rules are in
 [theme-api-notes.md](references/theme-api-notes.md#create--what-the-portal-enforces): `name`
 (+ `name_ar`) and `author_email` are required; `type`, `theme_url`, `public` and `categories`
 (from `action=categories`) are optional.
@@ -134,10 +132,14 @@ fields are bilingual (`description` / `description_ar`, `support_description` /
 Portal's: public themes 250–50000, private 1000–50000.
 
 Preview media: upload with `salla_upload`, then `screenshot_set media_type=image file_id=<id>
-title=… description=…` (a video takes `url` instead); `screenshot_delete` needs `confirm: true`.
+title=… description=…` (add `title_ar` / `description_ar` for real Arabic; a video takes `url`
+instead of `file_id`); `screenshot_delete` needs `confirm: true`.
 
-If a later endpoint fails after an earlier one saved, the result says what landed — re-run with
-only the remaining fields.
+A theme with nothing on record to merge refuses the call instead: the first support edit carries
+`theme_url`, `author_mobile`, `livechat_url` and `documentation_url` together (likewise `price`
+and `description`), and the tool names what is missing. If a later endpoint fails after an earlier
+one saved, the result says what landed — re-run with only the rest. There is no version check
+between the read and the write, so a dashboard edit made in between is overwritten.
 
 **Gate:** "Every value came from the partner, and anything reported as saved was not resent?"
 
@@ -152,12 +154,14 @@ Read first: both live in `twilight.json`, and both writes replace what is there.
 
 - **Settings.** `settings_update` merges onto the current list — pass only the settings you are
   changing, and name deletions in `remove`. A write that would drop a setting you did not name is
-  refused, because the Portal endpoint replaces the whole array.
+  refused, because the Portal endpoint replaces the whole array. `replace_all: true` submits your
+  array verbatim; the drop check still applies.
 - **Components.** `component_create` needs `title`, `icon` and `path` (e.g. `home.hero`, which
-  becomes `src/views/components/home/hero.twig`); the Portal always seeds `fields: []`, so the
-  schema comes from a follow-up `component_update`. Changing `fields` is **proposed first** and
-  needs `confirm: true` — stores already running the theme read those fields. `component_delete`
-  also deletes the `.twig` file and needs `confirm: true`.
+  becomes `src/views/components/home/hero.twig` — letters, digits, dot, dash and underscore only,
+  no slashes and no `.twig`). The Portal always seeds `fields: []`, so the schema comes from
+  `component_update component_key=<the key from action=components> fields=…`, which is **proposed
+  first** and needs `confirm: true` — stores already running the theme read those fields.
+  `component_delete component_key=… confirm=true` also deletes the `.twig` file.
 
 **Gate:** "The partner saw the exact change, and any `confirm: true` was their decision, not mine?"
 
@@ -168,12 +172,18 @@ salla_themes action=publishing theme_id=<id>
 salla_themes action=publish theme_id=<id> update_note="<what changed, 25+ chars>" confirm=true
 ```
 
+Publish is **refused** unless the theme has at least one category, a price above 0, 4 or more
+screenshots, no submission already in flight, and the company's ID and services certificate are
+verified. Read `publishing` and `screenshots` first; the refusal names the failing rule.
+
 **Publishing is a review request, not a go-live.** It submits the version to Salla's review team
 and freezes it from edits until they act; `publish_withdraw` pulls it back. `set_status` changes
-the theme's status, `update_details is_public=…` its marketplace visibility, and the preview /
+the theme's status and needs `confirm: true` — "live" puts it in front of merchants, "archive"
+takes it out. `update_details is_public=…` controls marketplace visibility, and the preview /
 sample store actions manage the demo stores merchants browse before buying.
 
-**Gate:** "Partner confirmed the update note, and was told this goes to review rather than live?"
+**Gate:** "Preconditions checked, partner confirmed the update note or the status change, and was
+told publishing goes to review rather than live?"
 
 ## Step 8 — Hand off
 
@@ -202,8 +212,9 @@ the `theme_id` and its `repo`, then route what they do next:
 ## References
 
 - [theme-api-notes.md](references/theme-api-notes.md) — Portal validation notes, the full error
-  decision table, what `github_config` returns, and why the not-yet-supported writes are risky.
-  Load it at Step 4, or whenever a call returns something this skill doesn't describe.
+  decision table, what `github_config` returns, and the per-action write rules behind Steps 5–7
+  (limits, required fields, merge vs replace). Load it at Step 4, before the first write, or
+  whenever a call returns something this skill doesn't describe.
 
 ## Cross-links
 

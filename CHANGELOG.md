@@ -28,6 +28,12 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 ### Fixed
 
+- The routing description advertised only find / inspect / create, so "publish my theme" or
+  "change my theme's price" could not route here at all. It now names the edit and publish
+  surface, as do the "when to use" paths and the SessionStart context.
+- `agents/salla-app-expert.md` omitted `salla_themes` from its MCP tool list while the skill's
+  table carried it — the three surfaces are back in sync.
+- The reference held two create-field tables after this PR's edit; they are merged into one.
 - The skill described the theme allowlist as covering more than it does. Only the theme record,
   the GitHub installation lookup and the components/settings controllers are behind
   `theme_allowed_users`; a 401 anywhere else is the session.

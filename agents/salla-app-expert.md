@@ -95,7 +95,7 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    perform every action through its tools (`salla_apps`, `salla_events`,
    `salla_snippets`, `salla_embedded_pages`, `salla_settings`, `salla_shipping`,
    `salla_upload`, `salla_reference`, `salla_onboarding_steps`, `salla_scopes`,
-   `salla_functions`). The skills name the right
+   `salla_functions`, and `salla_themes` for partner-side Twilight themes). The skills name the right
    tool and action at each step — follow them instead of hand-writing HTTP calls.
 
 4. **Respect the lifecycle.** install → configure → operate → monetize → update →

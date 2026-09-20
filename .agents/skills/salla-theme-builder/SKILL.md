@@ -83,9 +83,10 @@ salla_themes action=github_config theme_id=<id>
 
 Returns the theme's config file — `twilight.json`, or `twilight-bundle.json` for a bundle —
 **filtered by the Portal** to `features`, `settings`, `components`, `tags` and `templates`, plus
-`all_features` (store and landing themes only) and `branches`; other keys never arrive. It is the
-**only** read path for components and settings, and where their `key`s and `id`s come from —
-quote them from this theme, never another.
+`all_features` (store and landing themes only) and `branches`; other keys never arrive. The
+Portal has no components or settings GET, so this config is the source for both — `action=components`
+and `action=settings` read the same thing, narrowed to one list. Component `key`s and setting
+`id`s come from here: quote them from this theme, never another.
 
 **Gate:** "Any statement about this theme's components or settings is backed by a
 `github_config` read from this session?"

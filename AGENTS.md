@@ -4,9 +4,10 @@ Guidance for any AI agent working in (or installed from) this repository.
 
 ## What this is
 
-Skills for building **Salla Partner apps** end to end — create, hook events, build UI,
-monetize, publish — designed to pair with the **Salla Partners MCP** action tools (a private remote
-server — connect over HTTP per `docs/getting-started.md`).
+Skills for the two products Salla partners build: **Salla apps** end to end — create, hook
+events, build UI, monetize, publish — and **Twilight themes** (a separate product). Designed to
+pair with the **Salla Partners MCP** action tools (a private remote server — connect over HTTP per
+`docs/getting-started.md`).
 
 ## Routing (this file is the ambient master router)
 
@@ -14,6 +15,20 @@ When this repo sits in your workspace, these rules ARE the router — load the m
 skill before acting. On platforms that install the skills instead, the same routing
 lives in the `salla-app-expert` skill (and, on Claude Code, the `salla-app-expert`
 agent). One routing brain, three surfaces — keep them in sync.
+
+**First, pick the product.** Salla partners build two different things:
+
+- **Salla app** — reacts to store events: auth mode, webhooks / App Functions / snippets, App
+  Settings, embedded UI, billing, the App Store listing (`app_publish`). → the app table below.
+- **Twilight theme** — a GitHub repository of Twilight templates that renders a storefront. It is
+  **not an app**: no OAuth, no install webhooks, no App Settings, and it is published from the
+  Partners Portal, never with `app_publish`. → `salla-theme-builder` directly; the app decisions
+  and routes below don't apply.
+
+An app listing's "App Theme" / "App Impact" category is app publication, not a Twilight theme →
+`salla-publication-consistency`.
+
+**Salla app routes:**
 
 | Intent                                                        | Skill                           |
 | ------------------------------------------------------------- | ------------------------------- |
@@ -66,7 +81,7 @@ agent). One routing brain, three surfaces — keep them in sync.
 - `gemini-extension.json` — **Gemini CLI** manifest: `contextFileName: "AGENTS.md"` loads
   this router at session start, and `mcpServers` inlines the Salla MCP (Gemini's `httpUrl`
   field). Skills come from the auto-discovered `.agents/skills/` tree.
-- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 27
+- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 28
   skills + MCP wiring), `install.sh` (clones the repo and symlinks `.hermes-plugin/` next
   to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
   canonical skill tree). No CLI passthrough — partners act through the MCP.
@@ -79,10 +94,12 @@ agent). One routing brain, three surfaces — keep them in sync.
   `SKILL.md`. The hooks:
   - **SessionStart** (`session-start` / `session-start-codex`) injects the routing rule
     in `hooks/session-start-context.md` so any Salla app task starts with
-    `salla-app-expert` before generic brainstorming/planning.
+    `salla-app-expert` before generic brainstorming/planning, and Twilight theme tasks go
+    straight to `salla-theme-builder`.
   - **UserPromptSubmit** (`prompt-router-nudge`) — once per context window, on the first
     Salla-intent prompt, emits the same skill directive the Vercel hooks use
-    (`You must run the Skill(salla-app-expert) tool.`; Cursor `Load the /salla-app-expert skill.`).
+    (`You must run the Skill(salla-app-expert) tool.`; Cursor `Load the /salla-app-expert skill.`) —
+    or, for a Twilight theme prompt, the same directive for `salla-theme-builder`.
     SessionStart clears the marker so it re-arms after a clear/compaction; else no-op.
   - **PreToolUse** (`pretool-skill-inject`, matcher `mcp__salla-partners__.*`) maps each Salla
     MCP tool to its owning skill and emits the same Vercel-style load directive
@@ -107,5 +124,7 @@ agent). One routing brain, three surfaces — keep them in sync.
   **Red Flags** table ("tempting thought → why it's wrong"). Push heavy code/payloads/tables
   into the skill's `references/` sidecar and point at it from the step.
 - New or changed skills: follow **`docs/skill-anatomy.md`**, add a `CHANGELOG.md` entry, and
-  bump the version in `package.json` + `.claude-plugin/plugin.json`.
+  bump the version in **all five** manifests — `package.json`, `.claude-plugin/plugin.json`,
+  `.plugin/plugin.json`, `.hermes-plugin/plugin.yaml`, `gemini-extension.json` (the validator
+  fails on any mismatch).
 - Format Markdown with Prettier before committing: `pnpx prettier . --write`.

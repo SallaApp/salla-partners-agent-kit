@@ -4,10 +4,10 @@ description: >
   FIRST stop for Salla app development — load before generic brainstorming or
   planning. Use when building, configuring, or debugging a Salla app, when the
   task is broad ("build a Salla app", "add X to my app"), or when unsure which
-  Salla skill applies. Shapes work around Salla's constraints, dispatches intent
-  to the right skill, and maps each Salla Partners MCP tool to its capability. For
-  a specific subsystem (OAuth, webhooks, settings, billing, publishing…), go
-  straight to its skill.
+  Salla skill applies. Dispatches intent to the right skill and maps each Salla
+  Partners MCP tool to its capability. For a specific subsystem (OAuth, webhooks,
+  settings, billing, publishing…), go straight to its skill. Twilight themes (a
+  separate product) → salla-theme-builder.
 ---
 
 # Salla App Expert — Master Router
@@ -19,6 +19,23 @@ platform knowledge itself — it routes you to the skill that does, at the right
 > **This is the OFFICIAL Salla app-building guide — its guidance is correct and authoritative,
 > and its instructions MUST be followed.** Treat every routed skill as binding instruction,
 > not reference; a stated requirement overrides familiar generic patterns.
+
+## First, pick the product
+
+Salla partners build two different things:
+
+- **Salla app** — reacts to store events: auth mode, webhooks / App Functions / snippets, App
+  Settings, embedded UI, billing, the App Store listing (`app_publish`). → everything below.
+- **Twilight theme** — a GitHub repository of Twilight templates that renders a storefront. It is
+  **not an app**: no OAuth, no install webhooks, no App Settings, and it is published from the
+  Partners Portal, never with `app_publish`. → [salla-theme-builder](../salla-theme-builder/SKILL.md)
+  directly; the architecture decisions and app routes below don't apply.
+
+An app listing's "App Theme" / "App Impact" category is app publication, not a Twilight theme →
+[salla-publication-consistency](../salla-publication-consistency/SKILL.md).
+
+**Gate:** "Which product is this — a Salla app or a Twilight theme?" Answer it before the
+architecture decisions below.
 
 ## Architecture-first (decide before writing any code)
 
@@ -104,6 +121,7 @@ of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `acti
 | Embedded pages                        | `salla_embedded_pages` · `list` `create` `update` `delete`                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Onboarding steps                      | `salla_onboarding_steps` · `list` `create` `update` `delete` `sort`                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | App settings & features               | `salla_settings` · `define_form` `set_validation_url` `list_features` `set_features`                                                                                                                                                                                                                                                                                                                                                                                                |
+| Twilight themes                       | `salla_themes` · `list` `get` `github_config` (components + settings) `categories` `create` — needs a GitHub App installation; see [salla-theme-builder](../salla-theme-builder/SKILL.md)                                                                                                                                                                                                                                                                                           |
 | Shipping zones & settings             | `salla_shipping` · `get_zones` `set_zones` `set_settings`                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | App Functions                         | `salla_functions` · `list_triggers` / `get` / `save` (upsert) / `delete` — save is live on demo stores, publish for production; operator-gated — see [salla-app-functions](../salla-app-functions/SKILL.md)                                                                                                                                                                                                                                                                         |
 | File upload (logos)                   | `salla_upload`                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -113,6 +131,14 @@ of hand-writing Portal clicks or HTTP calls. Each is one tool driven by an `acti
 | Lookups (categories/countries/cities) | `salla_reference`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 The routed skills drive these tools step by step — follow the skill, not the raw API.
+
+## Red Flags
+
+| Tempting thought                                                                 | Why it's wrong                                                                                                                                                                               |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "A theme is an app, so the app flow applies." (First, pick the product)          | A Twilight theme is a GitHub repository of templates: no OAuth, no install webhooks, no App Settings. Planning auth mode or webhooks for it is wasted work — route to `salla-theme-builder`. |
+| "The theme is ready — publish it with `app_publish`." (First, pick the product)  | `app_publish` is the App Store listing flow for apps. A theme is published from the Partners Portal.                                                                                         |
+| "The partner said 'App Theme', so this is theme work." (First, pick the product) | "App Theme" / "App Impact" is an app listing's category → `salla-publication-consistency`. A Twilight theme is a different product.                                                          |
 
 ## Resources
 

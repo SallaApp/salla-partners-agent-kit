@@ -14,10 +14,30 @@ permissions:
   contents: read
 
 jobs:
+  # Fan-in gate for the org "Tested & Coverage" ruleset: the required check is
+  # matched by this job's rendered name, and it inherits `needs` semantics, so it
+  # is skipped (never green) when validation fails.
+  aggregate-tests:
+    name: Testing Ready
+    runs-on: ${{ fromJson(vars.RUNS_ON) }}
+    needs: validate
+    # Always run, and fail unless validation actually succeeded: GitHub reports a
+    # SKIPPED job as success to required status checks, so relying on `needs`
+    # alone would let the gate pass on the very runs where validation broke.
+    if: always()
+    steps:
+      - name: Require plugin validation to have passed
+        run: |
+          result='${{ needs.validate.result }}'
+          if [ "$result" != 'success' ]; then
+            echo "Plugin validation did not pass (result: $result)." >&2
+            exit 1
+          fi
+          echo "Testing Ready"
+
   validate:
     name: Validate plugin structure
-    runs-on:
-      group: default
+    runs-on: ${{ fromJSON(vars.RUNS_ON) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

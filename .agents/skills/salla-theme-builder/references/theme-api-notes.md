@@ -5,7 +5,18 @@ call returns something the skill doesn't describe.
 
 ## Create — what the Portal enforces
 
-The field list is in SKILL.md Step 4. This is what the Portal does with it:
+What the partner supplies, and what the Portal does with it:
+
+| Field             | Rule                                                                          |
+| ----------------- | ----------------------------------------------------------------------------- |
+| `name`            | **Required** English name, ≤ 50 chars                                         |
+| `name_ar`         | Arabic name, ≤ 50 chars — defaults to `name`; ask for real Arabic             |
+| `author_email`    | **Required** — the theme's support email                                      |
+| `type`            | `store` (default) · `landing` · `bundle`                                      |
+| `theme_url`       | Optional marketing URL                                                        |
+| `public`          | Optional; defaults to `true`                                                  |
+| `categories`      | Optional, 1–3 ids from `salla_themes action=categories`, picked by partner    |
+| `installation_id` | GitHub App installation that will own the repo — usually resolved (see below) |
 
 | Field             | Portal rule                                                                         | Notes                                                                                                                                                                          |
 | ----------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -21,11 +32,13 @@ repository, so a create is never safe to repeat blindly.
 
 ## Error decision table
 
-The Portal gates the `/theme` routes (`list`, `get`, `github_config`, `create`) twice: a
-**permission** check on all of them (403), and the **`theme_allowed_users` allowlist** (401) on
-`get`, `create` and the GitHub installation lookup that `create` runs first — but not on `list`
-or `github_config`. `categories` reads a public route with neither check, so its errors are
-reported as ordinary Portal errors.
+The Portal gates theme routes two different ways, and the messages differ. A **403** is the user's
+role missing `manage-themes` (`manage-bundles` for bundles) — it applies to every theme route. A
+**401** is the `theme_allowed_users` allowlist, and only `GithubAuthorizationMiddleware` routes
+carry it: the theme record (`get`, `create`), the GitHub installation lookup `create` runs first,
+and the **components and settings** controllers. `list`, `github_config`, details/support/price/
+options, screenshots, publishing, status and the preview/sample stores are not allowlisted, so a
+401 there is the session.
 
 | Call                                        | What comes back                              | Meaning                                                                    | Do                                                                           |
 | ------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -56,18 +69,23 @@ by the Portal**. Only these keys arrive:
   Portal knows — store and landing themes only, never bundles) and **`branches`**.
 - **`twilight_json`** — the filtered object above, as returned.
 
-## Not yet in the MCP
+## Write rules, per action
 
-These exist in the Partners Portal but have no `salla_themes` action in this kit version.
-Route the partner to the Portal (or the Salla CLI for local development) — several are easy to
-get destructively wrong:
+Every one of these is a real Portal constraint the tool works around — the point is what the agent
+must still get right.
 
-- **Details, support contact, price, visibility options.** Spread over separate Portal endpoints,
-  and the support-contact and options writes each require _all_ of their fields — a partial
-  update is rejected, and a naive "fill the rest with blanks" would overwrite real values.
-- **Components.** Writes are commits to the theme's repository. Creating one also creates its
-  `.twig` file; changing a component's field schema can break stores already using the theme.
-- **Global settings.** The Portal's settings write **replaces the entire settings array** —
-  sending only the setting you mean to change deletes every other one.
-- **Publishing and preview stores.** Publishing submits the theme for Salla review; it is not an
-  instant visibility change.
+| Write                                     | The Portal's behaviour                                                                                                                                                                                 | What that means for you                                                                                                                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `update_details`                          | Four endpoints (`/details`, `/support`, `/price`, `/options`). Support and options require **all** their fields on every call; `%description%` expands to required `description.ar` + `description.en` | Pass only what changed. The tool reads the record and merges, so nothing is blanked. There is no transaction: if a later endpoint fails, the result names what already saved — resend only the rest |
+| `screenshot_set`                          | `title` and `description` per locale, `type`, plus a source                                                                                                                                            | An image needs `file_id` from `salla_upload`; a video needs `url`. Never both                                                                                                                       |
+| `component_create`                        | Commits `twilight.json` **and** writes `src/views/components/<path>.twig`; seeds `fields: []`; duplicate `path` → 422                                                                                  | The schema comes from a follow-up `component_update`. Paths are unique per theme                                                                                                                    |
+| `component_update`                        | Replaces the whole component object                                                                                                                                                                    | The tool merges the current one, so omitted keys survive. A `fields` change is proposed first and needs `confirm: true` — live stores read those fields                                             |
+| `component_delete`                        | Removes it from `twilight.json` and deletes the `.twig`                                                                                                                                                | Needs `confirm: true`. Any store page using it loses that section                                                                                                                                   |
+| `settings_update`                         | `PUT /theme/{id}/settings` replaces the **entire** settings array                                                                                                                                      | The tool merges onto the current list; a write that would drop a setting you did not name in `remove` is refused                                                                                    |
+| `publish`                                 | Creates a publication for Salla's review team                                                                                                                                                          | Not a go-live. Needs `confirm: true` and a 25+ character update note per locale. The version is frozen from edits until review acts; `publish_withdraw` pulls it back                               |
+| `preview_store_set`                       | Requires `store_id`, `category_id`, `thumbnail_id`, `color`, `is_default` on create **and** update                                                                                                     | Updating one field merges the current row. Category ids come from `action=categories`, the thumbnail from `salla_upload`                                                                            |
+| `sample_store_*`, `default_preview_store` | Behind Portal feature flags                                                                                                                                                                            | A 404 here means the company doesn't have that feature, not that the theme is missing                                                                                                               |
+
+Component and settings writes are **GitHub commits**, so they are slower than a DB write and
+subject to GitHub rate limits. After one, re-read with `action=components` / `action=settings`
+rather than assuming the previous response is still current.

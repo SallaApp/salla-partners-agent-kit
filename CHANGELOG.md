@@ -34,9 +34,11 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - `agents/salla-app-expert.md` omitted `salla_themes` from its MCP tool list while the skill's
   table carried it — the three surfaces are back in sync.
 - The reference held two create-field tables after this PR's edit; they are merged into one.
-- The skill described the theme allowlist as covering more than it does. Only the theme record,
-  the GitHub installation lookup and the components/settings controllers are behind
-  `theme_allowed_users`; a 401 anywhere else is the session.
+- The skill described the theme allowlist as covering less than it does: the components and
+  settings **writes** (`component_*`, `settings_update`) are behind `theme_allowed_users` too,
+  alongside the theme record and the GitHub installation lookup. The reads — including
+  `action=components` and `action=settings`, which go through `github_config` — are not, so a 401
+  there is the session.
 
 ## [1.0.16] — 2026-09-16
 

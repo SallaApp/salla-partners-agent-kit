@@ -31,7 +31,8 @@ Every theme action goes through **`salla_themes`**.
 ## What `salla_themes` covers
 
 Every theme task is one action on `salla_themes`: reads (`list`, `get`, `github_config`,
-`categories`, `components`, `settings`, `screenshots`, `publishing`, the store lists) and writes
+`categories`, `components`, `component_get`, `settings`, `screenshots`, `publishing`, the store
+lists) and writes
 — `create` (Step 4), `update_details` and `screenshot_*` (Step 5), `component_*` and
 `settings_update` (Step 6), `publish`, `set_status` and the store families (Step 7). The theme's
 own code is not the MCP's: that is the Salla CLI (`salla theme …`).
@@ -91,8 +92,6 @@ and `action=settings` read the same thing, narrowed to one list. Component `key`
 
 ## Step 4 — Create a theme
 
-Collect these values from the partner:
-
 Collect the values from the partner — the fields and their Portal rules are in
 [theme-api-notes.md](references/theme-api-notes.md#create--what-the-portal-enforces): `name`
 (+ `name_ar`) and `author_email` are required; `type`, `theme_url`, `public` and `categories`
@@ -126,16 +125,19 @@ salla_themes action=update_details theme_id=<id> price=400
 ```
 
 Pass only what is changing: the tool calls just the endpoints your fields touch and merges the
-rest from the record, because support contact and visibility are all-or-nothing server-side. Text
-fields are bilingual (`description` / `description_ar`, `support_description` /
-`support_description_ar`) and changing one language keeps the other. Price bounds are the
-Portal's: public themes 250–50000, private 1000–50000.
+rest from the record, because support contact and visibility are all-or-nothing server-side.
+Bilingual fields (`description`, `support_description`, each with an `_ar` twin) keep the language
+you don't touch. Price bounds: public themes 250–50000, private 1000–50000.
 
 Preview media: upload with `salla_upload`, then `screenshot_set media_type=image file_id=<id>
 title=… description=…` (add `title_ar` / `description_ar` for real Arabic; a video takes `url`
-instead of `file_id`); `screenshot_delete` needs `confirm: true`.
+instead of `file_id`). Pass `screenshot_id` to replace an existing item rather than add another;
+`screenshot_delete screenshot_id=… confirm=true` removes one.
 
-A theme with nothing on record to merge refuses the call instead: the first support edit carries
+Passing a field as `null` **clears** it, while omitting it leaves it alone — except
+`theme_url`, `author_mobile`, `livechat_url`, `documentation_url`, `price` and `description`,
+which the Portal requires; the refusal names which. A theme with nothing on record to merge
+refuses the call instead: the first support edit carries
 `theme_url`, `author_mobile`, `livechat_url` and `documentation_url` together (likewise `price`
 and `description`), and the tool names what is missing. If a later endpoint fails after an earlier
 one saved, the result says what landed — re-run with only the rest. There is no version check
@@ -150,7 +152,7 @@ salla_themes action=components theme_id=<id>
 salla_themes action=settings theme_id=<id>
 ```
 
-Read first: both live in `twilight.json`, and both writes replace what is there.
+Read first — both live in `twilight.json`, and both writes replace what is there.
 
 - **Settings.** `settings_update` merges onto the current list — pass only the settings you are
   changing, and name deletions in `remove`. A write that would drop a setting you did not name is
@@ -162,6 +164,9 @@ Read first: both live in `twilight.json`, and both writes replace what is there.
   `component_update component_key=<the key from action=components> fields=…`, which is **proposed
   first** and needs `confirm: true` — stores already running the theme read those fields.
   `component_delete component_key=… confirm=true` also deletes the `.twig` file.
+
+Neither write is version-checked either: `component_update` and `preview_store_set` overwrite a
+change made in the dashboard between the read and the write, exactly like Step 5.
 
 **Gate:** "The partner saw the exact change, and any `confirm: true` was their decision, not mine?"
 
@@ -176,10 +181,11 @@ Publish is **refused** unless the theme has at least one category, a price above
 screenshots, no submission already in flight, and the company's ID and services certificate are
 verified. Read `publishing` and `screenshots` first; the refusal names the failing rule.
 
-**Publishing is a review request, not a go-live.** It submits the version to Salla's review team
-and freezes it from edits until they act; `publish_withdraw` pulls it back. `set_status` changes
-the theme's status and needs `confirm: true` — "live" puts it in front of merchants, "archive"
-takes it out. `update_details is_public=…` controls marketplace visibility, and the preview /
+**Publishing is a review request, not a go-live:** it submits the version to Salla's review team
+and freezes it from edits until they act, and `publish_withdraw` pulls it back. `set_status` (development | live | archive |
+published) needs `confirm: true` — "live" puts the theme in front of merchants, "archive" takes it
+out. `publish_withdraw` has its own 403, `has_no_submissions`, when nothing is in flight — that is
+not a permissions problem either. `update_details is_public=…` controls marketplace visibility, and the preview /
 sample store actions manage the demo stores merchants browse before buying.
 
 **Gate:** "Preconditions checked, partner confirmed the update note or the status change, and was
@@ -187,12 +193,9 @@ told publishing goes to review rather than live?"
 
 ## Step 8 — Hand off
 
-After a successful create, run `salla_themes action=get theme_id=<new id>` and give the partner
-the `theme_id` and its `repo`, then route what they do next:
-
-- Develop and preview the theme locally → Salla CLI (`salla theme …`).
-- Anything the MCP covers → Steps 5–7 above.
-- Twilight concepts, component and setting schemas → **salla-docs**.
+After a successful create, run `salla_themes action=get theme_id=<new id>` and give the partner the
+`theme_id` and its `repo`. Then: anything the MCP covers → Steps 5–7; the theme's own code →
+Salla CLI (`salla theme …`); Twilight concepts and schemas → **salla-docs**.
 
 ## Red Flags
 

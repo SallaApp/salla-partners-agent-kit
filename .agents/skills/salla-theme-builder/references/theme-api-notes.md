@@ -28,15 +28,17 @@ The Portal gates theme routes two different ways, and the messages differ. A **4
 role missing `manage-themes` (`manage-bundles` for bundles) — it applies to every theme route. A
 **401** is the `theme_allowed_users` allowlist, and only `GithubAuthorizationMiddleware` routes
 carry it: the theme record (`get`, `create`), the GitHub installation lookup `create` runs first,
-and the **components and settings** controllers. `list`, `github_config`, details/support/price/
-options, screenshots, publishing, status and the preview/sample stores are not allowlisted, so a
-401 there is the session.
+and the components and settings **writes** (`component_*`, `settings_update`). `list`,
+`github_config`, `action=components` and `action=settings` (both read through `github_config`),
+details/support/price/options, screenshots, publishing, status and the preview/sample stores are
+not allowlisted, so a 401 there is the session.
 
 | Call                                        | What comes back                              | Meaning                                                                    | Do                                                                           |
 | ------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `list` / `get` / `github_config` / `create` | 403 — "lacks the `manage-themes` permission" | This user's role is missing the theme permission                           | Company owner grants `manage-themes` (`manage-bundles`) in the Portal.       |
 | `list` / `github_config`                    | 401 — "not behind the themes allowlist"      | Session expired                                                            | Partner reconnects the connector; retry.                                     |
 | `get` / `create`                            | 401, while `list` still works                | Company not on the `theme_allowed_users` allowlist                         | Stop. Partner asks Salla to enable themes. Reconnecting won't help.          |
+| `component_*` / `settings_update`           | 401, while `list` still works                | Company not on the allowlist — these writes are behind it                  | Same as the `get` / `create` 401.                                            |
 | `get` / `create`                            | 401, and `list` also 401s                    | Session expired                                                            | Partner reconnects the connector; retry.                                     |
 | `create`                                    | 401 before anything was created              | The installation lookup is allowlisted too — same meaning as the row above | Same as `get` / `create` 401.                                                |
 | `create`                                    | "no GitHub App installation" + install URL   | No installation to own the repo; nothing was created                       | Give the partner the URL; create again after they install.                   |

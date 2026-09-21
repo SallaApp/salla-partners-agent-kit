@@ -21,7 +21,9 @@ versions the **skill content as a whole** — the `version` field in `package.js
   rules an agent cannot infer from the endpoints: only the endpoints your fields touch are
   called and the rest are merged (support and visibility are all-or-nothing server-side); the
   settings endpoint replaces the whole array, so a write that would drop an unnamed setting is
-  refused; a component field-schema change is proposed before it is applied, because stores
+  refused; passing `null` clears `author_email`, the support description (both languages),
+  `external_service_id`, `old_price` and the discount dates, while every other field keeps its
+  value; a component field-schema change is proposed before it is applied, because stores
   already running the theme read those fields; and `publish` is a review request that freezes
   the version, not a go-live. `references/theme-api-notes.md` gains a per-action write-rules
   table and the create-field table.
@@ -35,10 +37,10 @@ versions the **skill content as a whole** — the `version` field in `package.js
   table carried it — the three surfaces are back in sync.
 - The reference held two create-field tables after this PR's edit; they are merged into one.
 - The skill described the theme allowlist as covering less than it does: the components and
-  settings **writes** (`component_*`, `settings_update`) are behind `theme_allowed_users` too,
-  alongside the theme record and the GitHub installation lookup. The reads — including
-  `action=components` and `action=settings`, which go through `github_config` — are not, so a 401
-  there is the session.
+  settings controllers' own routes (`component_get` plus the `component_*` writes, and
+  `settings_update`) are behind `theme_allowed_users`, as are `update_details` and `publishing`
+  through the `GET /theme/{id}` each opens with. The **other** reads — `list`, `github_config`,
+  `action=components` and `action=settings` — are not, so a 401 there is the session.
 
 ## [1.0.16] — 2026-09-16
 

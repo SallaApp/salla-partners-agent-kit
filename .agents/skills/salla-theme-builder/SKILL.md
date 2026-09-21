@@ -34,7 +34,8 @@ Every theme task is one action on `salla_themes`: reads (`list`, `get`, `github_
 `categories`, `components`, `component_get`, `settings`, `screenshots`, `publishing`, the store
 lists) and writes
 — `create` (Step 4), `update_details` and `screenshot_*` (Step 5), `component_*` and
-`settings_update` (Step 6), `publish`, `set_status` and the store families (Step 7). The theme's
+`settings_update` (Step 6), `publish`, `publish_withdraw`, `set_status` and the store families
+(Step 7). The theme's
 own code is not the MCP's: that is the Salla CLI (`salla theme …`).
 
 Every write changes the partner's live theme — component and settings writes are **commits to its
@@ -134,9 +135,10 @@ title=… description=…` (add `title_ar` / `description_ar` for real Arabic; a
 instead of `file_id`). Pass `screenshot_id` to replace an existing item rather than add another;
 `screenshot_delete screenshot_id=… confirm=true` removes one.
 
-Passing a field as `null` **clears** it, while omitting it leaves it alone — except
-`theme_url`, `author_mobile`, `livechat_url`, `documentation_url`, `price` and `description`,
-which the Portal requires; the refusal names which. A theme with nothing on record to merge
+Passing `null` clears `author_email`, `support_description` / `support_description_ar` (both
+languages at once), `external_service_id`, `old_price` (which clears the discount) and the two
+discount dates. Every other field keeps its value once set, and omitting a field always leaves it
+alone. A theme with nothing on record to merge
 refuses the call instead: the first support edit carries
 `theme_url`, `author_mobile`, `livechat_url` and `documentation_url` together (likewise `price`
 and `description`), and the tool names what is missing. If a later endpoint fails after an earlier
@@ -165,8 +167,8 @@ Read first — both live in `twilight.json`, and both writes replace what is the
   first** and needs `confirm: true` — stores already running the theme read those fields.
   `component_delete component_key=… confirm=true` also deletes the `.twig` file.
 
-Neither write is version-checked either: `component_update` and `preview_store_set` overwrite a
-change made in the dashboard between the read and the write, exactly like Step 5.
+`component_update` (and Step 7's `preview_store_set`) are not version-checked either: a change
+made in the dashboard between the read and the write is overwritten, exactly like Step 5.
 
 **Gate:** "The partner saw the exact change, and any `confirm: true` was their decision, not mine?"
 
@@ -185,8 +187,10 @@ verified. Read `publishing` and `screenshots` first; the refusal names the faili
 and freezes it from edits until they act, and `publish_withdraw` pulls it back. `set_status` (development | live | archive |
 published) needs `confirm: true` — "live" puts the theme in front of merchants, "archive" takes it
 out. `publish_withdraw` has its own 403, `has_no_submissions`, when nothing is in flight — that is
-not a permissions problem either. `update_details is_public=…` controls marketplace visibility, and the preview /
-sample store actions manage the demo stores merchants browse before buying.
+not a permissions problem either. `update_details is_public=…` controls marketplace visibility. For the demo stores merchants
+browse: `sample_store_set` adds one, or with `sample_store_id` (from `action=get` →
+`sample_stores[].id`) fully replaces it — `store_id` comes from `action=sample_stores`, which
+lists what is available to add.
 
 **Gate:** "Preconditions checked, partner confirmed the update note or the status change, and was
 told publishing goes to review rather than live?"

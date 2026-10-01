@@ -64,10 +64,12 @@ The app must be published, and the store must be on a **Pro or Special** plan.
   `recurring` (`monthly` or `yearly`, from `status.durations`). Private apps can't be free and
   must meet the cycle's minimum price; one-time payments aren't allowed.
 
-Manage requests with `list_requests` / `get_request`, `update_request` (resend after a new
-publication or a rejection) and `delete_request`. Regular partners address a request by its
-`request_id`; merchant partners have only one, so no id is needed. Once a request is accepted
-or an update is pending, its price and cycle are locked.
+Manage requests with `list_requests` (paginated: pass `page`, read `pagination`) /
+`get_request`, `update_request` (resend after a new publication or a rejection) and
+`delete_request`. Regular partners address a request by its `request_id`; merchant partners
+have only one, so no id is needed. On `update_request`, pass only what changes — the rest
+keeps its current value. Once a request is accepted or an update is pending, its price and
+cycle are locked.
 
 **Gate:** "Request created with a cycle and price inside `status.durations` (regular partner),
 or the merchant's own store URL (merchant partner)?"
@@ -76,8 +78,9 @@ or the merchant's own store URL (merchant partner)?"
 
 The Portal hides `shippings`, `settlements`, `subscriptions` and `customer_wallets` from
 `salla_scopes action=get` on a merchant partner's private app and silently skips them on save.
-`salla_scopes action=set` reports anything that wasn't saved under `dropped`. Scopes the app
-already held before the restriction stay. Design the app without these scopes.
+`salla_scopes action=set` reports anything that wasn't saved under `dropped`; `verified: false`
+means it couldn't re-read the app, so confirm with `action=get`. Scopes the app already held
+before the restriction stay. Design the app without these scopes.
 
 ## Red Flags
 

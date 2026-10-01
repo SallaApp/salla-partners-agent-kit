@@ -47,14 +47,14 @@ drive that same Portal, so prefer them when connected.
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
 
-| Tool                 | What it does                                                                                                                                                                                                      |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `salla_reference`    | Look up `categories`, `countries`, `cities`                                                                                                                                                                       |
-| `salla_upload`       | Upload a logo/file → returns a file `id`                                                                                                                                                                          |
-| `salla_apps`         | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `demo_stores` (testing). Public-app publishing uses the separate `app_publish` tool; private apps use `salla_private_apps`.    |
-| `salla_private_apps` | Private apps: `status` / `publish` (confirm-gated) / store requests (`list_requests` `get_request` `create_request` `update_request` `delete_request`) → [references/private-apps.md](references/private-apps.md) |
-| `salla_scopes`       | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)                                                                                              |
-| `salla_events`       | `list` subscribable events / `subscribe` an app to slugs                                                                                                                                                          |
+| Tool                 | What it does                                                                                                                                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference`    | Look up `categories`, `countries`, `cities`                                                                                                                                                                                                                 |
+| `salla_upload`       | Upload a logo/file → returns a file `id`                                                                                                                                                                                                                    |
+| `salla_apps`         | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `demo_stores` (testing). Public-app publishing uses the separate `app_publish` tool; private apps use `salla_private_apps`.                                              |
+| `salla_private_apps` | Private apps: `status` (no `app_id` = account kind) / `publish` (confirm-gated) / `withdraw` / store requests (`list_requests` `get_request` `create_request` `update_request` `delete_request`) → [references/private-apps.md](references/private-apps.md) |
+| `salla_scopes`       | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)                                                                                                                                        |
+| `salla_events`       | `list` subscribable events / `subscribe` an app to slugs                                                                                                                                                                                                    |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -117,7 +117,7 @@ Use the answers to tailor Steps 1, 4–7.
 | `is_paid`                    | required for a **private** app. Merchant partners may create free private apps (`"0"`); regular partners must create paid ones (`"1"`) unless Salla granted them free private apps (`private_apps_limit`) — otherwise `create` is rejected with "You can't create more than N private apps".                                                                                                          |
 
 **Private apps — free or paid:** the rule depends on the account kind
-(`salla_private_apps action=status` → `is_merchant`). A **merchant partner** (a merchant who
+(`salla_private_apps action=status` with **no** `app_id`, before create → `is_merchant`). A **merchant partner** (a merchant who
 signed in to the Partners Portal with their store) may create free private apps. A **regular
 partner** creates them as paid (`is_paid: "1"`); free private apps need an admin grant
 (`private_apps_limit`, 0 by default), otherwise `create` is rejected with "You can't create

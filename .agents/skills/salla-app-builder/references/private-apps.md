@@ -9,7 +9,9 @@ on the `salla_private_apps` MCP tool:
 2. **Send it to stores** as access requests (`action: "create_request"`); each store's merchant
    accepts the request to install it.
 
-Always start with `salla_private_apps action=status` — it tells you which rules apply.
+Always start with `salla_private_apps action=status` — it tells you which rules apply. Call
+it **without `app_id` before creating the app**: it returns just the account kind, which
+decides `is_paid` on `salla_apps action=create`.
 
 ## The two account kinds
 
@@ -27,7 +29,8 @@ tool picks the matching endpoint itself — you never choose it.
 
 ## Step 1 — Check status
 
-`salla_private_apps action=status`, `app_id` returns:
+Before create: `salla_private_apps action=status` with no `app_id` returns `is_merchant` and
+`id_verified` only. After create, `salla_private_apps action=status`, `app_id` returns:
 
 - `status`, `is_published` (has an approved publication), `is_already_submitted`;
 - `is_merchant`, `id_verified` (the account must be ID-verified to publish);
@@ -45,11 +48,14 @@ tool picks the matching endpoint itself — you never choose it.
 3. Read the result: `approved` = live; otherwise it's waiting for Salla review, and store
    requests can be sent once it's approved.
 
-| Error                        | Meaning → fix                                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- |
-| `free_private_apps_disabled` | A regular partner's free private app. Make it paid (`salla_apps action=update is_paid="1"`).      |
-| `id_verification`            | The account isn't ID-verified. The partner completes it in the Partners Portal.                   |
-| `already_submitted`          | A publication is already pending. Wait, or withdraw it (`app_publish action=withdraw`) and retry. |
+There is no pricing step before publishing: a private app's price lives on each store request
+(Step 3), and the Portal rejects requests until the app has a publication.
+
+| Error                        | Meaning → fix                                                                                            |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `free_private_apps_disabled` | A regular partner's free private app. Make it paid (`salla_apps action=update is_paid="1"`).             |
+| `id_verification`            | The account isn't ID-verified. The partner completes it in the Partners Portal.                          |
+| `already_submitted`          | A publication is already pending. Wait, or withdraw it (`salla_private_apps action=withdraw`) and retry. |
 
 **Gate:** "Partner confirmed, publish returned a publication, and I told them whether it is
 live or pending review?"
@@ -63,6 +69,8 @@ The app must be published, and the store must be on a **Pro or Special** plan.
 - **Regular partner:** `create_request` with `store_url`, `store_name`, `price` (SAR) and
   `recurring` (`monthly` or `yearly`, from `status.durations`). Private apps can't be free and
   must meet the cycle's minimum price; one-time payments aren't allowed.
+
+To pull back a publication still pending review, use `salla_private_apps action=withdraw`.
 
 Manage requests with `list_requests` (paginated: pass `page`, read `pagination`) /
 `get_request`, `update_request` (resend after a new publication or a rejection) and

@@ -16,7 +16,8 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 - **Private apps through the MCP** (DPD-19842): the new `salla_private_apps` tool publishes a
   private app and sends it to stores as access requests (`status`, `publish`,
-  `list_requests`, `get_request`, `create_request`, `update_request`, `delete_request`). New
+  `withdraw`, `list_requests`, `get_request`, `create_request`, `update_request`,
+  `delete_request`; `status` without `app_id` returns the account kind before create). New
   reference `salla-app-builder/references/private-apps.md` covers the flow and the two account
   kinds:
   - **Merchant partners** (merchants signed in with their store) create free private apps,

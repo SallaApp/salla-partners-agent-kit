@@ -44,11 +44,11 @@ servers/`child_process`; Web Crypto only; `fetch` for HTTP) — confirm those li
 
 ## Act with the Salla Partners MCP
 
-| Tool              | Action                                                          | What it does                                                                                                                |
-| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `salla_functions` | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store |
-| `app_publish`     | `open` `set` `validate`                                         | Public app: validate the publication (saves a DRAFT; partner submits in Portal) to release the function to real stores      |
-| `salla_apps`      | —                                                               | Private app: published with `salla_private_apps action=publish`, not here                                                   |
+| Tool                 | Action                                                          | What it does                                                                                                                |
+| -------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `salla_functions`    | `list_triggers` `get` `save` `delete` `deploy_status` `preview` | List triggers; read `template` + `types` (.d.ts URLs) + saved `content`; upsert; delete; poll a deploy; run on a demo store |
+| `app_publish`        | `open` `set` `validate`                                         | Public app: validate the publication (saves a DRAFT; partner submits in Portal) to release the function to real stores      |
+| `salla_private_apps` | `publish`                                                       | Private app: publish (`app_id`, `confirm: true` after the partner confirms) to release the function to the requested stores |
 
 > Sync actions have a **hard 5 s total** limit (keep each internal async call **< 2 s**; the
 > docs **recommend < 500 ms** since the merchant is blocked — a target, not the limit); async

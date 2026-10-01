@@ -45,7 +45,8 @@ secrets out of them — covered by the pre-publish scan below.
 ## Publish (production)
 
 The already-saved function reaches **real merchant stores only after the app is published** —
-not by re-running `save`. The agent prepares the publication; the partner submits it.
+not by re-running `save`. For a public app the agent prepares the publication and the partner
+submits it; for a private app the agent publishes it after the partner confirms.
 
 - **Public app:** the agent **validates** the publication via `app_publish action=validate`,
   which validates every section and **saves a DRAFT** (no admin submission). After a clean
@@ -57,7 +58,7 @@ not by re-running `save`. The agent prepares the publication; the partner submit
   after the partner confirms — a merchant partner's app usually goes live at once; no
   onboarding or listing) → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md).
 
-**Pre-publish security check.** **Before** the partner submits, scan the saved `content`
+**Pre-publish security check.** **Before** anything is submitted or published, scan the saved `content`
 (`salla_functions action=get`): no hardcoded tokens, secrets, or API keys; no debug dumps of
 `context` or merchant PII into preview logs; no over-broad outbound `fetch` calls. Token/OAuth
 handling belongs in your backend, not the function — see **salla-app-auth**; webhook signature
@@ -74,6 +75,15 @@ verification → **salla-webhooks**.
       (`app_publish action=validate` → draft) and the partner has the Portal `/publish` link;
       for a private app, the partner confirmed the `salla_private_apps` publish.
 
-**Gate:** "Execution Status = success in preview, within the timeout budget, and the
-publication validates clean (public) / the partner confirmed the private publish
-(private) — partner submits?"
+**Gate:** "Execution Status = success in preview, within the timeout budget, the security
+scan is clean, and either the publication validates clean and the partner submits (public) or
+the partner confirmed and `salla_private_apps action=publish confirm:true` returned a
+publication (private)?"
+
+## Red Flags
+
+| Tempting thought                                        | Why it's wrong                                                                                                                          |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| "Preview passed, so I'll publish the private app."      | Only after the partner's explicit confirmation and a clean security scan — a merchant partner's private app usually goes live at once.  |
+| "`save` succeeded, so merchants have the new function." | Saved code reaches real stores only after the app is published (public: partner submits; private: `salla_private_apps action=publish`). |
+| "I'll submit the public publication myself."            | The agent validates the draft; the partner submits it one-click in the Portal or explicitly confirms `send_publish_request`.            |

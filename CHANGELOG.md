@@ -44,8 +44,16 @@ versions the **skill content as a whole** — the `version` field in `package.js
   `subscriptions` and `customer_wallets` are hidden and never saved; `salla_scopes action=set`
   reports them under `dropped`.
 
+- Shipping apps are public: `salla-app-builder` and `salla-shipping-app` no longer say a
+  shipping app can be private (`type` is a single value). A private carrier integration is a
+  `type: "private"` app, where `shippings` stays disabled unless Salla allow-lists it.
+- `salla-app-functions-release` covers the private publish path in its gate and has a Red
+  Flags table.
+
 ### Fixed
 
+- Two lines that a Prettier re-wrap had pushed to column 0 (`salla-shipping-app` search
+  options, this changelog's 1.0.15 entry) are indented again.
 - `docs/getting-started.md` listed a `publish` action on `salla_apps` that doesn't exist. The
   table now lists `app_publish` and `salla_private_apps`.
 
@@ -95,8 +103,8 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - **Publication: the app-publish `main_category_id` is now an "App Theme"/"App Impact" id,
   a shared list independent of the app/shipping/communication type.** A backend change
   moved the publish-time main category off the app/shipping category tree onto a new
-  `app_impact` category type — one set for every app type. `salla_reference
-action=categories` now returns THREE independent lists per call instead of two:
+  `app_impact` category type — one set for every app type.
+  `salla_reference action=categories` now returns THREE independent lists per call instead of two:
   `main_categories` (type `app_impact` — publish `main_category_id`), `categories` (type
   `app`, always — publish `categories` array), and `sub_categories` (type `sub_app` /
   `sub_shipping`, per the caller's `type` — create's `sub_category_id`, unchanged). Updated

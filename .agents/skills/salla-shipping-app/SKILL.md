@@ -45,7 +45,7 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 | ----------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `salla_reference` | `categories`                                                                                                          | `type=shipping` → pick `sub_category_id` from `sub_categories`; `main_category_id`/`categories` for publish come from the same call's `main_categories`/`categories` (App Theme, not shipping-scoped) |
 | `salla_upload`    | —                                                                                                                     | Upload the logo → file `id`                                                                                                                                                                           |
-| `salla_apps`      | `create` / `get` / `connect` / `set_status`                                                                           | Create + configure OAuth/webhooks; `get` reads app state, including current `search_options` selections; private apps publish via `salla_private_apps`                                                |
+| `salla_apps`      | `create` / `get` / `connect` / `set_status`                                                                           | Create + configure OAuth/webhooks; `get` reads app state, including current `search_options` selections; shipping apps are public, so publish with `app_publish`                                      |
 | `app_publish`     | `open` / `set` / `validate`                                                                                           | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                                                                                                      |
 | `salla_events`    | `list` / `subscribe`                                                                                                  | Subscribe to the async shipment events                                                                                                                                                                |
 | `salla_functions` | `list_triggers` / `save` / `preview`                                                                                  | Implement + test the sync shipment App Functions                                                                                                                                                      |
@@ -236,9 +236,9 @@ call** — don't build separate flows for them:
   your app in the marketplace — they are not shipment data.
 
 1. **Fetch the catalog:** `salla_shipping action=list_search_options`, `app_id` → every
-   available option, each `{id, slug, type, is_filter, is_shipping_policy, categories,
-name: {ar, en}, values: [{id, slug, name: {ar, en}}]}`, plus a `shipping_category` id
-   in the response meta. Split it yourself:
+   available option, each
+   `{id, slug, type, is_filter, is_shipping_policy, categories, name: {ar, en}, values: [{id, slug, name: {ar, en}}]}`,
+   plus a `shipping_category` id in the response meta. Split it yourself:
    - **Policy Options** = options where `is_shipping_policy === true`.
    - **Shipment Features** = options where `is_filter === true` AND
      `is_shipping_policy === false` AND `categories` includes the response's
@@ -464,10 +464,11 @@ owned by **`salla-live-testing`**. Use demo/non-sensitive data: keep production 
 credentials, OAuth/bearer tokens, webhook signing secrets, and real customer PII out of any
 third-party capture/inspection tool, and restore real config when done.
 
-**Publishing:** public app → `app_publish` stepwise (`open` → `set` each section →
-`validate` saves a DRAFT; the partner then submits one-click in the Portal `/publish` page —
-owned by **salla-publication-consistency**). Private app → `salla_private_apps action=publish`
-(no onboarding) → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md). Two shipping-specific blockers:
+**Publishing:** shipping apps are public (see the top note) → `app_publish` stepwise (`open` →
+`set` each section → `validate` saves a DRAFT; the partner then submits one-click in the Portal
+`/publish` page — owned by **salla-publication-consistency**). A carrier built for specific
+merchants is a `type: "private"` app → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md) (`shippings` stays disabled unless Salla
+allow-lists the app). Two shipping-specific blockers:
 
 - The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).

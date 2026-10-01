@@ -10,42 +10,46 @@ on the `salla_private_apps` MCP tool:
    accepts the request to install it.
 
 Always start with `salla_private_apps action=status` — it tells you which rules apply. Call
-it **without `app_id` before creating the app**: it returns just the account kind, which
-decides `is_paid` on `salla_apps action=create`.
+it **without `app_id` before creating the app**: it returns `private_app_is_paid`, the value
+to pass as `is_paid` on `salla_apps action=create`.
 
 ## The two account kinds
 
 `status` returns `is_merchant`. The Portal applies different rules to each kind, and the
 tool picks the matching endpoint itself — you never choose it.
 
-|                   | Merchant partner (`is_merchant: true`)                             | Regular partner (`is_merchant: false`)                                                      |
-| ----------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Who               | A merchant who signed in to the Partners Portal with their store   | A developer/agency partner account                                                          |
-| Create the app    | Free private apps allowed (`is_paid: "0"`)                         | Must be paid (`is_paid: "1"`) unless Salla granted free private apps (`private_apps_limit`) |
-| Publish           | Usually auto-approved — goes **live immediately**, no admin review | Submitted to Salla review                                                                   |
-| Store requests    | **Free**, to the merchant's **own** store only, **one** per app    | **Paid**, any number of stores, each with its own price and billing cycle                   |
-| Request fields    | `store_url` only                                                   | `store_url`, `store_name`, `price`, `recurring`                                             |
-| Restricted scopes | `shippings`, `settlements`, `subscriptions`, `customer_wallets`    | None beyond the per-app `disabled` flags                                                    |
+|                   | Merchant partner (`is_merchant: true`)                                                   | Regular partner (`is_merchant: false`)                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Who               | A merchant who signed in to the Partners Portal with their store                         | A developer/agency partner account                                                          |
+| Create the app    | Free private apps allowed (`is_paid: "0"`)                                               | Must be paid (`is_paid: "1"`) unless Salla granted free private apps (`private_apps_limit`) |
+| Publish           | Usually auto-approved — goes **live immediately**, no admin review                       | Submitted to Salla review                                                                   |
+| Store requests    | **Free**, to the merchant's **own** store only, **one** per app                          | **Paid**, any number of stores, each with its own price and billing cycle                   |
+| Request fields    | `store_url` only                                                                         | `store_url`, `store_name`, `price`, `recurring`                                             |
+| Restricted scopes | `shippings` (disabled), plus `settlements`, `subscriptions`, `customer_wallets` (hidden) | `shippings` (disabled unless Salla allow-lists the app)                                     |
 
 ## Step 1 — Check status
 
-Before create: `salla_private_apps action=status` with no `app_id` returns `is_merchant` and
-`id_verified` only. After create, `salla_private_apps action=status`, `app_id` returns:
+Before create: `salla_private_apps action=status` with no `app_id` returns `is_merchant`,
+`id_verified`, `private_apps_limit` and `private_app_is_paid` (`"0"` or `"1"`). After create,
+`salla_private_apps action=status`, `app_id` returns:
 
 - `status`, `is_published` (has an approved publication), `is_already_submitted`;
 - `is_merchant`, `id_verified` (the account must be ID-verified to publish);
-- for regular partners, `durations`: the allowed billing cycles with `min`/`max` price —
-  monthly and yearly for private apps. Use these values; don't hardcode prices.
+- for regular partners, `durations`: the allowed billing cycles (monthly, yearly) with the
+  `min`/`max` price the Portal enforces for private apps. Use these values; don't hardcode
+  prices.
 
 **Gate:** "Is the app `type: private`, `id_verified` true, and do I know the account kind?"
 
 ## Step 2 — Publish
 
-1. Confirm with the partner first. For a merchant partner the app usually goes **live right
+1. If `is_already_submitted` is true, a publication is already pending: wait for it, or pull
+   it back with `salla_private_apps action=withdraw` before publishing again.
+2. Confirm with the partner first. For a merchant partner the app usually goes **live right
    away** — there is no review step to catch mistakes.
-2. Call `salla_private_apps action=publish`, `app_id`, `confirm: true`. If the app is already
+3. Call `salla_private_apps action=publish`, `app_id`, `confirm: true`. If the app is already
    published (`is_published: true`), also pass `update_note: { en, ar }` describing the change.
-3. Read the result: `approved` = live; otherwise it's waiting for Salla review, and store
+4. Read the result: `approved` = live; otherwise it's waiting for Salla review, and store
    requests can be sent once it's approved.
 
 There is no pricing step before publishing: a private app's price lives on each store request
@@ -70,32 +74,39 @@ The app must be published, and the store must be on a **Pro or Special** plan.
   `recurring` (`monthly` or `yearly`, from `status.durations`). Private apps can't be free and
   must meet the cycle's minimum price; one-time payments aren't allowed.
 
-To pull back a publication still pending review, use `salla_private_apps action=withdraw`.
+Manage requests:
 
-Manage requests with `list_requests` (paginated: pass `page`, read `pagination`) /
-`get_request`, `update_request` (resend after a new publication or a rejection) and
-`delete_request`. Regular partners address a request by its `request_id`; merchant partners
-have only one, so no id is needed. On `update_request`, pass only what changes — the rest
-keeps its current value. Once a request is accepted or an update is pending, its price and
-cycle are locked.
+- `list_requests` — paginated: pass `page`, read `pagination`.
+- `get_request` — always takes `request_id` (from `list_requests`), for both account kinds.
+- `update_request` / `delete_request` — regular partners pass `request_id`; a merchant partner
+  has only one request, so no id. A regular partner passes only the fields that change (the
+  rest keep their current values); a merchant partner's update just resends the request with
+  the latest publication.
+- Once a request is accepted, has an update sent or rejected, or has no plan, its price and
+  cycle **stay unchanged** — the update still succeeds, so don't report a new price as applied.
 
 **Gate:** "Request created with a cycle and price inside `status.durations` (regular partner),
 or the merchant's own store URL (merchant partner)?"
 
-## Scopes on merchant partners' private apps
+## Scopes on private apps
 
-The Portal hides `shippings`, `settlements`, `subscriptions` and `customer_wallets` from
-`salla_scopes action=get` on a merchant partner's private app and silently skips them on save.
-`salla_scopes action=set` reports anything that wasn't saved under `dropped`; `verified: false`
-means it couldn't re-read the app, so confirm with `action=get`. Scopes the app already held
-before the restriction stay. Design the app without these scopes.
+- `shippings` is disabled on **every** private app unless Salla allow-lists the app: `get`
+  shows it with `disabled: true`.
+- On a **merchant partner's** private app, `settlements`, `subscriptions` and
+  `customer_wallets` are also restricted and hidden from `get`.
+
+Restricted scopes aren't saved: `salla_scopes action=set` lists them under `dropped`, and
+`verified: false` means it couldn't re-read the app, so confirm with `action=get`. Scopes the
+app already held before the restriction stay. `set` is a full sync — send the whole desired
+map, because scopes left out are removed.
 
 ## Red Flags
 
-| Tempting thought                                                          | Why it's wrong                                                                                                     |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| "I'll publish the private app with `app_publish`."                        | `app_publish` is the public App Store listing flow. Private apps publish with `salla_private_apps action=publish`. |
-| "Publish is harmless — I'll call it without asking."                      | A merchant partner's private app usually goes live at once. Always get the partner's explicit confirmation first.  |
-| "I'll offer the private app to this store for free / one-time / 500 SAR." | Regular partners' private apps are paid, monthly or yearly, at or above the `status.durations` minimum.            |
-| "The merchant partner can send it to a client's store too."               | Merchant partners can request only their own store, once per app.                                                  |
-| "`salla_scopes set` succeeded, so `shippings` is granted."                | Check `dropped`: restricted scopes on a merchant partner's private app are not saved even when the call succeeds.  |
+| Tempting thought                                                          | Why it's wrong                                                                                                          |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| "I'll publish the private app with `app_publish`."                        | `app_publish` is the public App Store listing flow. Private apps publish with `salla_private_apps action=publish`.      |
+| "Publish is harmless — I'll call it without asking."                      | A merchant partner's private app usually goes live at once. Always get the partner's explicit confirmation first.       |
+| "I'll offer the private app to this store for free / one-time / 500 SAR." | Regular partners' private apps are paid, monthly or yearly, at or above the `status.durations` minimum.                 |
+| "The merchant partner can send it to a client's store too."               | Merchant partners can request only their own store, once per app.                                                       |
+| "`update_request` succeeded, so the new price applies."                   | Accepted, update-sent/rejected and planless requests keep their price and cycle silently; only the publication resends. |
+| "`salla_scopes set` succeeded, so `shippings` is granted."                | Check `dropped`: `shippings` (and more on merchant partners' private apps) is not saved even when the call succeeds.    |

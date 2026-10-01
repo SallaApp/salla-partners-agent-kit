@@ -73,8 +73,9 @@ These are **two independent choices** ([docs.salla.dev/421410m0.md](https://docs
 **Public** apps appear in the [Salla App Store](https://apps.salla.sa/en) for any merchant
 to browse, download, or purchase; **Private** apps are built for specific merchants and
 never surface in the store's listings or search. **Category** (General vs Shipping) is the
-separate axis — a Shipping app may be Public _or_ Private, while Communication apps are
-typically Public. Visibility is Portal-enforced per type, so let `create`/publish validate
+separate axis — an app's `type` is a single value (`app` / `private` / `shipping` /
+`communication`), so a Shipping app is always Public, and Communication apps are typically
+Public. Visibility is Portal-enforced per type, so let `create`/publish validate
 the combination rather than assuming it.
 
 Use the answers to tailor Steps 1, 4–7.
@@ -114,14 +115,12 @@ Use the answers to tailor Steps 1, 4–7.
 | `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
 | `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
 | `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
-| `is_paid`                    | required for a **private** app. Merchant partners may create free private apps (`"0"`); regular partners must create paid ones (`"1"`) unless Salla granted them free private apps (`private_apps_limit`) — otherwise `create` is rejected with "You can't create more than N private apps".                                                                                                          |
+| `is_paid`                    | required for a **private** app — pass `private_app_is_paid` from step 3a.                                                                                                                                                                                                                                                                                                                             |
 
-**Private apps — free or paid:** the rule depends on the account kind
-(`salla_private_apps action=status` with **no** `app_id`, before create → `is_merchant`). A **merchant partner** (a merchant who
-signed in to the Partners Portal with their store) may create free private apps. A **regular
-partner** creates them as paid (`is_paid: "1"`); free private apps need an admin grant
-(`private_apps_limit`, 0 by default), otherwise `create` is rejected with "You can't create
-more than N private apps". The full private-app flow → [references/private-apps.md](references/private-apps.md).
+**3a. Private app only:** before `create`, call `salla_private_apps action=status` with no
+`app_id` and pass its `private_app_is_paid` as `is_paid` (merchant partners get `"0"`;
+regular partners `"1"` unless Salla granted free private apps). Rules →
+[references/private-apps.md](references/private-apps.md).
 
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
@@ -138,7 +137,8 @@ Testing, and Publishing ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421
 
 **Manual fallback:** Portal → **My Apps → Create App**.
 
-**Gate:** "App created — confirm the returned `app_id` (`salla_apps action=get`)." A
+**Gate:** "App created — confirm the returned `app_id` (`salla_apps action=get`), and for
+`type: private`, `is_paid` came from `salla_private_apps action=status`?" A
 created app is **not yet published** ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md));
 keep going through configure → publish.
 
@@ -167,10 +167,10 @@ app's valid scope slugs and current selection:
    reference endpoint — `salla_scopes` reads them from the app.) **Least privilege:**
    request only the minimum slugs the app needs, and prefer `read` over `read_write`
    unless the app actually writes — excessive scopes risk review delay/rejection. Sending a
-   `disabled` option returns 422, so honour the flags from `get`. On a **merchant partner's
-   private app**, `shippings`, `settlements`, `subscriptions` and `customer_wallets` are
-   hidden and never saved — `salla_scopes action=set` lists them under `dropped` →
-   [references/private-apps.md](references/private-apps.md).
+   `disabled` option returns 422, so honour the flags from `get`. On a **private
+   app**, `shippings` is disabled unless Salla allow-lists the app (and a merchant partner's
+   private app also hides `settlements`, `subscriptions` and `customer_wallets`); restricted
+   scopes aren't saved and `salla_scopes action=set` lists them under `dropped` → [references/private-apps.md](references/private-apps.md).
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
    - `scopes` — map of `slug → "read" | "read_write"` (e.g.
      `{"orders": "read", "products": "read"}`). Pass **only** the resource map here —
@@ -355,9 +355,10 @@ Integrates a carrier or fulfillment provider:
   screenshots, benefits, contact, etc.). Mechanics → **follow
   [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**.
 
-**Gate:** "Is `type` `private`? → follow [references/private-apps.md](references/private-apps.md) (`salla_private_apps`), then
-STOP — no `app_publish`, no onboarding. Otherwise continue with the public `app_publish`
-flow below."
+**Gate:** "Is `type` `private`? → `salla_private_apps action=status app_id` → the partner
+explicitly confirmed → `publish` with `confirm: true` → `create_request` per store
+([references/private-apps.md](references/private-apps.md)), then STOP — no `app_publish`,
+no onboarding. Otherwise continue with the public `app_publish` flow below."
 
 1. **Test on a demo store.** List the company's demo stores with
    `salla_apps action=demo_stores`, `app_id`. Each store returns:

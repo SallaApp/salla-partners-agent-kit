@@ -41,15 +41,15 @@ share creation and OAuth but diverge on setup, lifecycle, and testing:
 
 ## Tools
 
-| Tool              | Action                                     | What it does                                                                                                            |
-| ----------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `salla_reference` | `categories`                               | `type=shipping` → pick `sub_category_id` from `sub_categories`; `main_category_id`/`categories` for publish come from the same call's `main_categories`/`categories` (App Theme, not shipping-scoped) |
-| `salla_upload`    | —                                          | Upload the logo → file `id`                                                                                             |
-| `salla_apps`      | `create` / `get` / `connect` / `set_status` | Create + configure OAuth/webhooks; `get` reads app state, including current `search_options` selections; a private app is published by the partner from its app-details page, not via the MCP |
-| `app_publish`     | `open` / `set` / `validate`                | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                        |
-| `salla_events`    | `list` / `subscribe`                       | Subscribe to the async shipment events                                                                                  |
-| `salla_functions` | `list_triggers` / `save` / `preview`       | Implement + test the sync shipment App Functions                                                                        |
-| `salla_shipping`  | `get_zones` / `set_zones` / `set_policy_options` / `list_zone_countries` / `list_zone_cities` / `list_search_options` | Configure shipping rate zones and the policy-options / shipment-features search-options — the two things the live Shipping Settings page manages today |
+| Tool              | Action                                                                                                                | What it does                                                                                                                                                                                          |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference` | `categories`                                                                                                          | `type=shipping` → pick `sub_category_id` from `sub_categories`; `main_category_id`/`categories` for publish come from the same call's `main_categories`/`categories` (App Theme, not shipping-scoped) |
+| `salla_upload`    | —                                                                                                                     | Upload the logo → file `id`                                                                                                                                                                           |
+| `salla_apps`      | `create` / `get` / `connect` / `set_status`                                                                           | Create + configure OAuth/webhooks; `get` reads app state, including current `search_options` selections; private apps publish via `salla_private_apps`                                                |
+| `app_publish`     | `open` / `set` / `validate`                                                                                           | Public apps: validate the publication (saves a DRAFT; partner submits in Portal)                                                                                                                      |
+| `salla_events`    | `list` / `subscribe`                                                                                                  | Subscribe to the async shipment events                                                                                                                                                                |
+| `salla_functions` | `list_triggers` / `save` / `preview`                                                                                  | Implement + test the sync shipment App Functions                                                                                                                                                      |
+| `salla_shipping`  | `get_zones` / `set_zones` / `set_policy_options` / `list_zone_countries` / `list_zone_cities` / `list_search_options` | Configure shipping rate zones and the policy-options / shipment-features search-options — the two things the live Shipping Settings page manages today                                                |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Carry the `app_id`
 > through every step. If a tool returns "Salla session expired", re-run the login flow.
@@ -141,9 +141,9 @@ zones, and a combined set of two option groups. Handle them as two separate sub-
 ### 3a — Rate Zones (required)
 
 A zone is a rate rule scoped to a country + set of cities. **There is no per-zone
-create/update/delete endpoint** — `set_zones` always replaces the *entire* zone list in
+create/update/delete endpoint** — `set_zones` always replaces the _entire_ zone list in
 one call. To add a zone, resend every existing zone plus the new one. To edit a zone,
-resend every zone with that one changed. To delete a zone, resend every zone *except* it.
+resend every zone with that one changed. To delete a zone, resend every zone _except_ it.
 
 1. **Fetch current state:** `salla_shipping action=get_zones`, `app_id`. **Note:** a
    newly created shipping app already has a pre-seeded default zone (All Countries → All
@@ -186,18 +186,18 @@ resend every zone with that one changed. To delete a zone, resend every zone *ex
 4. **Submit:** `salla_shipping action=set_zones`, `app_id`, `shipping` (array of zone
    objects). Per zone:
 
-   | Field | Required? | Notes |
-   |---|---|---|
-   | `id` | omit/`0` for a new zone | Existing zone id to update it in place. |
-   | `country` | ✅ always | From `list_zone_countries` (or `-1` for All). |
-   | `city` (array) | ✅ always | From `list_zone_cities` (or `[-1]` for All). |
-   | `cities_excluded` (array) | optional | Cities to exclude within an otherwise-included country/city selection. Only meaningful when country/city aren't the "All" sentinel. |
-   | `fees.type` | ✅ always | `"fixed"` \| `"rate"` \| `"automatic"`. |
-   | `fees.amount` | ✅ if `type: "fixed"` | The flat cost. **Must be 1–9999** — enforced by `set_zones` before it ever reaches the Portal (see below). |
-   | `fees.amount_per_unit`, `fees.up_to_weight`, `fees.per_unit` | ✅ if `type: "rate"` | Variable-rate pricing: cost per unit weight past a threshold. All three required together; `amount_per_unit`/`per_unit` > 0, `up_to_weight` 1–9999, all capped at 9999. |
-   | `duration` | ✅ always | Free text, e.g. `"2-3 business days"` — not a structured value. |
-   | `cash_on_delivery.status` | ✅ always (boolean) | — |
-   | `cash_on_delivery.fees` | ✅ if `cash_on_delivery.status: true` | Must be > 0, capped at 9999. |
+   | Field                                                        | Required?                             | Notes                                                                                                                                                                   |
+   | ------------------------------------------------------------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `id`                                                         | omit/`0` for a new zone               | Existing zone id to update it in place.                                                                                                                                 |
+   | `country`                                                    | ✅ always                             | From `list_zone_countries` (or `-1` for All).                                                                                                                           |
+   | `city` (array)                                               | ✅ always                             | From `list_zone_cities` (or `[-1]` for All).                                                                                                                            |
+   | `cities_excluded` (array)                                    | optional                              | Cities to exclude within an otherwise-included country/city selection. Only meaningful when country/city aren't the "All" sentinel.                                     |
+   | `fees.type`                                                  | ✅ always                             | `"fixed"` \| `"rate"` \| `"automatic"`.                                                                                                                                 |
+   | `fees.amount`                                                | ✅ if `type: "fixed"`                 | The flat cost. **Must be 1–9999** — enforced by `set_zones` before it ever reaches the Portal (see below).                                                              |
+   | `fees.amount_per_unit`, `fees.up_to_weight`, `fees.per_unit` | ✅ if `type: "rate"`                  | Variable-rate pricing: cost per unit weight past a threshold. All three required together; `amount_per_unit`/`per_unit` > 0, `up_to_weight` 1–9999, all capped at 9999. |
+   | `duration`                                                   | ✅ always                             | Free text, e.g. `"2-3 business days"` — not a structured value.                                                                                                         |
+   | `cash_on_delivery.status`                                    | ✅ always (boolean)                   | —                                                                                                                                                                       |
+   | `cash_on_delivery.fees`                                      | ✅ if `cash_on_delivery.status: true` | Must be > 0, capped at 9999.                                                                                                                                            |
 
    This call **replaces the full zone list** — include every zone you want to keep.
 
@@ -230,47 +230,48 @@ call** — don't build separate flows for them:
 
 - **Policy Options** — waybill/shipment detail fields (packaging type, product type,
   dimensions, and similar) that "help identify the shipment details for an easy shipping
-  experience." These describe the *shipment itself*.
+  experience." These describe the _shipment itself_.
 - **Shipment Features** — App-Store discovery/filter metadata ("aid in the process of
-  searching for the shipping App by type and coverage"). These help a merchant *find*
+  searching for the shipping App by type and coverage"). These help a merchant _find_
   your app in the marketplace — they are not shipment data.
 
 1. **Fetch the catalog:** `salla_shipping action=list_search_options`, `app_id` → every
    available option, each `{id, slug, type, is_filter, is_shipping_policy, categories,
-   name: {ar, en}, values: [{id, slug, name: {ar, en}}]}`, plus a `shipping_category` id
+name: {ar, en}, values: [{id, slug, name: {ar, en}}]}`, plus a `shipping_category` id
    in the response meta. Split it yourself:
    - **Policy Options** = options where `is_shipping_policy === true`.
    - **Shipment Features** = options where `is_filter === true` AND
      `is_shipping_policy === false` AND `categories` includes the response's
      `shipping_category` id.
-   (This mirrors exactly how the live Shipping Settings page filters the same catalog —
-   don't re-derive different criteria.) **Known gap:** live testing found `meta` can come
-   back empty (no `shipping_category` id) in some environments. If that happens, don't
-   guess a category id — check whether every option's `categories` array shares a single
-   common id (in practice they have; that shared id is the shipping category), and treat
-   an ambiguous result as a blocker to raise, not something to silently work around.
-   **You will see catalog entries that satisfy neither rule** (confirmed live: geographic-
-   coverage-shaped slugs like `included_destination_cities`, `destination_countries`, and
-   similar — `is_filter: false` AND `is_shipping_policy: false`). These belong to the
-   newer, unreleased shipping-settings flow (gated behind the `shipping_settings_page`
-   backend feature flag, out of scope for this skill — see the note at the top of this
-   step). The live Shipping Settings page ignores them too, by the same split rule —
-   don't ask the merchant about them; this is by design, not a bug in the split logic.
+     (This mirrors exactly how the live Shipping Settings page filters the same catalog —
+     don't re-derive different criteria.) **Known gap:** live testing found `meta` can come
+     back empty (no `shipping_category` id) in some environments. If that happens, don't
+     guess a category id — check whether every option's `categories` array shares a single
+     common id (in practice they have; that shared id is the shipping category), and treat
+     an ambiguous result as a blocker to raise, not something to silently work around.
+     **You will see catalog entries that satisfy neither rule** (confirmed live: geographic-
+     coverage-shaped slugs like `included_destination_cities`, `destination_countries`, and
+     similar — `is_filter: false` AND `is_shipping_policy: false`). These belong to the
+     newer, unreleased shipping-settings flow (gated behind the `shipping_settings_page`
+     backend feature flag, out of scope for this skill — see the note at the top of this
+     step). The live Shipping Settings page ignores them too, by the same split rule —
+     don't ask the merchant about them; this is by design, not a bug in the split logic.
 
    Confirmed live catalog (illustrative — always read the actual response, Salla can add/
    remove options; don't hard-code these slugs as an exhaustive list):
 
-   | Group | `slug` | Arabic label | What it means |
-   |---|---|---|---|
-   | Policy Option | `shipment_content_type` | أنواع الشحن | Product/content type inside the shipment (e.g. Electronics). |
-   | Policy Option | `packaging_type` | أنواع التغليف | How the shipment is packaged. |
-   | Policy Option | `support_dimensions` | أبعاد الشحنة | Whether the merchant must provide package dimensions. |
-   | Policy Option | `support_number_of_box` | عدد الصناديق | Whether the merchant must provide a box count. |
-   | Shipment Feature | `delivery_service_type` | طرق الاستلام والتسليم | Pickup/delivery method(s) the carrier offers. |
-   | Shipment Feature | `shipping_cover_type` | نطاق تغطية الشحن | Geographic coverage range (e.g. domestic/international). |
-   | Shipment Feature | `company_type` | نوع الشركة | Carrier company type/classification. |
-   | Shipment Feature | `services` | الخدمات | Carrier service offerings. |
-   | Shipment Feature | `support_change_name` | الإسم المعروض للشركة | **Not discovery metadata** — a real merchant-facing toggle: whether the merchant can override your carrier's displayed name at the storefront checkout. Treat it with the same care as any other operational setting, even though it lives in the Shipment Features group. |
+   | Group            | `slug`                  | Arabic label          | What it means                                                                                                                                                                                                                                                              |
+   | ---------------- | ----------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Policy Option    | `shipment_content_type` | أنواع الشحن           | Product/content type inside the shipment (e.g. Electronics).                                                                                                                                                                                                               |
+   | Policy Option    | `packaging_type`        | أنواع التغليف         | How the shipment is packaged.                                                                                                                                                                                                                                              |
+   | Policy Option    | `support_dimensions`    | أبعاد الشحنة          | Whether the merchant must provide package dimensions.                                                                                                                                                                                                                      |
+   | Policy Option    | `support_number_of_box` | عدد الصناديق          | Whether the merchant must provide a box count.                                                                                                                                                                                                                             |
+   | Shipment Feature | `delivery_service_type` | طرق الاستلام والتسليم | Pickup/delivery method(s) the carrier offers.                                                                                                                                                                                                                              |
+   | Shipment Feature | `shipping_cover_type`   | نطاق تغطية الشحن      | Geographic coverage range (e.g. domestic/international).                                                                                                                                                                                                                   |
+   | Shipment Feature | `company_type`          | نوع الشركة            | Carrier company type/classification.                                                                                                                                                                                                                                       |
+   | Shipment Feature | `services`              | الخدمات               | Carrier service offerings.                                                                                                                                                                                                                                                 |
+   | Shipment Feature | `support_change_name`   | الإسم المعروض للشركة  | **Not discovery metadata** — a real merchant-facing toggle: whether the merchant can override your carrier's displayed name at the storefront checkout. Treat it with the same care as any other operational setting, even though it lives in the Shipment Features group. |
+
 2. **Understand each option's `type` before building a selection:**
    - `"multi_select"` / `"select"` — choose one or more entries from that option's
      `values[]` by `id`.
@@ -285,7 +286,7 @@ call** — don't build separate flows for them:
 3. **Interview the merchant/partner using the real catalog — don't guess which values
    apply to their carrier.** Every option's correct value is a business fact only they
    know (their packaging, their coverage, their company type); the catalog only tells
-   you what's *possible* to answer, not the answer itself.
+   you what's _possible_ to answer, not the answer itself.
    - Check `salla_apps action=get`'s `search_options` field first. Empty or absent means
      first-time setup — run the full interview below. If selections already exist,
      summarize them and ask specifically what's changing, rather than re-asking
@@ -307,7 +308,7 @@ call** — don't build separate flows for them:
    same array — the split is informational, not structural. This call **replaces the
    current selection** — include every option (from both groups) you want to keep.
 5. **Verify what actually saved.** `salla_shipping` has no read-back action for the
-   app's *current* selections — `action=list_search_options` only ever returns the
+   app's _current_ selections — `action=list_search_options` only ever returns the
    static catalog (every possible option/value), unaffected by what you've saved.
    To confirm what's actually selected, call `salla_apps action=get` and read its
    `search_options` field (array of `{id, values}` for the current app) — that's the
@@ -320,11 +321,11 @@ dropped by omission."
 
 ### Red Flags — zones & policy options
 
-| Tempting thought | Why it's wrong |
-| --- | --- |
-| "I'll use a reasonable-looking rate/duration so I don't have to ask." | The merchant's rate is their business decision, not something inferable — a plausible-looking number that's wrong ships real pricing errors to real customers (3a). |
-| "They named one country — that's probably their full coverage." | Merchants often don't volunteer their whole list unprompted — always ask explicitly whether there are more before ending the zones interview (3a). |
-| "I'll skip the Required question and leave it optional." | Required vs. optional is real checkout-blocking behavior for the merchant, not a formality — ask it explicitly for every Policy Option (3b). |
+| Tempting thought                                                            | Why it's wrong                                                                                                                                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "I'll use a reasonable-looking rate/duration so I don't have to ask."       | The merchant's rate is their business decision, not something inferable — a plausible-looking number that's wrong ships real pricing errors to real customers (3a).                        |
+| "They named one country — that's probably their full coverage."             | Merchants often don't volunteer their whole list unprompted — always ask explicitly whether there are more before ending the zones interview (3a).                                         |
+| "I'll skip the Required question and leave it optional."                    | Required vs. optional is real checkout-blocking behavior for the merchant, not a formality — ask it explicitly for every Policy Option (3b).                                               |
 | "The slug name explains itself — no need to translate it for the merchant." | `support_change_name` and similar don't read as their real meaning from the slug alone (e.g. it's about overriding a displayed name at checkout) — ask in plain language, not jargon (3b). |
 
 ---
@@ -465,9 +466,8 @@ third-party capture/inspection tool, and restore real config when done.
 
 **Publishing:** public app → `app_publish` stepwise (`open` → `set` each section →
 `validate` saves a DRAFT; the partner then submits one-click in the Portal `/publish` page —
-owned by **salla-publication-consistency**). Private app → the partner sends the publish
-request from the app-details page `https://portal.salla.partners/apps/{app_id}` (no MCP
-action, no onboarding). Two shipping-specific blockers:
+owned by **salla-publication-consistency**). Private app → `salla_private_apps action=publish`
+(no onboarding) → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md). Two shipping-specific blockers:
 
 - The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).

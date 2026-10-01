@@ -10,6 +10,44 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.17] — 2026-10-01
+
+### Added
+
+- **Private apps through the MCP** (DPD-19842): the new `salla_private_apps` tool publishes a
+  private app and sends it to stores as access requests (`status`, `publish`,
+  `list_requests`, `get_request`, `create_request`, `update_request`, `delete_request`). New
+  reference `salla-app-builder/references/private-apps.md` covers the flow and the two account
+  kinds:
+  - **Merchant partners** (merchants signed in with their store) create free private apps,
+    are usually auto-approved on publish (live immediately), and send one free request to
+    their own store only.
+  - **Regular partners** create paid private apps and send paid requests, monthly or yearly
+    only, at or above the minimum price that `status` returns (DPD-19813).
+
+  `publish` is confirm-gated like `send_publish_request`.
+
+- The PreToolUse hook maps `salla_private_apps` → `salla-app-builder`; the prompt nudge
+  matches "private app".
+
+### Changed
+
+- Every skill that said "a private app is published by the partner from its app-details page,
+  no MCP action" (`salla-app-builder`, `salla-app-expert`, `salla-app-functions`,
+  `salla-app-functions-release`, `salla-publication-consistency`, `salla-shipping-app`) now
+  routes to `salla_private_apps`.
+- `salla-app-builder`'s free-private-app rule was "the first private app is free". Regular
+  partners now get no free private apps by default (`private_apps_limit` 0, admin grant only);
+  merchant partners may create them free.
+- Scopes (DPD-19811): on a merchant partner's private app, `shippings`, `settlements`,
+  `subscriptions` and `customer_wallets` are hidden and never saved; `salla_scopes action=set`
+  reports them under `dropped`.
+
+### Fixed
+
+- `docs/getting-started.md` listed a `publish` action on `salla_apps` that doesn't exist. The
+  table now lists `app_publish` and `salla_private_apps`.
+
 ## [1.0.16] — 2026-09-16
 
 ### Added
@@ -57,7 +95,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
   a shared list independent of the app/shipping/communication type.** A backend change
   moved the publish-time main category off the app/shipping category tree onto a new
   `app_impact` category type — one set for every app type. `salla_reference
-  action=categories` now returns THREE independent lists per call instead of two:
+action=categories` now returns THREE independent lists per call instead of two:
   `main_categories` (type `app_impact` — publish `main_category_id`), `categories` (type
   `app`, always — publish `categories` array), and `sub_categories` (type `sub_app` /
   `sub_shipping`, per the caller's `type` — create's `sub_category_id`, unchanged). Updated

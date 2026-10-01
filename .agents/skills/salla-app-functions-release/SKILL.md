@@ -53,9 +53,9 @@ not by re-running `save`. The agent prepares the publication; the partner submit
   (`https://portal.salla.partners/apps/{app_id}/publish`, real id substituted) so they review
   the draft and click submit one-click. The agent **never** admin-submits — full stepwise flow
   (`open` → `set` each section → `validate`) is owned by **salla-publication-consistency**.
-- **Private app:** there's no MCP publish action — the partner sends the publish request
-  from the app-details page `https://portal.salla.partners/apps/{app_id}` (no onboarding,
-  no listing/review). Hand them the link.
+- **Private app:** publish with `salla_private_apps action=publish` (`confirm: true`, only
+  after the partner confirms — a merchant partner's app usually goes live at once; no
+  onboarding or listing) → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md).
 
 **Pre-publish security check.** **Before** the partner submits, scan the saved `content`
 (`salla_functions action=get`): no hardcoded tokens, secrets, or API keys; no debug dumps of
@@ -72,8 +72,8 @@ verification → **salla-webhooks**.
 - [ ] Tested in preview against a demo store with a real record ID (**salla-app-functions-test**).
 - [ ] Saved (`action=save`); for a public app the publication validates clean
       (`app_publish action=validate` → draft) and the partner has the Portal `/publish` link;
-      for a private app, the partner has the app-details link to publish from.
+      for a private app, the partner confirmed the `salla_private_apps` publish.
 
 **Gate:** "Execution Status = success in preview, within the timeout budget, and the
-publication validates clean (public) / the partner has the app-details link (private) —
-partner submits?"
+publication validates clean (public) / the partner confirmed the private publish
+(private) — partner submits?"

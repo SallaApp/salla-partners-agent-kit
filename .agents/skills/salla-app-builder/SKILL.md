@@ -2,11 +2,11 @@
 name: salla-app-builder
 description: >
   Use when creating a new Salla app or driving any create-to-publish step via the Salla
-  Partners MCP — "create a new Salla app", configure scopes/webhooks, or publish. The
-  spine; it hands off mechanics to the owning skill: snippets → salla-snippets, embedded
-  pages → salla-embedded-app, App Functions → salla-app-functions, settings →
-  salla-app-settings, OAuth/tokens → salla-app-auth, webhooks → salla-webhooks, billing →
-  salla-app-billing, publish checks → salla-publication-consistency. Type deltas:
+  Partners MCP — "create a new Salla app", configure scopes/webhooks, publish, or send a
+  private app to stores. The spine; it hands off mechanics to the owning skill: snippets →
+  salla-snippets, embedded pages → salla-embedded-app, App Functions → salla-app-functions,
+  settings → salla-app-settings, OAuth/tokens → salla-app-auth, webhooks → salla-webhooks,
+  billing → salla-app-billing, publish checks → salla-publication-consistency. Type deltas:
   salla-shipping-app, salla-communication-app.
 license: Copyright (c) 2026 Salla
 metadata:
@@ -47,13 +47,14 @@ drive that same Portal, so prefer them when connected.
 
 These steps drive the **Salla Partners MCP** tools. Each is one tool with an `action`:
 
-| Tool              | What it does                                                                                                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `salla_reference` | Look up `categories`, `countries`, `cities`                                                                                                                                                                                                                   |
-| `salla_upload`    | Upload a logo/file → returns a file `id`                                                                                                                                                                                                                      |
-| `salla_apps`      | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `demo_stores` (testing). Public-app publishing uses the separate `app_publish` tool; a private app is published by the partner from its app-details page, not via the MCP. |
-| `salla_scopes`    | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)                                                                                                                                          |
-| `salla_events`    | `list` subscribable events / `subscribe` an app to slugs                                                                                                                                                                                                      |
+| Tool                 | What it does                                                                                                                                                                                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `salla_reference`    | Look up `categories`, `countries`, `cities`                                                                                                                                                                       |
+| `salla_upload`       | Upload a logo/file → returns a file `id`                                                                                                                                                                          |
+| `salla_apps`         | `create` / `update` / `get` / `list` / `connect` (OAuth+webhooks) / `set_status` / `demo_stores` (testing). Public-app publishing uses the separate `app_publish` tool; private apps use `salla_private_apps`.    |
+| `salla_private_apps` | Private apps: `status` / `publish` (confirm-gated) / store requests (`list_requests` `get_request` `create_request` `update_request` `delete_request`) → [references/private-apps.md](references/private-apps.md) |
+| `salla_scopes`       | `get` valid scope slugs (+ `disabled` / `selected`) / `set` selected scopes (flat `slug → read \| read_write \| ""`)                                                                                              |
+| `salla_events`       | `list` subscribable events / `subscribe` an app to slugs                                                                                                                                                          |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected (the tools above
 > appear in your tool list). If it isn't, fall back to the Portal at
@@ -113,12 +114,14 @@ Use the answers to tailor Steps 1, 4–7.
 | `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
 | `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
 | `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
-| `is_paid`                    | optional. For a **private** app this controls the free-private-app limit: a company gets a limited number of free private apps (`private_apps_limit`, effectively one). The first private app is free; for any **additional** private app set `is_paid: "1"` (paid) — otherwise `create` is rejected with "You can't create more than N private apps".                                                |
+| `is_paid`                    | required for a **private** app. Merchant partners may create free private apps (`"0"`); regular partners must create paid ones (`"1"`) unless Salla granted them free private apps (`private_apps_limit`) — otherwise `create` is rejected with "You can't create more than N private apps".                                                                                                          |
 
-**Private apps — the free-private-app limit:** the first private app a company creates is
-free; for any **additional** private app, set `is_paid: "1"` (or `true`) on
-`salla_apps action=create`. Otherwise `create` is rejected with "You can't create more than
-N private apps" because the company's free `private_apps_limit` (effectively one) is exhausted.
+**Private apps — free or paid:** the rule depends on the account kind
+(`salla_private_apps action=status` → `is_merchant`). A **merchant partner** (a merchant who
+signed in to the Partners Portal with their store) may create free private apps. A **regular
+partner** creates them as paid (`is_paid: "1"`); free private apps need an admin grant
+(`private_apps_limit`, 0 by default), otherwise `create` is rejected with "You can't create
+more than N private apps". The full private-app flow → [references/private-apps.md](references/private-apps.md).
 
 The result returns the new `app_id` — carry it through every later step. **Open the app in
 the Partners Portal to view, configure, and test it:**
@@ -141,9 +144,9 @@ keep going through configure → publish.
 
 ### Red Flags — create
 
-| Tempting thought                                                                            | Why it's wrong                                                                                                                                                                  |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "`create` was rejected — 'can't create more than N private apps'; the feature must be off." | The company has used its free private app (`private_apps_limit`, effectively one). Create the additional private app as paid: set `is_paid: "1"` on `salla_apps action=create`. |
+| Tempting thought                                                                            | Why it's wrong                                                                                                                                         |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "`create` was rejected — 'can't create more than N private apps'; the feature must be off." | The account has no free private apps left (regular partners get none by default). Create it as paid: set `is_paid: "1"` on `salla_apps action=create`. |
 
 ---
 
@@ -164,7 +167,10 @@ app's valid scope slugs and current selection:
    reference endpoint — `salla_scopes` reads them from the app.) **Least privilege:**
    request only the minimum slugs the app needs, and prefer `read` over `read_write`
    unless the app actually writes — excessive scopes risk review delay/rejection. Sending a
-   `disabled` option returns 422, so honour the flags from `get`.
+   `disabled` option returns 422, so honour the flags from `get`. On a **merchant partner's
+   private app**, `shippings`, `settlements`, `subscriptions` and `customer_wallets` are
+   hidden and never saved — `salla_scopes action=set` lists them under `dropped` →
+   [references/private-apps.md](references/private-apps.md).
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
    - `scopes` — map of `slug → "read" | "read_write"` (e.g.
      `{"orders": "read", "products": "read"}`). Pass **only** the resource map here —
@@ -337,12 +343,11 @@ Integrates a carrier or fulfillment provider:
 
 **Decide the path by app type before publishing — they do not share a flow:**
 
-- **If `type` is `private`** (installed only by specific merchant(s) via a private
-  request) → the **partner publishes it themselves from the app-details page**,
-  `https://portal.salla.partners/apps/{app_id}` (substitute the returned id). There is **no
-  MCP publish action, no onboarding, no public listing, and no readiness sections** for a
-  private app — skip Steps 3–7's publication sections entirely. Give the partner the
-  app-details link and tell them to send the publish request from there.
+- **If `type` is `private`** (installed only by specific merchant(s) via a store
+  request) → **`salla_private_apps`**: `status` → `publish` (`confirm: true`, only after the
+  partner confirms — a merchant partner's app usually goes live at once) → `create_request`
+  per store. There is **no onboarding, no public listing, and no readiness sections** — skip
+  the `app_publish` flow below entirely. Full flow → [references/private-apps.md](references/private-apps.md).
 - **Else (a public app — App Store, any merchant can discover/install)** → the **stepwise
   `app_publish` onboarding** in sub-steps 1–4 below: `open` → guided `set` per section →
   `app_publish action=validate` (validates + saves a DRAFT) → guide the partner to submit
@@ -350,10 +355,9 @@ Integrates a carrier or fulfillment provider:
   screenshots, benefits, contact, etc.). Mechanics → **follow
   [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**.
 
-**Gate:** "Is `type` `private`? → give the partner the app-details link
-`https://portal.salla.partners/apps/{app_id}` and have them send the publish request there,
-then STOP — no MCP publish action, no onboarding. Otherwise continue with the public
-`app_publish` flow below."
+**Gate:** "Is `type` `private`? → follow [references/private-apps.md](references/private-apps.md) (`salla_private_apps`), then
+STOP — no `app_publish`, no onboarding. Otherwise continue with the public `app_publish`
+flow below."
 
 1. **Test on a demo store.** List the company's demo stores with
    `salla_apps action=demo_stores`, `app_id`. Each store returns:
@@ -410,8 +414,8 @@ link, and the publish request is sent only on their one-click submit or explicit
 
 | Tempting thought                                                                      | Why it's wrong                                                                                                                                                                                                                                                              |
 | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "It's a private app, I'll run the public `app_publish` onboarding to publish it."     | Private apps don't use the stepwise listing flow and there's no MCP publish action for them. The partner publishes a private app from its app-details page, `https://portal.salla.partners/apps/{app_id}` — no sections, no onboarding, no listing.                         |
-| "I'll `app_publish action=submit` / push the private app through the readiness gate." | A private app has no public listing to validate, so the public `validate` gate doesn't apply. Hand the partner the app-details link and have them send the publish request there.                                                                                           |
+| "It's a private app, I'll run the public `app_publish` onboarding to publish it."     | Private apps don't use the stepwise listing flow. Publish with `salla_private_apps action=publish` (`confirm: true` after the partner confirms) — no sections, no onboarding, no listing.                                                                                   |
+| "I'll `app_publish action=submit` / push the private app through the readiness gate." | A private app has no public listing to validate, so the public `validate` gate doesn't apply. Use `salla_private_apps`, then send it to stores with `create_request`.                                                                                                       |
 | "`app_publish action=validate` passed — the public app is now submitted for review."  | `validate` only validates and **saves a DRAFT**; it does not submit. Give the partner the real `/publish` link (`.../apps/{app_id}/publish`); review reaches Salla only on their one-click submit or, after explicit confirmation, `send_publish_request` (`confirm:true`). |
 
 ---

@@ -25,7 +25,7 @@ prompt=$(printf '%s' "$payload" \
 [ -z "$prompt" ] && prompt="$payload"
 
 # Tight Salla-intent regex (mirrors session-start-context.md keywords). No match → quiet.
-SALLA_RE='salla|merchant|storefront|salla_themes|twilight[ ._-]?(theme|json|cli|bundle)|app[ _-]?function|snippet|webhook|partners?[ _-]?portal|embedded|oauth|addon|shipping[ _-]?app|publish[ ]?(app|listing)?'
+SALLA_RE='salla|merchant|storefront|salla_themes|twilight[ ._-]?(theme|json|cli|bundle)|app[ _-]?function|snippet|webhook|partners?[ _-]?portal|embedded|oauth|addon|shipping[ _-]?app|private[ _-]?app|publish[ ]?(app|listing)?'
 printf '%s' "$prompt" | grep -Eiq "$SALLA_RE" || emit_noop
 
 # Which product? A Twilight theme is not an app, so its prompts go straight to

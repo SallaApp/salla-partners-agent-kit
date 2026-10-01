@@ -356,7 +356,8 @@ Integrates a carrier or fulfillment provider:
   [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**.
 
 **Gate:** "Is `type` `private`? → `salla_private_apps action=status app_id` → the partner
-explicitly confirmed → `publish` with `confirm: true` → `create_request` per store
+explicitly confirmed → `publish` with `confirm: true` → once the publication is `approved`
+(a regular partner's goes to Salla review first), `create_request` per store
 ([references/private-apps.md](references/private-apps.md)), then STOP — no `app_publish`,
 no onboarding. Otherwise continue with the public `app_publish` flow below."
 

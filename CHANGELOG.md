@@ -16,7 +16,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 - **Webhook URL reported as missing after `connect` (DPD-19218).** The publication flow told the
   agent to read the webhook config from the draft (`publication.webhook_url`), which the Portal
-  only snapshots at submit — so a freshly saved URL read back as `NULL`. `salla-publication-consistency`
+  only copied at submit (now at `validate` and submit) — so a freshly saved URL read back as `NULL`. `salla-publication-consistency`
   now reads it live from `app_publish action=get` → `webhooks` (or `salla_apps action=get`), and the
   `salla-webhooks` gate names that read-back. Needs the MCP that returns the live webhook config.
 - **Development vs published webhook config.** `step-app-config.md` now separates the development

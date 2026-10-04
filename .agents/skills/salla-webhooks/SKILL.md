@@ -126,13 +126,16 @@ is **only** for store events the app reacts to (`order.*`, `product.*`, …).
    > (`https://portal.salla.partners/apps/{app_id}`, real id substituted), not by the MCP — a
    > rotation invalidates the old value. **Immediately before deploying, read the live value with
    > `salla_apps action=get` (the `webhook_secret` field)** — never reuse a secret from an
-   > earlier session or assume your local/env value still matches Salla's. Tie verification
-   > to that live value and update **every** deployment environment (prod, staging, preview).
-   > Confirm **deployed env == Portal secret** before testing; a mismatch fails verification
-   > and returns **401 on every delivery**. **Published public app:** if `salla_apps action=get` →
-   > `app.published.webhook_secret_differs` is true, live stores still sign with the previous
-   > secret until the next approval — keep accepting it next to the new one, never replace it
-   > ([step-app-config](../salla-publication-consistency/references/step-app-config.md)).
+   > earlier session or assume your local/env value still matches Salla's. Set that live value
+   > as `SALLA_WEBHOOK_SECRET` in **every** deployment environment (prod, staging, preview) and
+   > confirm **deployed env == Portal secret** before testing; a mismatch fails verification
+   > and returns **401 on every delivery**.
+   >
+   > **Published public app:** if `salla_apps action=get` → `app.published.webhook_secret_differs`
+   > is true, live stores still sign with the **previous** secret until the next approval. Move the
+   > old value to `SALLA_WEBHOOK_SECRET_PREVIOUS` (don't delete it) so verification accepts both
+   > (Step 5 example), and remove it only once the new publication is approved and the flag is
+   > false ([step-app-config](../salla-publication-consistency/references/step-app-config.md)).
 
 2. Subscribe to **store events** only (skip this if the app handles app events alone): list
    valid slugs with `salla_events action=list`, `app_id`, then `salla_events action=subscribe`,
@@ -198,7 +201,9 @@ until a new publication is approved."
 **Verify against the strategy you set on connect (Step 2) — the two strategies use _different_
 verification, and using the wrong one rejects (or admits) everything.** Read the live secret
 with `salla_apps action=get` first (Step 2 secret-sync gate). Keep `SALLA_WEBHOOK_SECRET` in
-env only, out of logs. Docs: https://docs.salla.dev/421119m0.md
+env only, out of logs. While a rotated secret awaits approval on a published app, a delivery is
+valid if it matches **either** `SALLA_WEBHOOK_SECRET` or `SALLA_WEBHOOK_SECRET_PREVIOUS` — for both
+strategies. Docs: https://docs.salla.dev/421119m0.md
 
 | `webhook_security_strategy` | What Salla sends                           | How you verify                                        |
 | --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
@@ -372,12 +377,15 @@ Response & retry rules — **non-negotiable** (421119):
 app.post("/webhooks/salla", express.raw({ type: "*/*" }), async (req, res) => {
   const raw = req.body.toString("utf8"); // Buffer from express.raw
   const signature = req.get("X-Salla-Signature") ?? "";
-  const valid = await verifySignature(
-    raw,
-    signature,
+  // _PREVIOUS is set only while a rotated secret awaits publication approval (Step 2 gate).
+  const secrets = [
     process.env.SALLA_WEBHOOK_SECRET!,
+    process.env.SALLA_WEBHOOK_SECRET_PREVIOUS,
+  ].filter((s): s is string => !!s);
+  const checks = await Promise.all(
+    secrets.map((s) => verifySignature(raw, signature, s)),
   );
-  if (!valid) return res.status(401).end();
+  if (!checks.some(Boolean)) return res.status(401).end();
   res.status(200).end(); // respond immediately (well under Salla's ~30s wait)
   processWebhookAsync(JSON.parse(raw)).catch(console.error); // parse AFTER verifying
 });

@@ -44,10 +44,11 @@ A public app has up to three webhook configs. Name which one you mean:
   review → `send_publish_request`) is approved. Never say a `connect` change is live for merchants
   until then.
 - `published.webhook_secret_differs: true` → the secret was created/rotated after the last approval,
-  so live stores still sign with the **previous** secret. The partner's server must accept **both**
-  the previous and the current secret until the new publication is approved — replacing the old one
-  in the runtime env rejects every live-store delivery (401). The MCP never returns the previous
-  secret; it's the value the runtime already has.
+  so live stores still sign with the **last approved** secret. The partner's server must accept
+  **both** that approved secret and the current one until the new publication is approved —
+  replacing it in the runtime env rejects every live-store delivery (401). The MCP never returns the
+  approved secret; keep the value the runtime had at the last approval (`SALLA_WEBHOOK_SECRET_PREVIOUS`,
+  see the **salla-webhooks** secret-sync gate), even across further rotations.
 - `published.webhook_headers_differ: true` → live stores still send the previous custom headers.
 - OAuth scopes follow the same rule: a public app's live stores get the approved publication's
   scopes until the next approval.

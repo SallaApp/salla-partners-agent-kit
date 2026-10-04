@@ -16,15 +16,19 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 - **Webhook URL reported as missing after `connect` (DPD-19218).** The publication flow told the
   agent to read the webhook config from the draft (`publication.webhook_url`), which the Portal
-  only copied at submit (now at `validate` and submit) — so a freshly saved URL read back as `NULL`. `salla-publication-consistency`
-  now reads it live from `app_publish action=get` → `webhooks` (or `salla_apps action=get`), and the
-  `salla-webhooks` gate names that read-back. Needs the MCP that returns the live webhook config.
-- **Development vs published webhook config.** `step-app-config.md` now separates the development
-  config (`connect` — demo stores get it at once), the published config live stores keep using
-  until the next approval (`webhooks.published`, `published_differs`), and the draft copy; an
-  unreadable webhook config is reported as "couldn't be checked", never as missing.
+  only copied at submit (now at `validate` and submit) — so a freshly saved URL read back as `NULL`.
+  `salla-publication-consistency` now reads `webhook_config` from `app_publish action=get` (or
+  `salla_apps action=get`), and the `salla-webhooks` gate names that read-back. Needs the MCP that
+  returns `webhook_config`.
+- **Development, latest publication and approved webhook config.** `step-app-config.md` explains
+  `webhook_config`: development (`connect`/`subscribe` — demo stores get it at once), the latest
+  publication (draft, in review, …) and the approved one live stores keep using until the next
+  approval, each with `differs_from_development`; what to tell the partner at connect, get,
+  validate and submit (relay `note` / `_publication_note`), including withdrawing an in-review
+  publication that carries an older config. An unreadable config is reported as "couldn't be
+  checked", never as missing.
 - **Secret rotation on a published app.** Live stores sign with the last approved secret until the
-  next approval (`published.webhook_secret_differs`, `published.webhook_secret`); `salla-webhooks`,
+  next approval (`webhook_config.approved.webhook_secret`); `salla-webhooks`,
   `salla-app-expert` and `step-app-config.md` now tell the agent to set that approved secret as
   `SALLA_WEBHOOK_SECRET_PREVIOUS` and accept both instead of replacing it, and how to debug
   "demo stores receive, live stores don't".

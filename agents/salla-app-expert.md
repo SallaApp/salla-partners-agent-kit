@@ -126,10 +126,10 @@ Make each of these three decisions explicitly, up front, and state your choice. 
 9. **Check secret/config parity after every `connect`.** When the Portal mints a secret
    (created/rotated in the Portal) or you set a webhook URL, copy it to the runtime env and verify
    deployed env == Portal value before testing. A secret mismatch returns `401` on every
-   webhook delivery. On a published public app, live stores keep the last approved config
-   (`app.published`, `published_differs`) — when `published.webhook_secret_differs` is true the
-   runtime must also accept `published.webhook_secret` (as `SALLA_WEBHOOK_SECRET_PREVIOUS`) until
-   the next approval.
+   webhook delivery. On a published public app, live stores keep the approved config until the
+   next approval — read `webhook_config` (development / latest publication / approved), relay its
+   `note`, and when `approved.webhook_secret` is present the runtime must also accept it (as
+   `SALLA_WEBHOOK_SECRET_PREVIOUS`) until then.
 
 10. **On a mid-session "use salla expert" → audit, don't append.** Run a compliance pass over
     code already written against the skills and refactor what's wrong; never build forward on

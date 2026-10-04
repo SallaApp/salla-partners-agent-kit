@@ -131,11 +131,11 @@ is **only** for store events the app reacts to (`order.*`, `product.*`, …).
    > confirm **deployed env == Portal secret** before testing; a mismatch fails verification
    > and returns **401 on every delivery**.
    >
-   > **Published public app:** if `salla_apps action=get` → `app.published.webhook_secret_differs`
-   > is true, live stores still sign with the approved secret until the next approval. Set
-   > `SALLA_WEBHOOK_SECRET_PREVIOUS` to `app.published.webhook_secret` (read it live each time — it
-   > stays the approved value across further rotations) so verification accepts both (Step 5
-   > example). Remove `_PREVIOUS` once the new publication is approved and the flag is false
+   > **Published public app:** if `salla_apps action=get` → `app.webhook_config.approved` has a
+   > `webhook_secret`, live stores still sign with it until the next approval. Set
+   > `SALLA_WEBHOOK_SECRET_PREVIOUS` to that value (read it live each time — it stays the approved
+   > value across further rotations) so verification accepts both (Step 5 example). Remove
+   > `_PREVIOUS` once the new publication is approved and `approved.webhook_secret` is gone
    > ([step-app-config](../salla-publication-consistency/references/step-app-config.md)).
 
 2. Subscribe to **store events** only (skip this if the app handles app events alone): list
@@ -190,10 +190,11 @@ Base URL `https://api.salla.dev/admin/v2`; all five operations need the
   required); passing `url` **deletes every webhook registered to that URL**. Returns `202`.
 
 **Gate:** "Subscribed to the right events (`salla_events action=list` / `GET /webhooks`
-confirms), webhook URL registered (`salla_apps action=get` → `app.webhook_url` is the development
-value demo stores use; never judge it from a publication draft's `webhook_url`)? For a published
-public app, `app.published_differs: true` means merchants' live stores still get `app.published`
-until a new publication is approved."
+confirms), webhook URL registered (`salla_apps action=get` →
+`app.webhook_config.development.webhook_url` is what demo stores use; never judge it from a
+publication draft's `webhook_url`)? For a published public app, relay `webhook_config.note`: a
+non-empty `approved.differs_from_development` means merchants' live stores still get the approved
+config until a new publication is approved."
 
 ---
 
@@ -509,8 +510,8 @@ When webhooks aren't arriving:
       stores use the last approved secret until the next approval — see the secret-sync gate.
 - [ ] **Demo stores receive, live stores don't (or get the old URL/events)?** Live stores use the
       approved publication's config until a new publish request is approved — `salla_apps
-      action=get` → `app.published_differs` flags a URL/strategy/secret change; event and header
-      changes aren't flagged but follow the same rule.
+      action=get` → `app.webhook_config.approved.differs_from_development` lists what differs (and
+      `not_compared` what couldn't be checked); `webhook_config.note` says what to do.
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")
 - [ ] Subscribed to the correct event name (case-sensitive)

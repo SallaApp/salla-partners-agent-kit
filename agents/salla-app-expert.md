@@ -128,7 +128,8 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    deployed env == Portal value before testing. A secret mismatch returns `401` on every
    webhook delivery. On a published public app, live stores keep the last approved config
    (`app.published`, `published_differs`) — when `published.webhook_secret_differs` is true the
-   runtime must accept the previous secret too until the next approval.
+   runtime must also accept `published.webhook_secret` (as `SALLA_WEBHOOK_SECRET_PREVIOUS`) until
+   the next approval.
 
 10. **On a mid-session "use salla expert" → audit, don't append.** Run a compliance pass over
     code already written against the skills and refactor what's wrong; never build forward on

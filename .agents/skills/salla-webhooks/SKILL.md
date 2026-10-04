@@ -132,12 +132,11 @@ is **only** for store events the app reacts to (`order.*`, `product.*`, …).
    > and returns **401 on every delivery**.
    >
    > **Published public app:** if `salla_apps action=get` → `app.published.webhook_secret_differs`
-   > is true, live stores still sign with the **last approved** secret until the next approval.
-   > `SALLA_WEBHOOK_SECRET_PREVIOUS` holds that approved secret: set it once, on the first rotation
-   > after an approval (the value the runtime had before); on any further rotation before approval
-   > replace only `SALLA_WEBHOOK_SECRET` and leave `_PREVIOUS` untouched. Verification accepts both
-   > (Step 5 example); remove `_PREVIOUS` only once the new publication is approved and the flag is
-   > false ([step-app-config](../salla-publication-consistency/references/step-app-config.md)).
+   > is true, live stores still sign with the approved secret until the next approval. Set
+   > `SALLA_WEBHOOK_SECRET_PREVIOUS` to `app.published.webhook_secret` (read it live each time — it
+   > stays the approved value across further rotations) so verification accepts both (Step 5
+   > example). Remove `_PREVIOUS` once the new publication is approved and the flag is false
+   > ([step-app-config](../salla-publication-consistency/references/step-app-config.md)).
 
 2. Subscribe to **store events** only (skip this if the app handles app events alone): list
    valid slugs with `salla_events action=list`, `app_id`, then `salla_events action=subscribe`,

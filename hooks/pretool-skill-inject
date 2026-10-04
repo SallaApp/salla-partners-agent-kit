@@ -41,6 +41,9 @@ case "$short" in
   app_page_builder) skill='salla-app-ui-builder' ;;
   salla_apps) skill='salla-app-builder' ;;
   salla_themes) skill='salla-theme-builder' ;;
+  # Reading the React theme docs is a docs lookup, not theme account work — salla-docs owns
+  # the "which page, then read just that page" discipline the tool needs.
+  salla_themes_docs) skill='salla-docs' ;;
   *) emit_noop ;;
 esac
 

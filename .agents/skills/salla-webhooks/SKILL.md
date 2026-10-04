@@ -507,9 +507,10 @@ When webhooks aren't arriving:
       `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a Portal rotation (or reconnect) mints
       a new one. This single mismatch rejects every webhook. On a published public app, live
       stores use the last approved secret until the next approval — see the secret-sync gate.
-- [ ] **Demo stores receive, live stores don't (or get the old URL/events)?** `salla_apps
-      action=get` → `app.published_differs`: live stores still use the approved publication's
-      config until a new publish request is approved.
+- [ ] **Demo stores receive, live stores don't (or get the old URL/events)?** Live stores use the
+      approved publication's config until a new publish request is approved — `salla_apps
+      action=get` → `app.published_differs` flags a URL/strategy/secret change; event and header
+      changes aren't flagged but follow the same rule.
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")
 - [ ] Subscribed to the correct event name (case-sensitive)

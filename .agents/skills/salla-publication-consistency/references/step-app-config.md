@@ -38,8 +38,12 @@ A public app has up to three webhook configs. Name which one you mean:
 
 - `published` is `null` for a private app (live stores use the development config directly) or
   before the first approval.
-- `published_differs: true` → the development URL/strategy/events/secret/headers changed after the
-  last approval: demo stores already get the new config, live stores still get the old one. Tell the
+- `published` carries the approved publication's URL, strategy and secret (from `app.publication`)
+  only — subscribed events and headers aren't compared, but changes to them also reach live stores
+  only on approval. After changing events or headers on a published app, say so; don't claim they're
+  live for merchants.
+- `published_differs: true` → the development URL/strategy/secret changed after the last approval:
+  demo stores already get the new config, live stores still get the old one. Tell the
   partner, and that it reaches live stores only after a new publish request (`validate` → partner
   review → `send_publish_request`) is approved. Never say a `connect` change is live for merchants
   until then.
@@ -48,8 +52,6 @@ A public app has up to three webhook configs. Name which one you mean:
   partner's server must accept **both** it and the current secret until the new publication is
   approved — dropping it rejects every live-store delivery (401). Set it as
   `SALLA_WEBHOOK_SECRET_PREVIOUS` (**salla-webhooks** secret-sync gate); never print either secret.
-- `published.webhook_headers_differ: true` → live stores still send the approved custom headers
-  (`published.webhook_header_keys`; values are never returned).
 - OAuth scopes follow the same rule: a public app's live stores get the approved publication's
   scopes until the next approval.
 

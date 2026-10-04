@@ -10,6 +10,21 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.17] — 2026-10-04
+
+### Added
+
+- **Twilight React theme docs MCP** (`twilight-docs`, `https://docs.salla.dev/twilight/react/api/mcp`):
+  a second, read-only MCP server with `search`, `get_page` and `list_pages` over the Twilight React
+  engine docs (routes, hooks, components, slots, the store API client, the Salla CLI). It is public, so
+  it needs no login. Wired in `.mcp.json`, `gemini-extension.json` and the Hermes `plugin.yaml`; for
+  Claude Code add it with `claude mcp add --transport http twilight-docs <url>` (see
+  `docs/getting-started.md`).
+- `salla-docs` skill: a row for React theme docs, and the "theme internals are out of scope" note now
+  routes React theme questions to `twilight-docs` (or the scoped `llms.txt`, never `llms-full.txt`).
+- `salla-theme-builder` skill: the Step 5 hand-off and cross-links point React theme questions to
+  `twilight-docs`.
+
 ## [1.0.16] — 2026-09-16
 
 ### Added

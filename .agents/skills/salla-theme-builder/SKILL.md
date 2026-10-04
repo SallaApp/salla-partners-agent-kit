@@ -147,7 +147,8 @@ the `theme_id` and its `repo`, then route what they do next:
 - Develop and preview the theme locally → Salla CLI (`salla theme …`).
 - Price, details, support contact, components, settings, publishing → Partners Portal until
   the MCP supports them.
-- Twilight concepts, component and setting schemas → **salla-docs**.
+- Twilight concepts, component and setting schemas → **salla-docs**. For a React theme (routes,
+  hooks, components, slots, the API client) use the `twilight-docs` MCP: `search`, then `get_page`.
 
 ## Red Flags
 
@@ -172,6 +173,6 @@ the `theme_id` and its `repo`, then route what they do next:
 
 - **salla-storefront-ui** — native styling for an **app's** UI drawn inside a storefront theme.
 - **salla-snippets** — storefront JavaScript injected by an app.
-- **salla-docs** — Twilight and theme documentation.
+- **salla-docs** — Twilight and theme documentation. React theme docs: the `twilight-docs` MCP.
 - **salla-publication-consistency** — an app listing's "App Theme" / "App Impact" category.
 - **salla-app-expert** — back to the router when the task isn't a theme.

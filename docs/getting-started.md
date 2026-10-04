@@ -88,6 +88,18 @@ claude mcp add --transport http salla-partners https://partners.mcp.salla.dev
 
 Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibility.)
 
+### Twilight React theme docs (optional, no login)
+
+Building a React theme? Add the read-only docs server too, so the agent can search and read the
+Twilight engine docs (routes, hooks, components, slots, the API client, the Salla CLI):
+
+```bash
+claude mcp add --transport http twilight-docs https://docs.salla.dev/twilight/react/api/mcp
+```
+
+The plugin installs for Gemini, Hermes and any client that reads `.mcp.json` already include it. Tools:
+`search`, `get_page`, `list_pages`. The docs are public, so there is nothing to authorize.
+
 **Cursor** — paste the JSON above into `~/.cursor/mcp.json` (global) or
 `.cursor/mcp.json` (per-project), reload, then Settings → MCP to authorize.
 

@@ -10,6 +10,18 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.17] — 2026-10-04
+
+### Fixed
+
+- **Webhook URL reported as missing after `connect` (DPD-19218).** The publication flow told the
+  agent to read the webhook config from the draft (`publication.webhook_url`), which the Portal
+  only snapshots at submit — so a freshly saved URL read back as `NULL`. `salla-publication-consistency`
+  now reads it live from `app_publish action=get` → `webhooks` (or `salla_apps action=get`), and the
+  `salla-webhooks` gate names that read-back. Needs the MCP that returns the live webhook config.
+- `commands/audit.md` no longer checks the removed `salla_apps action=publish` save; the
+  `salla-app-expert` agent no longer cites a nonexistent `generate_secret` action.
+
 ## [1.0.16] — 2026-09-16
 
 ### Added

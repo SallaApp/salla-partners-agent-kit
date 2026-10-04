@@ -183,7 +183,8 @@ Base URL `https://api.salla.dev/admin/v2`; all five operations need the
   required); passing `url` **deletes every webhook registered to that URL**. Returns `202`.
 
 **Gate:** "Subscribed to the right events (`salla_events action=list` / `GET /webhooks`
-confirms), webhook URL registered?"
+confirms), webhook URL registered (`salla_apps action=get` → `app.webhook_url` is the live value;
+never judge it from a publication draft's `webhook_url`, which stays empty until submit)?"
 
 ---
 

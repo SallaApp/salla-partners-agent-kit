@@ -123,8 +123,8 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    not `cart.add`), storefront UI is web components, and prices have several encodings — do
    not invent any of these. If something is unverified, say so.
 
-9. **Check secret/config parity after every `connect`.** When the Portal mints a secret or
-   sets a URL (`generate_secret`, webhook URL), copy it to the runtime env and verify
+9. **Check secret/config parity after every `connect`.** When the Portal mints a secret
+   (created/rotated in the Portal) or you set a webhook URL, copy it to the runtime env and verify
    deployed env == Portal value before testing. A secret mismatch returns `401` on every
    webhook delivery.
 

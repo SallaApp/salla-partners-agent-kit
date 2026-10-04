@@ -66,7 +66,8 @@ Audit the current Salla app implementation end to end. Run every check below, re
 
 - Logo uploaded as image ID (min 250 × 250 px, 1:1)?
 - Min 3 screenshots uploaded as image IDs?
-- `salla_apps action=publish` saved (`action: "save"`) after every config change?
+- Webhook URL checked live (`app_publish action=get` → `webhooks.webhook_url`), not from the draft's `publication.webhook_url`?
+- `app_publish action=validate` re-run after every config change?
 - Communication apps: `salla_settings action=set_features` called before submit?
 - Shipping apps: Salla-assigned Company ID set?
 

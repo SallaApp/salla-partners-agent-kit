@@ -57,7 +57,7 @@ complete.
 | action                 | verb | body                   | does                                                                                                                                                                                           |
 | ---------------------- | ---- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `open`                 | POST | —                      | Create the draft + return the per-section readiness checklist; opening also makes `app_page_builder` available for listing content.                                                            |
-| `get`                  | GET  | —                      | Read-only: the FULL current draft (`publication_last_save` — every saved value) + scopes + webhooks. RESUME/REVIEW entry — readiness shows what's MISSING, `get` shows what's THERE.           |
+| `get`                  | GET  | —                      | Read-only: the FULL current draft (`publication_last_save` — every saved value) + scopes + LIVE webhooks. RESUME/REVIEW entry — readiness shows what's MISSING, `get` shows what's THERE.           |
 | `readiness`            | GET  | —                      | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.                                                                                                 |
 | `set`                  | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                                            |
 | `validate`             | PUT  | —                      | Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit.                                                         |
@@ -70,9 +70,11 @@ Listing content (name, description, logo, screenshots, benefits) is authored wit
 
 Before filling or fixing anything — **especially when resuming a draft or asked to review one** —
 read it with `app_publish action=get`. It returns `publication_last_save` (every saved section
-value) plus the app's `scopes` and `webhooks`. `readiness` tells you what's **missing**; `get`
-tells you what's **already there** — never re-ask the partner for a value the draft already holds,
-and never blind-overwrite a section you haven't read.
+value) plus the app's `scopes` and its **live** `webhooks` config (URL, strategy, subscribed
+events). `readiness` tells you what's **missing**; `get` tells you what's **already there** — never
+re-ask the partner for a value the draft already holds, and never blind-overwrite a section you
+haven't read. Judge the webhook URL from `get.webhooks.webhook_url`, never from
+`publication_last_save.webhook_url` — the draft's webhook fields stay empty until submit.
 
 ## Validation is step-by-step
 
@@ -150,6 +152,8 @@ draft is saved and are matched against the live state, so finalize the external 
   the draft is saved is what the partner submits.
 - **Communication apps** must declare supported features
   (`salla_settings action=set_features`) before `validate`, or the gate blocks.
+- The webhook URL, strategy, secret, subscribed events and headers snapshot into the publication
+  at **submit**, not at `validate` — until then read them live (`get` → `webhooks`).
 - After changing any external piece (scopes, webhook, events, settings, builder content),
   re-run `readiness` (re-`open` if needed) and `validate` again before handing off.
 

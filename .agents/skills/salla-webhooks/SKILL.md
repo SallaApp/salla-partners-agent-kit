@@ -129,7 +129,10 @@ is **only** for store events the app reacts to (`order.*`, `product.*`, …).
    > earlier session or assume your local/env value still matches Salla's. Tie verification
    > to that live value and update **every** deployment environment (prod, staging, preview).
    > Confirm **deployed env == Portal secret** before testing; a mismatch fails verification
-   > and returns **401 on every delivery**.
+   > and returns **401 on every delivery**. **Published public app:** if `salla_apps action=get` →
+   > `app.published.webhook_secret_differs` is true, live stores still sign with the previous
+   > secret until the next approval — keep accepting it next to the new one, never replace it
+   > ([step-app-config](../salla-publication-consistency/references/step-app-config.md)).
 
 2. Subscribe to **store events** only (skip this if the app handles app events alone): list
    valid slugs with `salla_events action=list`, `app_id`, then `salla_events action=subscribe`,
@@ -493,7 +496,11 @@ When webhooks aren't arriving:
 
 - [ ] **Every delivery returns 401 → check secret parity FIRST.** Deployed
       `SALLA_WEBHOOK_SECRET` must equal the Portal secret; a Portal rotation (or reconnect) mints
-      a new one. This single mismatch rejects every webhook.
+      a new one. This single mismatch rejects every webhook. On a published public app, live
+      stores use the last approved secret until the next approval — see the secret-sync gate.
+- [ ] **Demo stores receive, live stores don't (or get the old URL/events)?** `salla_apps
+      action=get` → `app.published_differs`: live stores still use the approved publication's
+      config until a new publish request is approved.
 - [ ] Webhook URL set and `webhooks.read_write` scope enabled
 - [ ] App installed on demo store (reinstall if needed — uninstall first from "Installed Apps")
 - [ ] Subscribed to the correct event name (case-sensitive)

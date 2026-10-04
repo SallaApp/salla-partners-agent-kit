@@ -38,10 +38,19 @@ A public app has up to three webhook configs. Name which one you mean:
 
 - `published` is `null` for a private app (live stores use the development config directly) or
   before the first approval.
-- `published_differs: true` → the development URL/strategy/events changed after the last approval:
-  demo stores already get the new config, live stores still get the old one. Tell the partner, and
-  that it reaches live stores only after a new publish request (`validate` → partner review →
-  `send_publish_request`) is approved. Never say a `connect` change is live for merchants until then.
+- `published_differs: true` → the development URL/strategy/events/secret/headers changed after the
+  last approval: demo stores already get the new config, live stores still get the old one. Tell the
+  partner, and that it reaches live stores only after a new publish request (`validate` → partner
+  review → `send_publish_request`) is approved. Never say a `connect` change is live for merchants
+  until then.
+- `published.webhook_secret_differs: true` → the secret was created/rotated after the last approval,
+  so live stores still sign with the **previous** secret. The partner's server must accept **both**
+  the previous and the current secret until the new publication is approved — replacing the old one
+  in the runtime env rejects every live-store delivery (401). The MCP never returns the previous
+  secret; it's the value the runtime already has.
+- `published.webhook_headers_differ: true` → live stores still send the previous custom headers.
+- OAuth scopes follow the same rule: a public app's live stores get the approved publication's
+  scopes until the next approval.
 
 ## Submission schema
 
@@ -57,5 +66,6 @@ Not submitted via `app_publish`. Use the owning tools:
 ## How to submit
 
 Finalize these **before** the publish request — the Portal copies them into the publication at
-`validate` and submit, and live stores switch to them only when that publication is approved. After changing any of them, read them back live (`app_publish action=get` → `webhooks`,
-or `salla_apps action=get`) and flag one as missing only when the live value is empty.
+`validate` and submit, and live stores switch to them only when that publication is approved.
+After changing any of them, read them back live (`app_publish action=get` → `webhooks`, or
+`salla_apps action=get`) and flag one as missing only when the live value is empty.

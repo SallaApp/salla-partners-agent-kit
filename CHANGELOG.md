@@ -23,6 +23,10 @@ versions the **skill content as a whole** — the `version` field in `package.js
   config (`connect` — demo stores get it at once), the published config live stores keep using
   until the next approval (`webhooks.published`, `published_differs`), and the draft copy; an
   unreadable webhook config is reported as "couldn't be checked", never as missing.
+- **Secret rotation on a published app.** Live stores sign with the last approved secret until the
+  next approval (`published.webhook_secret_differs`); `salla-webhooks`, `salla-app-expert` and
+  `step-app-config.md` now tell the agent to keep accepting the previous secret instead of
+  replacing it, and how to debug "demo stores receive, live stores don't".
 - `commands/audit.md` no longer checks the removed `salla_apps action=publish` save; the
   `salla-app-expert` agent no longer cites a nonexistent `generate_secret` action.
 

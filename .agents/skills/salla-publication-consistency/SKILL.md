@@ -62,6 +62,7 @@ complete.
 | `set`                  | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                                            |
 | `validate`             | PUT  | —                      | Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit.                                                         |
 | `send_publish_request` | PUT  | `confirm:true`         | Send the app to Salla review — **HARD-GATED**: only after `validate` + the partner reviewed the `/publish` link + **confirmed**. Without `confirm:true` it does NOT submit (returns the link). |
+| `withdraw`             | PUT  | —                      | Pull a publication that's in review (submitted/reviewing) back out — e.g. when it carries an older webhook config than development. Then `validate` and submit again. Only with the partner's OK. |
 
 Listing content (name, description, logo, screenshots, benefits) is authored with
 `app_page_builder` → **salla-app-ui-builder**.

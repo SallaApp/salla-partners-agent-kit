@@ -64,7 +64,7 @@ unavailable, say the webhooks **couldn't be checked**. Never report them as miss
 
 | Step                                 | Tell the partner                                                                                     |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `connect` / `salla_events subscribe` | relay `_publication_note`: saved to development; what live stores and any review still get.          |
+| `connect` / `salla_events subscribe` | relay `_reaches`: demo stores now; `live_stores` + `next_step` say when merchants get it.            |
 | `app_publish get` (resume / review)  | the three states from `webhook_config`, before changing anything.                                    |
 | `app_publish validate`               | what this draft will ship (development) next to what live stores use now (`approved`).               |
 | before `send_publish_request`        | confirm the development webhook config is the one to ship — it's what submit snapshots.              |

@@ -108,6 +108,24 @@ Every behavior attaches at exactly one surface. Decide in this order:
 | Publish an app — validate + save a draft, partner reviews, then send_publish_request / Portal submit | [salla-publication-consistency](../salla-publication-consistency/SKILL.md) |
 | Find the right doc / live API schema                                                                 | [salla-docs](../salla-docs/SKILL.md)                                       |
 
+## When merchants see a change (`_reaches`)
+
+There are only two kinds of app-config change:
+
+| Kind               | What                                                                                               | Demo stores | Merchants' live stores                   |
+| ------------------ | -------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------- |
+| **Needs approval** | webhooks, events, scopes, settings form, snippets, embedded pages, onboarding steps, App Functions | now         | only after a new publication is approved |
+| **Instant**        | `redirect_urls`, `trusted_ips` (`salla_apps connect`)                                              | now         | now — every merchant, no approval        |
+
+A private app's **webhooks** are instant too; its other config needs a new private publication.
+
+**Rule:** every MCP write returns `_reaches`. Read `_reaches.live_stores` and tell the partner when
+merchants will see the change: `after_approval` → follow `_reaches.next_step` (a new publish request,
+or withdraw an in-review one that lacks the change); `now` → it's live; `no_live_stores_yet` → only
+demo stores exist; `unknown` → say you couldn't check. Never call a change live for merchants when
+`live_stores` is `after_approval`. `_reaches.live_now` lists instant fields of a mixed `connect` that
+already hit every merchant — warn before changing them on a live app.
+
 ## Perform actions with the Salla Partners MCP
 
 When the **Salla Partners MCP** server is connected, do the work with these tools instead

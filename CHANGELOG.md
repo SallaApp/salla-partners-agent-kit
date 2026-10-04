@@ -24,7 +24,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
   `webhook_config`: development (`connect`/`subscribe` — demo stores get it at once), the latest
   publication (draft, in review, …) and the approved one live stores keep using until the next
   approval, each with `differs_from_development`; what to tell the partner at connect, get,
-  validate and submit (relay `note` / `_publication_note`), including withdrawing an in-review
+  validate and submit (relay `note` / `_reaches`), including withdrawing an in-review
   publication that carries an older config. An unreadable config is reported as "couldn't be
   checked", never as missing.
 - **Secret rotation on a published app.** Live stores sign with the last approved secret until the
@@ -32,6 +32,9 @@ versions the **skill content as a whole** — the `version` field in `package.js
   `salla-app-expert` and `step-app-config.md` now tell the agent to set that approved secret as
   `SALLA_WEBHOOK_SECRET_PREVIOUS` and accept both instead of replacing it, and how to debug
   "demo stores receive, live stores don't".
+- **When merchants see a change.** `salla-app-expert` now has one table — needs-approval vs instant
+  config — and one rule: after any write, read `_reaches.live_stores` (from the MCP) and tell the
+  partner when merchants get it; never call an `after_approval` change live.
 - `commands/audit.md` no longer checks the removed `salla_apps action=publish` save; the
   `salla-app-expert` agent no longer cites a nonexistent `generate_secret` action.
 

@@ -3,7 +3,7 @@ The Salla Partners Agent Kit is installed: skills for the two separate products 
 **Routing rule — read before acting.** First decide which product the task is about:
 
 - **Salla app** — creating, configuring, hooking events, building storefront or dashboard UI, monetizing, publishing, or debugging a General / Shipping / Communication Salla app (anything mentioning a merchant store, app functions, snippets, webhooks, the Partner Portal, or the Salla Partners MCP) → invoke **`salla-partners:salla-app-expert` FIRST**, before any generic brainstorming, design, or planning.
-- **Twilight theme** — finding, inspecting, or creating a partner's storefront theme (Twilight, `twilight.json`, `salla_themes`) → invoke **`salla-partners:salla-theme-builder`** directly. A theme is not an app: the app decisions (auth mode, App Settings, webhooks, `app_publish`) do not apply.
+- **Twilight theme** — finding, inspecting, creating, editing or publishing a partner's storefront theme (Twilight, `twilight.json`, `salla_themes`) → invoke **`salla-partners:salla-theme-builder`** directly. A theme is not an app: the app decisions (auth mode, App Settings, webhooks, `app_publish`) do not apply.
 
 An app listing's "App Theme" / "App Impact" category is app publication, not a Twilight theme → `salla-partners:salla-publication-consistency`.
 

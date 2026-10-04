@@ -119,12 +119,16 @@ There are only two kinds of app-config change:
 
 A private app's **webhooks** are instant too; its other config needs a new private publication.
 
-**Rule:** every MCP write returns `_reaches`. Read `_reaches.live_stores` and tell the partner when
-merchants will see the change: `after_approval` → follow `_reaches.next_step` (a new publish request,
+**Rule:** every config write in the table above (`connect`, `salla_events`, `salla_scopes`,
+`salla_settings`, `salla_snippets`, `salla_embedded_pages`, `salla_onboarding_steps`,
+`salla_functions`) returns `_reaches`; other writes (uploads, listing content via `app_publish` /
+`app_page_builder`) don't — that's expected, not a failed check. Read `_reaches.live_stores` and tell
+the partner when merchants will see the change: `after_approval` → follow `_reaches.next_step` (a new publish request,
 or withdraw an in-review one that lacks the change); `now` → it's live; `no_live_stores_yet` → only
 demo stores exist; `unknown` → say you couldn't check. Never call a change live for merchants when
 `live_stores` is `after_approval`. `_reaches.live_now` lists instant fields of a mixed `connect` that
-already hit every merchant — warn before changing them on a live app.
+already hit every merchant — warn before changing them on a live app. `demo_stores: after_deploy`
+(App Functions) means poll `deploy_status` before testing on a demo store.
 
 ## Perform actions with the Salla Partners MCP
 

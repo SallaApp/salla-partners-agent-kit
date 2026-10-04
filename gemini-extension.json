@@ -5,9 +5,6 @@
   "mcpServers": {
     "salla-partners": {
       "httpUrl": "https://partners.mcp.salla.dev"
-    },
-    "twilight-docs": {
-      "httpUrl": "https://docs.salla.dev/twilight/react/api/mcp"
     }
   }
 }

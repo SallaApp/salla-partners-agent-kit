@@ -3,10 +3,6 @@
     "salla-partners": {
       "type": "http",
       "url": "https://partners.mcp.salla.dev"
-    },
-    "twilight-docs": {
-      "type": "http",
-      "url": "https://docs.salla.dev/twilight/react/api/mcp"
     }
   }
 }

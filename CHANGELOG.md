@@ -14,16 +14,12 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 ### Added
 
-- **Twilight React theme docs MCP** (`twilight-docs`, `https://docs.salla.dev/twilight/react/api/mcp`):
-  a second, read-only MCP server with `search`, `get_page` and `list_pages` over the Twilight React
-  engine docs (routes, hooks, components, slots, the store API client, the Salla CLI). It is public, so
-  it needs no login. Wired in `.mcp.json`, `gemini-extension.json` and the Hermes `plugin.yaml`; for
-  Claude Code add it with `claude mcp add --transport http twilight-docs <url>` (see
-  `docs/getting-started.md`).
-- `salla-docs` skill: a row for React theme docs, and the "theme internals are out of scope" note now
-  routes React theme questions to `twilight-docs` (or the scoped `llms.txt`, never `llms-full.txt`).
-- `salla-theme-builder` skill: the Step 5 hand-off and cross-links point React theme questions to
-  `twilight-docs`.
+- **Skills use the new `salla_themes_docs` Partners MCP tool** (`search`, `read`, `list`) to read the
+  Twilight **React theme** docs (routes, hooks, components, slots, the store API client, the Salla CLI)
+  from the same MCP server, with no second server to set up. `salla-docs` gets a row for React theme
+  docs and its "theme internals are out of scope" note now routes React theme questions to the tool (or
+  the scoped `llms.txt`, never `llms-full.txt`); `salla-theme-builder`'s Step 5 hand-off and cross-links
+  point at it. Requires a Partners MCP that ships the tool (SallaApp/partners-mcp).
 
 ## [1.0.16] — 2026-09-16
 

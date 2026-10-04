@@ -88,24 +88,6 @@ claude mcp add --transport http salla-partners https://partners.mcp.salla.dev
 
 Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibility.)
 
-### Twilight React theme docs (optional, no login)
-
-Building a React theme? Add the read-only docs server too, so the agent can search and read the
-Twilight engine docs (routes, hooks, components, slots, the API client, the Salla CLI):
-
-```bash
-claude mcp add --transport http twilight-docs https://docs.salla.dev/twilight/react/api/mcp
-```
-
-The plugin installs for Gemini, Hermes and any client that reads `.mcp.json` already include it. Tools:
-`search`, `get_page`, `list_pages`. The docs are public, so there is nothing to authorize.
-
-**Cursor** — paste the JSON above into `~/.cursor/mcp.json` (global) or
-`.cursor/mcp.json` (per-project), reload, then Settings → MCP to authorize.
-
-**Claude Desktop** — Settings → Connectors → Add custom connector →
-`https://partners.mcp.salla.dev`, approve in browser.
-
 ---
 
 ## 4. MCP Tools
@@ -120,6 +102,7 @@ The plugin installs for Gemini, Hermes and any client that reads `.mcp.json` alr
 | `salla_settings`         | `define_form` `set_validation_url` `list_features` `set_features` | Merchant settings form + feature flags     |
 | `salla_shipping`         | `get_zones` `set_zones` `set_settings`                            | Shipping zones + carrier settings          |
 | `salla_themes`           | `list` `get` `github_config` `categories` `create`                | Find, inspect, and create Twilight themes  |
+| `salla_themes_docs`      | `search` `read` `list`                                            | Read the React theme (Twilight) docs       |
 | `salla_upload`           | —                                                                 | Upload images/docs → returns a file `id`   |
 | `salla_reference`        | `categories` `countries` `cities`                                 | Read-only lookups                          |
 | `salla_scopes`           | `get` `set`                                                       | Read/update an app's OAuth scopes          |

@@ -49,7 +49,3 @@ mcp_servers:
   salla-partners:
     transport: http
     url: https://partners.mcp.salla.dev
-  # Twilight React theme docs — read-only, public, no login. Same server as ../.mcp.json.
-  twilight-docs:
-    transport: http
-    url: https://docs.salla.dev/twilight/react/api/mcp

@@ -64,7 +64,7 @@ it from the full index, then read just that page.
 | Embedded SDK modules             | https://docs.salla.dev/embedded-sdk/overview.md |
 | Merchant/Admin API reference     | https://docs.salla.dev/421117m0.md              |
 | App Settings form (guide)        | `salla-app-settings` skill                      |
-| React theme (Twilight engine)    | `twilight-docs` MCP, or https://docs.salla.dev/twilight/react/llms.txt |
+| React theme (Twilight engine)    | `salla_themes_docs` tool, or https://docs.salla.dev/twilight/react/llms.txt |
 
 ## 4. Last resort: relocate a page from the full index
 
@@ -74,8 +74,8 @@ it from the full index, then read just that page.
 - **Merchant API reference** has hundreds of endpoints; open only the resource you need
   ([salla-api-core](../salla-api-core/SKILL.md) covers the calling conventions).
 - **React theme (Twilight engine) internals** — routes, hooks, components, slots, the store
-  API client, the Salla CLI — live in their own docs set. Use the `twilight-docs` MCP
-  (`search`, then `get_page`; `list_pages` for the index), or read the scoped index
+  API client, the Salla CLI — live in their own docs set. Use the `salla_themes_docs` tool
+  (`action=search`, then `action=read`; `action=list` for the index), or read the scoped index
   https://docs.salla.dev/twilight/react/llms.txt and then a single page as Markdown
   (`<page>.md`). Never load `llms-full.txt`.
 - For storefront snippet UI or

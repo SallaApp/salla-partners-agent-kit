@@ -88,6 +88,12 @@ claude mcp add --transport http salla-partners https://partners.mcp.salla.dev
 
 Then `/mcp` to authorize. (`--scope project` or `--scope user` to control visibility.)
 
+**Cursor** — paste the JSON above into `~/.cursor/mcp.json` (global) or
+`.cursor/mcp.json` (per-project), reload, then Settings → MCP to authorize.
+
+**Claude Desktop** — Settings → Connectors → Add custom connector →
+`https://partners.mcp.salla.dev`, approve in browser.
+
 ---
 
 ## 4. MCP Tools

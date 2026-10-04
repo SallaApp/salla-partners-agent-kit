@@ -19,6 +19,10 @@ versions the **skill content as a whole** — the `version` field in `package.js
   only snapshots at submit — so a freshly saved URL read back as `NULL`. `salla-publication-consistency`
   now reads it live from `app_publish action=get` → `webhooks` (or `salla_apps action=get`), and the
   `salla-webhooks` gate names that read-back. Needs the MCP that returns the live webhook config.
+- **Development vs published webhook config.** `step-app-config.md` now separates the development
+  config (`connect` — demo stores get it at once), the published config live stores keep using
+  until the next approval (`webhooks.published`, `published_differs`), and the draft copy; an
+  unreadable webhook config is reported as "couldn't be checked", never as missing.
 - `commands/audit.md` no longer checks the removed `salla_apps action=publish` save; the
   `salla-app-expert` agent no longer cites a nonexistent `generate_secret` action.
 

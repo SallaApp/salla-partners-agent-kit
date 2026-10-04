@@ -74,7 +74,9 @@ value) plus the app's `scopes` and its **live** `webhooks` config (URL, strategy
 events). `readiness` tells you what's **missing**; `get` tells you what's **already there** — never
 re-ask the partner for a value the draft already holds, and never blind-overwrite a section you
 haven't read. Judge the webhook URL from `get.webhooks.webhook_url`, never from
-`publication_last_save.webhook_url` — the draft's webhook fields stay empty until submit.
+`publication_last_save.webhook_url` — the draft's webhook fields are only a copy refreshed at
+`validate`/submit. `get.webhooks.published` is what live stores use until the next approval
+([step-app-config.md](references/step-app-config.md) → development vs published vs draft).
 
 ## Validation is step-by-step
 
@@ -152,8 +154,9 @@ draft is saved and are matched against the live state, so finalize the external 
   the draft is saved is what the partner submits.
 - **Communication apps** must declare supported features
   (`salla_settings action=set_features`) before `validate`, or the gate blocks.
-- The webhook URL, strategy, secret, subscribed events and headers snapshot into the publication
-  at **submit**, not at `validate` — until then read them live (`get` → `webhooks`).
+- The webhook URL, strategy, secret, subscribed events and headers are copied into the draft at
+  `validate` and submit, and reach merchants' live stores only on approval — read them live
+  (`get` → `webhooks`); `webhooks.published_differs: true` means live stores still use the old config.
 - After changing any external piece (scopes, webhook, events, settings, builder content),
   re-run `readiness` (re-`open` if needed) and `validate` again before handing off.
 

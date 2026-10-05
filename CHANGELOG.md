@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.18] — 2026-10-04
+## [1.0.20] — 2026-10-05
 
 ### Added
 
@@ -28,6 +28,81 @@ versions the **skill content as a whole** — the `version` field in `package.js
   route here however many rows the body gained.
 - The PreToolUse hook matches tool names exactly, so `salla_themes_docs` fell through to the no-op
   arm and loaded no skill (it does not inherit `salla_themes`). It now maps to `salla-docs`.
+
+## [1.0.19] — 2026-10-05
+
+### Fixed
+
+- **Webhook URL reported as missing after `connect` (DPD-19218).** The publication flow told the
+  agent to read the webhook config from the draft (`publication.webhook_url`), which the Portal
+  only copied at submit (now at `validate` and submit) — so a freshly saved URL read back as `NULL`.
+  `salla-publication-consistency` now reads `webhook_config` from `app_publish action=get` (or
+  `salla_apps action=get`), and the `salla-webhooks` gate names that read-back. Needs the MCP that
+  returns `webhook_config`.
+- **Development, latest publication and approved webhook config.** `step-app-config.md` explains
+  `webhook_config`: development (`connect`/`subscribe` — demo stores get it at once), the latest
+  publication (draft, in review, …) and the approved one live stores keep using until the next
+  approval, each with `differs_from_development`; what to tell the partner at connect, get,
+  validate and submit (relay `note` / `_reaches`), including withdrawing an in-review
+  publication that carries an older config. An unreadable config is reported as "couldn't be
+  checked", never as missing.
+- **Secret rotation on a published app.** Live stores sign with the last approved secret until the
+  next approval (`webhook_config.approved.webhook_secret`); `salla-webhooks`,
+  `salla-app-expert` and `step-app-config.md` now tell the agent to set that approved secret as
+  `SALLA_WEBHOOK_SECRET_PREVIOUS` and accept both instead of replacing it, and how to debug
+  "demo stores receive, live stores don't".
+- **When merchants see a change.** `salla-app-expert` now has one table — needs-approval vs instant
+  config — and one rule: after any write, read `_reaches.live_stores` (from the MCP) and tell the
+  partner when merchants get it; never call an `after_approval` change live.
+- `commands/audit.md` no longer checks the removed `salla_apps action=publish` save; the
+  `salla-app-expert` agent no longer cites a nonexistent `generate_secret` action.
+
+## [1.0.18] — 2026-10-05
+
+### Added
+
+- **Private apps through the MCP** (DPD-19842): the new `salla_private_apps` tool publishes a
+  private app and sends it to stores as access requests (`status`, `publish`,
+  `withdraw`, `list_requests`, `get_request`, `create_request`, `update_request`,
+  `delete_request`; `status` without `app_id` returns the account kind before create). New
+  reference `salla-app-builder/references/private-apps.md` covers the flow and the two account
+  kinds:
+  - **Merchant partners** (merchants signed in with their store) create free private apps,
+    are usually auto-approved on publish (live immediately), and send one free request to
+    their own store only.
+  - **Regular partners** create paid private apps and send paid requests, monthly or yearly
+    only, at or above the minimum price that `status` returns (DPD-19813).
+
+  `publish` is confirm-gated like `send_publish_request`.
+
+- The PreToolUse hook maps `salla_private_apps` → `salla-app-builder`; the prompt nudge
+  matches "private app".
+
+### Changed
+
+- Every skill that said "a private app is published by the partner from its app-details page,
+  no MCP action" (`salla-app-builder`, `salla-app-expert`, `salla-app-functions`,
+  `salla-app-functions-release`, `salla-publication-consistency`, `salla-shipping-app`) now
+  routes to `salla_private_apps`.
+- `salla-app-builder`'s free-private-app rule was "the first private app is free". Regular
+  partners now get no free private apps by default (`private_apps_limit` 0, admin grant only);
+  merchant partners may create them free.
+- Scopes (DPD-19811): on a merchant partner's private app, `shippings`, `settlements`,
+  `subscriptions` and `customer_wallets` are hidden and never saved; `salla_scopes action=set`
+  reports them under `dropped`.
+
+- Shipping apps are public: `salla-app-builder` and `salla-shipping-app` no longer say a
+  shipping app can be private (`type` is a single value). A private carrier integration is a
+  `type: "private"` app, where `shippings` stays disabled unless Salla allow-lists it.
+- `salla-app-functions-release` covers the private publish path in its gate and has a Red
+  Flags table.
+
+### Fixed
+
+- Two lines that a Prettier re-wrap had pushed to column 0 (`salla-shipping-app` search
+  options, this changelog's 1.0.15 entry) are indented again.
+- `docs/getting-started.md` listed a `publish` action on `salla_apps` that doesn't exist. The
+  table now lists `app_publish` and `salla_private_apps`.
 
 ## [1.0.17] — 2026-09-20
 
@@ -107,8 +182,8 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - **Publication: the app-publish `main_category_id` is now an "App Theme"/"App Impact" id,
   a shared list independent of the app/shipping/communication type.** A backend change
   moved the publish-time main category off the app/shipping category tree onto a new
-  `app_impact` category type — one set for every app type. `salla_reference
-  action=categories` now returns THREE independent lists per call instead of two:
+  `app_impact` category type — one set for every app type.
+  `salla_reference action=categories` now returns THREE independent lists per call instead of two:
   `main_categories` (type `app_impact` — publish `main_category_id`), `categories` (type
   `app`, always — publish `categories` array), and `sub_categories` (type `sub_app` /
   `sub_shipping`, per the caller's `type` — create's `sub_category_id`, unchanged). Updated

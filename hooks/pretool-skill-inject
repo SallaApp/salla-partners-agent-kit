@@ -39,7 +39,7 @@ case "$short" in
   # shouldn't drag in the full publish flow; salla-app-ui-builder routes to the publication skill
   # when a draft/submit is actually involved.
   app_page_builder) skill='salla-app-ui-builder' ;;
-  salla_apps) skill='salla-app-builder' ;;
+  salla_apps|salla_private_apps) skill='salla-app-builder' ;;
   salla_themes) skill='salla-theme-builder' ;;
   *) emit_noop ;;
 esac

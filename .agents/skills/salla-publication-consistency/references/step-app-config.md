@@ -50,6 +50,9 @@ unavailable, say the webhooks **couldn't be checked**. Never report them as miss
   current secret until the new publication is approved — dropping it rejects every live-store
   delivery (401). Set it as `SALLA_WEBHOOK_SECRET_PREVIOUS` (**salla-webhooks** secret-sync gate);
   never print either secret.
+- `approved.differs_from_development` includes `webhook_security_strategy` → live stores still sign
+  with the approved strategy: the server must verify both strategies until approval
+  (**salla-webhooks** Step 3 — branch on `X-Salla-Security-Strategy`).
 - `latest_publication.status`:
   - `draft` — a stale copy is fine; `validate`/submit refresh it from development.
   - `submitted` / `prelaunch` / `reviewing` / `reviewed` with `differs_from_development` → the review

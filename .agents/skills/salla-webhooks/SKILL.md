@@ -207,6 +207,14 @@ env only, out of logs. While a rotated secret awaits approval on a published app
 valid if it matches **either** `SALLA_WEBHOOK_SECRET` or `SALLA_WEBHOOK_SECRET_PREVIOUS` — for both
 strategies. Docs: https://docs.salla.dev/421119m0.md
 
+**Strategy changed on a published app?** If `webhook_config.approved.differs_from_development`
+includes `webhook_security_strategy`, live stores still use the **approved** strategy until the next
+approval while demo stores use the new one. Every signed delivery names its strategy in
+`X-Salla-Security-Strategy` (`Token` | `Signature`): verify each delivery by that header, but accept
+only the current and the approved strategies (never let the header downgrade you to "no check").
+A switch to or from `none` can't be bridged — those deliveries carry no auth — so get the new
+publication approved promptly instead of accepting unverified requests.
+
 | `webhook_security_strategy` | What Salla sends                           | How you verify                                        |
 | --------------------------- | ------------------------------------------ | ----------------------------------------------------- |
 | `token`                     | `Authorization: <webhook_secret>` header   | **Plain equality**: header value **===** the secret   |

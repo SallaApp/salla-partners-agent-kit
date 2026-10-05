@@ -199,7 +199,9 @@ told publishing goes to review rather than live?"
 
 After a successful create, run `salla_themes action=get theme_id=<new id>` and give the partner the
 `theme_id` and its `repo`. Then: anything the MCP covers → Steps 5–7; the theme's own code →
-Salla CLI (`salla theme …`); Twilight concepts and schemas → **salla-docs**.
+Salla CLI (`salla theme …`); Twilight concepts and schemas → **salla-docs**. For a React
+theme (routes, hooks, components, slots, the API client) → `salla_themes_docs`:
+`action=search`, then `action=read`.
 
 ## Red Flags
 
@@ -227,6 +229,6 @@ Salla CLI (`salla theme …`); Twilight concepts and schemas → **salla-docs**.
 
 - **salla-storefront-ui** — native styling for an **app's** UI drawn inside a storefront theme.
 - **salla-snippets** — storefront JavaScript injected by an app.
-- **salla-docs** — Twilight and theme documentation.
+- **salla-docs** — Twilight and theme documentation. React theme docs: `salla_themes_docs`.
 - **salla-publication-consistency** — an app listing's "App Theme" / "App Impact" category.
 - **salla-app-expert** — back to the router when the task isn't a theme.

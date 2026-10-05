@@ -124,10 +124,14 @@ Make each of these three decisions explicitly, up front, and state your choice. 
    not `cart.add`), storefront UI is web components, and prices have several encodings — do
    not invent any of these. If something is unverified, say so.
 
-9. **Check secret/config parity after every `connect`.** When the Portal mints a secret or
-   sets a URL (`generate_secret`, webhook URL), copy it to the runtime env and verify
+9. **Check secret/config parity after every `connect`.** When the Portal mints a secret
+   (created/rotated in the Portal) or you set a webhook URL, copy it to the runtime env and verify
    deployed env == Portal value before testing. A secret mismatch returns `401` on every
-   webhook delivery.
+   webhook delivery. On a published public app, live stores keep the approved config until the
+   next approval — read `webhook_config` (development / latest publication / approved), relay its
+   `note`, and when `approved.webhook_secret` is present the runtime must also accept it (as
+   `SALLA_WEBHOOK_SECRET_PREVIOUS`) until then. After any config write, read `_reaches.live_stores` and
+   tell the partner when merchants see it — never call an `after_approval` change live.
 
 10. **On a mid-session "use salla expert" → audit, don't append.** Run a compliance pass over
     code already written against the skills and refactor what's wrong; never build forward on

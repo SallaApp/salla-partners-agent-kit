@@ -18,14 +18,14 @@ to pass as `is_paid` on `salla_apps action=create`.
 `status` returns `is_merchant`. The Portal applies different rules to each kind, and the
 tool picks the matching endpoint itself — you never choose it.
 
-|                   | Merchant partner (`is_merchant: true`)                                                   | Regular partner (`is_merchant: false`)                                                      |
-| ----------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Who               | A merchant who signed in to the Partners Portal with their store                         | A developer/agency partner account                                                          |
-| Create the app    | Free private apps allowed (`is_paid: "0"`)                                               | Must be paid (`is_paid: "1"`) unless Salla granted free private apps (`private_apps_limit`) |
-| Publish           | Usually auto-approved — goes **live immediately**, no admin review                       | Submitted to Salla review                                                                   |
-| Store requests    | **Free**, to the merchant's **own** store only, **one** per app                          | **Paid**, any number of stores, each with its own price and billing cycle                   |
-| Request fields    | `store_url` only                                                                         | `store_url`, `store_name`, `price`, `recurring`                                             |
-| Restricted scopes | `shippings` (disabled), plus `settlements`, `subscriptions`, `customer_wallets` (hidden) | `shippings` (disabled unless Salla allow-lists the app)                                     |
+|                   | Merchant partner (`is_merchant: true`)                                                                             | Regular partner (`is_merchant: false`)                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Who               | A merchant who signed in to the Partners Portal with their store                                                   | A developer/agency partner account                                                          |
+| Create the app    | Free private apps allowed (`is_paid: "0"`)                                                                         | Must be paid (`is_paid: "1"`) unless Salla granted free private apps (`private_apps_limit`) |
+| Publish           | Usually auto-approved — goes **live immediately**, no admin review                                                 | Submitted to Salla review                                                                   |
+| Store requests    | **Free**, to the merchant's **own** store only, **one** per app                                                    | **Paid**, any number of stores, each with its own price and billing cycle                   |
+| Request fields    | `store_url` only                                                                                                   | `store_url`, `store_name`, `price`, `recurring`                                             |
+| Restricted scopes | `shippings`, `settlements`, `subscriptions`, `customer_wallets` — hidden and never saved (no allow-list exception) | `shippings` — `disabled` unless Salla allow-lists the app                                   |
 
 ## Step 1 — Check status
 
@@ -90,15 +90,17 @@ or the merchant's own store URL (merchant partner)?"
 
 ## Scopes on private apps
 
-- `shippings` is disabled on **every** private app unless Salla allow-lists the app: `get`
-  shows it with `disabled: true`.
-- On a **merchant partner's** private app, `settlements`, `subscriptions` and
-  `customer_wallets` are also restricted and hidden from `get`.
+- **Merchant partner's** private app: `shippings`, `settlements`, `subscriptions` and
+  `customer_wallets` are hidden from `get` and never saved. The `shippings` allow-list does
+  not apply — don't request these scopes at all.
+- **Regular partner's** private app: `shippings` shows `disabled: true` in `get` unless Salla
+  allow-lists the app.
 
 Restricted scopes aren't saved: `salla_scopes action=set` lists them under `dropped`, and
-`verified: false` means it couldn't re-read the app, so confirm with `action=get`. Scopes the
-app already held before the restriction stay. `set` is a full sync — send the whole desired
-map, because scopes left out are removed.
+`verified: false` means it couldn't re-read the app, so confirm with `action=get`. A scope the
+app **already holds** is never restricted: it stays visible and selected in `get` and keeps
+working. `set` is a full sync — build the map from `get` (which includes those held scopes)
+and send all of it, because scopes left out are removed.
 
 ## Red Flags
 

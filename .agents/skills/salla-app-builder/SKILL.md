@@ -166,11 +166,13 @@ app's valid scope slugs and current selection:
    their current selection, and any per-app `disabled` flags. (There is **no** scope-catalog
    reference endpoint — `salla_scopes` reads them from the app.) **Least privilege:**
    request only the minimum slugs the app needs, and prefer `read` over `read_write`
-   unless the app actually writes — excessive scopes risk review delay/rejection. Sending a
-   `disabled` option returns 422, so honour the flags from `get`. On a **private
-   app**, `shippings` is disabled unless Salla allow-lists the app (and a merchant partner's
-   private app also hides `settlements`, `subscriptions` and `customer_wallets`); restricted
-   scopes aren't saved and `salla_scopes action=set` lists them under `dropped` → [references/private-apps.md](references/private-apps.md).
+   unless the app actually writes — excessive scopes risk review delay/rejection. A
+   `disabled` option isn't saved, so honour the flags from `get`. On a **merchant partner's
+   private app**, `shippings`, `settlements`, `subscriptions` and `customer_wallets` are
+   hidden (no allow-list exception); on a regular partner's private app `shippings` is
+   disabled unless Salla allow-lists the app. Restricted scopes aren't saved and
+   `salla_scopes action=set` lists them under `dropped` →
+   [references/private-apps.md](references/private-apps.md).
 2. Call `salla_apps` with `action: "connect"`, `app_id`, and any of:
    - `scopes` — map of `slug → "read" | "read_write"` (e.g.
      `{"orders": "read", "products": "read"}`). Pass **only** the resource map here —

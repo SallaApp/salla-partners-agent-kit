@@ -467,8 +467,10 @@ third-party capture/inspection tool, and restore real config when done.
 **Publishing:** shipping apps are public (see the top note) → `app_publish` stepwise (`open` →
 `set` each section → `validate` saves a DRAFT; the partner then submits one-click in the Portal
 `/publish` page — owned by **salla-publication-consistency**). A carrier built for specific
-merchants is a `type: "private"` app → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md) (`shippings` stays disabled unless Salla
-allow-lists the app). Two shipping-specific blockers:
+merchants is a `type: "private"` app → [salla-app-builder → private apps](../salla-app-builder/references/private-apps.md) instead: it
+needs no `sub_category_id`, and the `shippings` scope stays disabled (regular partners, unless
+Salla allow-lists the app) or unavailable (merchant partners). Two blockers for `type: "shipping"`
+apps:
 
 - The `sub_category_id` must be a shipping sub-category from `sub_categories`
   (`salla_reference action=categories type=shipping`).

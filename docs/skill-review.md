@@ -52,7 +52,7 @@ Run every check. Report each as PASS or FAIL with the exact fix.
     - Gate: "Name = folder = route on all three routing surfaces, every new MCP tool mapped?"
 11. **One canonical tree.** Skills live only under `.agents/skills/` as real directories, with
     no per-host mirror and no symlink.
-    - Gate: "Change confined to `.agents/skills/`, no symlink or mirror added?"
+    - Gate: "All skill files under `.agents/skills/`, no symlink or mirror added?"
 12. **Validators green.** `pnpm run validate` and `sh scripts/check-no-symlinks.sh` pass.
     - Gate: "Structural validator and symlink check green?"
 13. **Formatted.** Changed Markdown passes `pnpx prettier --check <files>`.

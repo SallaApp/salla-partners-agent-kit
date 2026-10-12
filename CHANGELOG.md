@@ -10,6 +10,25 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.20] — 2026-10-05
+
+### Added
+
+- **Skills use the new `salla_themes_docs` Partners MCP tool** (`search`, `read`, `list`) to read the
+  Twilight **React theme** docs (routes, hooks, components, slots, the store API client, the Salla CLI)
+  from the same MCP server, with no second server to set up. `salla-docs` gets a row for React theme
+  docs and its "theme internals are out of scope" note now routes React theme questions to the tool (or
+  the scoped `llms.txt`, never `llms-full.txt`); `salla-theme-builder`'s Step 5 hand-off and cross-links
+  point at it. Requires a Partners MCP that ships the tool (SallaApp/partners-mcp).
+
+### Fixed
+
+- `salla-docs`' routing description — the interface Cursor and Copilot read in isolation — did not
+  mention theme documentation at all, so "where are the React theme hooks documented" could not
+  route here however many rows the body gained.
+- The PreToolUse hook matches tool names exactly, so `salla_themes_docs` fell through to the no-op
+  arm and loaded no skill (it does not inherit `salla_themes`). It now maps to `salla-docs`.
+
 ## [1.0.19] — 2026-10-05
 
 ### Fixed

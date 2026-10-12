@@ -2,8 +2,9 @@
 name: salla-docs
 description: >
   Find the right Salla documentation or API schema fast. Use when you need a doc link,
-  an endpoint's exact request/response shape, an event payload schema, or you're unsure
-  where something is documented. Routes each topic to its scoped public docs entry point
+  an endpoint's exact request/response shape, an event payload schema, React theme
+  documentation (routes, hooks, components, slots), or you're unsure where something is
+  documented. Routes each topic to its scoped public docs entry point
   on docs.salla.dev. Never start from the full docs index (llms.txt) — it spans the
   Merchant API, storefront themes, and more; app development is only a small slice of it.
 ---
@@ -52,18 +53,19 @@ Open the scoped page, not an index. The numeric URLs below are stable handles th
 be renumbered or moved — verify the page is current; if one 404s, use step 4 to relocate
 it from the full index, then read just that page.
 
-| Topic                            | Entry point                                     |
-| -------------------------------- | ----------------------------------------------- |
-| OAuth 2.0 (Easy & Custom Mode)   | https://docs.salla.dev/421118m0.md              |
-| Webhooks guide + event list      | https://docs.salla.dev/421119m0.md              |
-| App events (lifecycle)           | https://docs.salla.dev/421413m0.md              |
-| App Functions — overview         | https://docs.salla.dev/1726814m0.md             |
-| App Functions — supported events | https://docs.salla.dev/1726818m0.md             |
-| Storefront events (snippets)     | https://docs.salla.dev/1724504m0.md             |
-| Communication App payloads       | https://docs.salla.dev/1380572m0.md             |
-| Embedded SDK modules             | https://docs.salla.dev/embedded-sdk/overview.md |
-| Merchant/Admin API reference     | https://docs.salla.dev/421117m0.md              |
-| App Settings form (guide)        | `salla-app-settings` skill                      |
+| Topic                            | Entry point                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| OAuth 2.0 (Easy & Custom Mode)   | https://docs.salla.dev/421118m0.md                                          |
+| Webhooks guide + event list      | https://docs.salla.dev/421119m0.md                                          |
+| App events (lifecycle)           | https://docs.salla.dev/421413m0.md                                          |
+| App Functions — overview         | https://docs.salla.dev/1726814m0.md                                         |
+| App Functions — supported events | https://docs.salla.dev/1726818m0.md                                         |
+| Storefront events (snippets)     | https://docs.salla.dev/1724504m0.md                                         |
+| Communication App payloads       | https://docs.salla.dev/1380572m0.md                                         |
+| Embedded SDK modules             | https://docs.salla.dev/embedded-sdk/overview.md                             |
+| Merchant/Admin API reference     | https://docs.salla.dev/421117m0.md                                          |
+| App Settings form (guide)        | `salla-app-settings` skill                                                  |
+| React theme (Twilight engine)    | `salla_themes_docs` tool, or https://docs.salla.dev/twilight/react/llms.txt |
 
 ## 4. Last resort: relocate a page from the full index
 
@@ -72,7 +74,12 @@ it from the full index, then read just that page.
   scoped page when a handle above 404s, then read just that page.
 - **Merchant API reference** has hundreds of endpoints; open only the resource you need
   ([salla-api-core](../salla-api-core/SKILL.md) covers the calling conventions).
-- **Theme (Twilight) internals** are out of scope. For storefront snippet UI or
+- **React theme (Twilight engine) internals** — routes, hooks, components, slots, the store
+  API client, the Salla CLI — live in their own docs set. Use the `salla_themes_docs` tool
+  (`action=search`, then `action=read`; `action=list` for the index), or read the scoped index
+  https://docs.salla.dev/twilight/react/llms.txt and then a single page as Markdown
+  (`<page>.md`). Never load `llms-full.txt`.
+- For storefront snippet UI or
   native storefront-UI compliance, route to
   [salla-snippets](../salla-snippets/SKILL.md) or
   [salla-storefront-ui](../salla-storefront-ui/SKILL.md).

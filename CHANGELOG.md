@@ -10,6 +10,20 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.21] — 2026-10-12
+
+### Changed
+
+- **Private apps accept merchant verification (DPD-19963).** `private-apps.md` (in
+  `salla-app-builder`) now reads `verified_for_private_apps` from `salla_private_apps action=status`
+  — `id_verified || is_merchant_verified` — as the gate for publishing a private app, so a merchant
+  partner whose store is verified is not sent to complete partner ID verification first. The
+  `id_verification` error row says what fixes it for each account kind, the account-kinds table has a
+  "Verification to publish" row, and an older MCP without the field falls back to `id_verified`. Merchant
+  verification counts for private apps only; public apps, app transfers and the development-store limit
+  still need `id_verified`. Requires a Partners MCP that returns `verified_for_private_apps`
+  (SallaApp/partners-mcp).
+
 ## [1.0.20] — 2026-10-05
 
 ### Added

@@ -18,28 +18,39 @@ to pass as `is_paid` on `salla_apps action=create`.
 `status` returns `is_merchant`. The Portal applies different rules to each kind, and the
 tool picks the matching endpoint itself — you never choose it.
 
-|                   | Merchant partner (`is_merchant: true`)                                                                             | Regular partner (`is_merchant: false`)                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Who               | A merchant who signed in to the Partners Portal with their store                                                   | A developer/agency partner account                                                          |
-| Create the app    | Free private apps allowed (`is_paid: "0"`)                                                                         | Must be paid (`is_paid: "1"`) unless Salla granted free private apps (`private_apps_limit`) |
-| Publish           | Usually auto-approved — goes **live immediately**, no admin review                                                 | Submitted to Salla review                                                                   |
-| Store requests    | **Free**, to the merchant's **own** store only, **one** per app                                                    | **Paid**, any number of stores, each with its own price and billing cycle                   |
-| Request fields    | `store_url` only                                                                                                   | `store_url`, `store_name`, `price`, `recurring`                                             |
-| Restricted scopes | `shippings`, `settlements`, `subscriptions`, `customer_wallets` — hidden and never saved (no allow-list exception) | `shippings` — `disabled` unless Salla allow-lists the app                                   |
+|                         | Merchant partner (`is_merchant: true`)                                                                             | Regular partner (`is_merchant: false`)                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Who                     | A merchant who signed in to the Partners Portal with their store                                                   | A developer/agency partner account                                                          |
+| Create the app          | Free private apps allowed (`is_paid: "0"`)                                                                         | Must be paid (`is_paid: "1"`) unless Salla granted free private apps (`private_apps_limit`) |
+| Verification to publish | A verified store, or partner ID verification                                                                       | Partner ID verification                                                                     |
+| Publish                 | Usually auto-approved — goes **live immediately**, no admin review                                                 | Submitted to Salla review                                                                   |
+| Store requests          | **Free**, to the merchant's **own** store only, **one** per app                                                    | **Paid**, any number of stores, each with its own price and billing cycle                   |
+| Request fields          | `store_url` only                                                                                                   | `store_url`, `store_name`, `price`, `recurring`                                             |
+| Restricted scopes       | `shippings`, `settlements`, `subscriptions`, `customer_wallets` — hidden and never saved (no allow-list exception) | `shippings` — `disabled` unless Salla allow-lists the app                                   |
 
 ## Step 1 — Check status
 
 Before create: `salla_private_apps action=status` with no `app_id` returns `is_merchant`,
-`id_verified`, `private_apps_limit` and `private_app_is_paid` (`"0"` or `"1"`). After create,
-`salla_private_apps action=status`, `app_id` returns:
+`id_verified`, `is_merchant_verified`, `verified_for_private_apps`, `private_apps_limit` and
+`private_app_is_paid` (`"0"` or `"1"`). After create, `salla_private_apps action=status`,
+`app_id` returns:
 
 - `status`, `is_published` (has an approved publication), `is_already_submitted`;
-- `is_merchant`, `id_verified` (the account must be ID-verified to publish);
+- `is_merchant`, `id_verified` (partner ID verification), `is_merchant_verified` (the merchant
+  partner's linked store is KYC-verified) and `verified_for_private_apps`
+  (`id_verified || is_merchant_verified`);
 - for regular partners, `durations`: the allowed billing cycles (monthly, yearly) with the
   `min`/`max` price the Portal enforces for private apps. Use these values; don't hardcode
   prices.
 
-**Gate:** "Is the app `type: private`, `id_verified` true, and do I know the account kind?"
+The account can publish a private app when `verified_for_private_apps` is true: partner ID
+verification, or a verified merchant store for a merchant partner. Verification of the store
+counts for private apps only; public apps, app transfers and the development-store limit still
+need `id_verified`. When `status` returns no `verified_for_private_apps` (an older Partners
+MCP), use `id_verified`.
+
+**Gate:** "Is the app `type: private`, `verified_for_private_apps` true, and do I know the
+account kind?"
 
 ## Step 2 — Publish
 
@@ -55,11 +66,14 @@ Before create: `salla_private_apps action=status` with no `app_id` returns `is_m
 There is no pricing step before publishing: a private app's price lives on each store request
 (Step 3), and the Portal rejects requests until the app has a publication.
 
-| Error                        | Meaning → fix                                                                                            |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `free_private_apps_disabled` | A regular partner's free private app. Make it paid (`salla_apps action=update is_paid="1"`).             |
-| `id_verification`            | The account isn't ID-verified. The partner completes it in the Partners Portal.                          |
-| `already_submitted`          | A publication is already pending. Wait, or withdraw it (`salla_private_apps action=withdraw`) and retry. |
+| Error                        | Meaning → fix                                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `free_private_apps_disabled` | A regular partner's free private app. Make it paid (`salla_apps action=update is_paid="1"`).                                                           |
+| `id_verification`            | Neither `id_verified` nor `is_merchant_verified` is true. The partner completes ID verification in the Partners Portal (merchant partners: see below). |
+| `already_submitted`          | A publication is already pending. Wait, or withdraw it (`salla_private_apps action=withdraw`) and retry.                                               |
+
+A merchant partner can instead complete their store's verification in the Salla dashboard and
+sign in to the Partners Portal again: the flag is refreshed on every merchant login.
 
 **Gate:** "Partner confirmed, publish returned a publication, and I told them whether it is
 live or pending review?"

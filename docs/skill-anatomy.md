@@ -11,8 +11,8 @@ A skill is a **workflow, not a document**. It owns exactly one topic, opens with
 description written as an activation trigger, walks the agent through numbered steps with a
 gate at the end of each critical one, names the exact MCP tool call in every action step, and
 pushes heavy reference material into a `references/` sidecar so `SKILL.md` stays under ~200
-lines. A gated/discipline skill (auth, webhooks, billing, lifecycle, publication) also defends
-its gates against rationalization with a Red Flags table; a pure reference or UI skill has none.
+lines. A skill whose steps end in `Gate:` lines also defends those gates against
+rationalization with a Red Flags table; a skill with no gates (a pure reference skill) has none.
 
 ## Required file layout
 
@@ -35,8 +35,8 @@ routing row in `AGENTS.md` must all match.
    makes it non-obvious.
 3. **When to use / hand-offs** — when this skill is the owner vs. when to route elsewhere.
 4. **Numbered steps with gates** — the workflow. Each critical step ends with a gate.
-5. **Red Flags** (gated/discipline skills only — a pure reference or UI skill has none) — a
-   "tempting thought → why it's wrong" table defending the gates.
+5. **Red Flags** (skills with `Gate:` steps; a skill with no gates has none) — a "tempting
+   thought → why it's wrong" table defending the gates.
 6. **Pointers into `references/`** — "Load `references/<file>.md` at Step N."
 
 ### Description = trigger (the routing interface)
@@ -64,11 +64,10 @@ publication sync).
 
 ### Red Flags table (defends the gates)
 
-A gated/discipline skill (auth, webhooks, billing, lifecycle, publication) adds, after its
-gated steps, a table that pairs the rationalization an agent might reach for with the reality
-that refutes it. This is the highest-leverage pattern for keeping agents on the critical path.
-At least 3 rows. A pure reference or UI skill has no gates to defend, so it has no Red Flags
-table.
+A skill whose steps end in `Gate:` lines adds, after its gated steps, a table that pairs the
+rationalization an agent might reach for with the reality that refutes it. This is the
+highest-leverage pattern for keeping agents on the critical path. At least 3 rows. A skill
+with no gates — a pure reference skill — has none.
 
 ```markdown
 ## Red Flags
@@ -99,7 +98,7 @@ row — those stay inline.
       `Use when…` trigger and hand-offs.
 - [ ] Owns exactly one topic — overlapping topics route to the owner, never duplicate.
 - [ ] Steps numbered; every critical step ends with a `Gate:`.
-- [ ] Gated skill: Red Flags table with ≥ 3 rationalization → rebuttal rows.
+- [ ] Skill with gates: Red Flags table with ≥ 3 rationalization → rebuttal rows.
 - [ ] Every action step names the MCP tool + action + key params.
 - [ ] Heavy content moved to `references/`; `SKILL.md` ≤ ~200 lines.
 - [ ] `AGENTS.md` routing table updated with the new skill's intent row.

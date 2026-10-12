@@ -22,10 +22,10 @@ Run every check. Report each as PASS or FAIL with the exact fix.
 3. **Steps and gates.** Actionable steps are numbered; each critical step ends in a
    `Gate: "<condition>?"`.
    - Gate: "Does each critical step end in a gate?"
-4. **Red Flags on gated skills.** A discipline-enforcing skill (auth, webhooks, billing,
-   lifecycle, publication) carries a Red Flags table with at least 3 "tempting thought → why
-   it's wrong (Step N)" rows. A pure reference or UI skill has none.
-   - Gate: "Gated skill → Red Flags tied to its steps?"
+4. **Red Flags defend the gates.** A skill with `Gate:` steps carries a Red Flags table with
+   at least 3 "tempting thought → why it's wrong (Step N)" rows. A skill with no gates has
+   none.
+   - Gate: "Skill has gates → Red Flags tied to its steps?"
 5. **MCP-first actions.** Every step that maps to an MCP call names the tool, the action and
    the key params (`salla_apps action=connect`, `app_id`, `scopes`).
    - Gate: "MCP actions named with tool, action and params?"

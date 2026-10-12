@@ -44,20 +44,27 @@ Run every check. Report each as PASS or FAIL with the exact fix.
    `.claude-plugin/plugin.json`, `.plugin/plugin.json`, `.hermes-plugin/plugin.yaml` and
    `gemini-extension.json`. A new skill is listed in `.hermes-plugin/plugin.yaml`
    `provides_skills`, and the skill counts in the manifest descriptions match the tree.
+   `.claude-plugin/marketplace.json` carries no version.
    - Gate: "Same version in all five files, skill lists and counts match `.agents/skills/`?"
 10. **Routing surfaces in sync.** A new or renamed skill has its folder name, its `name:`
     frontmatter and its `AGENTS.md` routing row matching, and the same route in the
     `salla-app-expert` skill and the `agents/salla-app-expert.md` agent. A new MCP tool is mapped
-    to its owning skill in the PreToolUse hook; tool names match exactly.
+    to its owning skill in the PreToolUse hook (`hooks/pretool-skill-inject`); tool names match
+    exactly, nothing is inherited from a similarly named tool.
     - Gate: "Name = folder = route on all three routing surfaces, every new MCP tool mapped?"
 11. **One canonical tree.** Skills live only under `.agents/skills/` as real directories, with
     no per-host mirror and no symlink.
     - Gate: "All skill files under `.agents/skills/`, no symlink or mirror added?"
-12. **Validators green.** `pnpm run validate` and `sh scripts/check-no-symlinks.sh` pass.
+12. **Entry point size.** `SKILL.md` stays around 200 lines by moving heavy material to
+    `references/` with a "load at Step N" pointer. Steps, gates and Red Flags stay inline
+    (check 6).
+    - Gate: "`SKILL.md` near 200 lines, with every step and gate still inline?"
+13. **Validators green.** `pnpm run validate` and `sh scripts/check-no-symlinks.sh` pass, and
+    the ≤ 80-word description is confirmed.
     - Gate: "Structural validator and symlink check green?"
-13. **Formatted.** Changed Markdown passes `pnpx prettier --check <files>`.
+14. **Formatted.** Changed Markdown passes `pnpx prettier --check <files>`.
     - Gate: "Prettier clean on every changed file?"
-14. **Exercised in a host.** A new skill or a changed workflow step was run once in Claude Code
+15. **Exercised in a host.** A new skill or a changed workflow step was run once in Claude Code
     or Codex. A text-only reference fix says "not exercised — reference text only" in the PR.
     - Gate: "Host run recorded, or the reason it does not apply stated in the PR?"
 

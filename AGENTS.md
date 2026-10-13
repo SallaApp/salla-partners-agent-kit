@@ -121,9 +121,12 @@ An app listing's "App Theme" / "App Impact" category is app publication, not a T
 - One owner per topic: lifecycle events → `salla-app-lifecycle`; settings →
   `salla-app-settings`; webhook transport → `salla-webhooks`. Route, don't duplicate.
 - Number steps; end each critical step with a `Gate:`, and defend the gates with a
-  **Red Flags** table ("tempting thought → why it's wrong"). Push heavy code/payloads/tables
-  into the skill's `references/` sidecar and point at it from the step.
-- New or changed skills: follow **`docs/skill-anatomy.md`**, add a `CHANGELOG.md` entry, and
+  **Red Flags** table ("tempting thought → why it's wrong"); a skill with no gates (pure
+  reference) has none. Push heavy code/payloads/tables into the skill's `references/` sidecar
+  and point at it from the step.
+- New or changed skills: follow **`docs/skill-anatomy.md`**, run the review in
+  **`docs/skill-review.md`** before committing or opening a PR (every check passes), add a
+  `CHANGELOG.md` entry, and
   bump the version in **all five** manifests — `package.json`, `.claude-plugin/plugin.json`,
   `.plugin/plugin.json`, `.hermes-plugin/plugin.yaml`, `gemini-extension.json` (the validator
   fails on any mismatch).

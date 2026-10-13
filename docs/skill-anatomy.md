@@ -9,9 +9,10 @@ binding — this doc expands on the _shape_ of a skill.
 
 A skill is a **workflow, not a document**. It owns exactly one topic, opens with a
 description written as an activation trigger, walks the agent through numbered steps with a
-gate at the end of each critical one, defends those gates against rationalization with a
-Red Flags table, names the exact MCP tool call in every action step, and pushes heavy
-reference material into a `references/` sidecar so `SKILL.md` stays under ~200 lines.
+gate at the end of each critical one, names the exact MCP tool call in every action step, and
+pushes heavy reference material into a `references/` sidecar so `SKILL.md` stays under ~200
+lines. A skill whose steps end in `Gate:` lines also defends those gates against
+rationalization with a Red Flags table; a skill with no gates (a pure reference skill) has none.
 
 ## Required file layout
 
@@ -34,7 +35,8 @@ routing row in `AGENTS.md` must all match.
    makes it non-obvious.
 3. **When to use / hand-offs** — when this skill is the owner vs. when to route elsewhere.
 4. **Numbered steps with gates** — the workflow. Each critical step ends with a gate.
-5. **Red Flags** — a "tempting thought → why it's wrong" table defending the gates.
+5. **Red Flags** (skills with `Gate:` steps; a skill with no gates has none) — a "tempting
+   thought → why it's wrong" table defending the gates.
 6. **Pointers into `references/`** — "Load `references/<file>.md` at Step N."
 
 ### Description = trigger (the routing interface)
@@ -62,9 +64,10 @@ publication sync).
 
 ### Red Flags table (defends the gates)
 
-After the gated steps, add a table that pairs the rationalization an agent might reach for
-with the reality that refutes it. This is the highest-leverage pattern for keeping agents
-on the critical path. At least 3 rows.
+A skill whose steps end in `Gate:` lines adds, after its gated steps, a table that pairs the
+rationalization an agent might reach for with the reality that refutes it. This is the
+highest-leverage pattern for keeping agents on the critical path. At least 3 rows. A skill
+with no gates — a pure reference skill — has none.
 
 ```markdown
 ## Red Flags
@@ -86,7 +89,8 @@ key params — not "configure the app" but **"`salla_apps action=connect`, with 
 Keep `SKILL.md` under ~200 lines. Move full code implementations, complete payload shapes,
 error-code tables, and long scope lists into `references/*.md`, and have the skill say
 _when_ to load each one. The entry point should fit in context without crowding out the
-agent's actual task.
+agent's actual task. A line target never outranks a load-bearing step, gate or Red Flags
+row — those stay inline.
 
 ## Before you ship a new skill — checklist
 
@@ -94,7 +98,7 @@ agent's actual task.
       `Use when…` trigger and hand-offs.
 - [ ] Owns exactly one topic — overlapping topics route to the owner, never duplicate.
 - [ ] Steps numbered; every critical step ends with a `Gate:`.
-- [ ] Red Flags table with ≥ 3 rationalization → rebuttal rows.
+- [ ] Skill with gates: Red Flags table with ≥ 3 rationalization → rebuttal rows.
 - [ ] Every action step names the MCP tool + action + key params.
 - [ ] Heavy content moved to `references/`; `SKILL.md` ≤ ~200 lines.
 - [ ] `AGENTS.md` routing table updated with the new skill's intent row.
@@ -102,3 +106,4 @@ agent's actual task.
 - [ ] `pnpm validate` (structural) and the symlink check pass.
 - [ ] Formatted with Prettier: `pnpx prettier . --write`.
 - [ ] Manually exercised in at least one host (Claude Code or Codex).
+- [ ] Review in [`skill-review.md`](skill-review.md) run; every check passes.

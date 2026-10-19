@@ -3,12 +3,12 @@ name: salla-embedded-app
 description: >
   Use when building an iframe page inside the Salla Merchant Dashboard (an embedded app).
   Register it via salla_embedded_pages, install @salla.sa/embedded-sdk, await
-  embedded.init() (postMessage bridge → layout: theme/locale/dir), then authenticate
+  embedded.init(), then authenticate
   Trust-but-Verify: FE embedded.auth.getToken() sends a short-lived token to YOUR backend,
   which verifies it via POST /exchange-authority/v1/introspect (header S-Source = your App
   ID) and mints its own session; call embedded.ready() only after that. Use native
-  Page/Nav/UI modules (No-Chrome rule), sync theme/RTL. Selling fixed-price addons in-app →
-  salla-addon-purchase-embedded; charging a computed amount → salla-checkout-sdk-purchase; publish flow → salla-app-builder.
+  Page/Nav/UI modules (No-Chrome rule), sync theme/RTL. Selling in-app → salla-addon-purchase-embedded (fixed price) or
+  salla-checkout-sdk-purchase (computed amount); publish → salla-app-builder.
 ---
 
 # Salla Embedded App Flow

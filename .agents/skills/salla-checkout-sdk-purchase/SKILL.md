@@ -1,11 +1,10 @@
 ---
 name: salla-checkout-sdk-purchase
 description: >
-  Charge a merchant a server-computed amount (usage, credits, quotes, top-ups) from an embedded
-  Salla app: create the checkout on your backend (`POST /admin/v2/apps/checkouts`), open it with
-  `embedded.checkout.create({ checkout_id })`, fulfil on the `app.checkout.paid` webhook. Use when
-  the amount is not a fixed publication add-on price. Hand-offs → salla-addon-purchase-embedded
-  (fixed-price add-ons), salla-webhooks (signature), salla-app-auth (scope), salla-embedded-app.
+  Charging a merchant a server-computed amount (usage, credits, top-ups, quotes) from an embedded
+  Salla app through the Checkout SDK. Use when the amount is computed by your backend rather than a
+  fixed publication add-on price. Hand-offs → salla-addon-purchase-embedded (fixed-price add-ons),
+  salla-webhooks (signature), salla-app-auth (scope), salla-embedded-app (SDK init).
 ---
 
 # Salla Checkout SDK Purchase — dynamic amounts
@@ -63,16 +62,18 @@ Persist `data.id` (the `checkout_id`) next to your order, then return it to the 
 
 Handle each error with its action:
 
-| `error.code`                | Action                                                                                          |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `amount_out_of_range`       | Show the merchant `min_total` / `max_total` from the response and ask for an amount inside them |
-| `non_taxable_not_allowed`   | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                        |
-| `reference_id_conflict`     | Reuse the existing checkout: `GET /apps/checkouts?reference_id=<id>`; use a new id for new data |
-| `rate_limit_exceeded` (429) | Back off exponentially (limit: 60 requests/min per app + store) and retry                       |
-| `validation_failed`         | Read `fields`, fix the body, resend                                                             |
-| `app_not_installed`         | Ask the merchant to reinstall the app                                                           |
-| `checkout_not_enabled`      | Feature switched off platform-wide; show "unavailable" and retry later                          |
-| `unauthorized` (401)        | Token lacks `checkout-sdk` (`read_write` for POST): re-run Step 1, merchant updates the app     |
+| `error.code`                    | Action                                                                                          |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `amount_out_of_range`           | Show the merchant `min_total` / `max_total` from the response and ask for an amount inside them |
+| `non_taxable_not_allowed`       | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                        |
+| `reference_id_conflict`         | Reuse the existing checkout: `GET /apps/checkouts?reference_id=<id>`; use a new id for new data |
+| `rate_limit_exceeded` (429)     | Back off exponentially (limit: 60 requests/min per app + store) and retry                       |
+| `validation_failed`             | Read `fields`, fix the body, resend                                                             |
+| `app_not_installed`             | Ask the merchant to reinstall the app                                                           |
+| `checkout_not_found` (404)      | The id is not this app + store; create a new checkout                                           |
+| `checkout_not_cancelable` (409) | The checkout is no longer pending; read its status with GET and stop                            |
+| `checkout_not_enabled`          | Feature switched off platform-wide; show "unavailable" and retry later                          |
+| `unauthorized` (401)            | Token lacks `checkout-sdk` (`read_write` for POST): re-run Step 1, merchant updates the app     |
 
 **Gate:** "Amount computed server-side, `reference_id` is your order id, `data.id` stored, every
 error code above mapped to an action?"
@@ -102,7 +103,7 @@ embedded.checkout.create({ checkout_id }, { context: { topup: "8812" } });
   `INVALID_CHECKOUT_INPUT` before anything is sent — wrap the call in try/catch.
 - A checkout that is not this app's answers `{ success:false, status:"failed", error:{ code:"CHECKOUT_NOT_FOUND" } }` — create a fresh one.
 - `onResult` also fires after a 3DS redirect reloads the iframe; keep `context` for restoring the page state.
-- Confirm signatures against the installed `@salla.sa/embedded-sdk` version (the `checkout_id` form needs the release that ships it).
+- Confirm signatures against the installed `@salla.sa/embedded-sdk` version (the `checkout_id` form needs `@salla.sa/embedded-sdk` `0.3.0` or newer, proposed in embedded-sdk#33).
 
 **Gate:** "`onResult` registered before `create()`; the client result only shows a pending state?"
 
@@ -128,13 +129,16 @@ Reconcile missed events: `GET /apps/checkouts/{id}` (or list by `reference_id`) 
 `salla_apps action=connect`, `app_id`, `webhook_url` (app events auto-deliver there — no
 subscribe call). Handle `app.checkout.paid` next to `app.subscription.*` in the same endpoint.
 
+**Gate:** "salla_apps action=get shows webhook_url set, and the endpoint answers app.checkout.paid with 200?"
+
 ## Step 6 — VAT-exempt checkouts (only when the business needs them)
 
 Checkouts are VAT-taxed (`taxable: true`). To sell VAT-exempt, the app's publication requests
-approval: `app_publish action=set section=pricing` with `allow_non_taxable: true` (Portal →
-Pricing step checkbox when the MCP field is unavailable) — shown only to partners Salla enabled
-for it. It takes effect when an admin approves the publication; then `taxable: false` is accepted
-on create. Without approval it answers `403 non_taxable_not_allowed`. → publication flow in
+approval. Primary route: Partners Portal → publication Pricing step → tick the checkbox "Allow
+VAT-exempt Checkout SDK purchases" (shown only to partners Salla enabled for it). MCP route, once
+partners-mcp ships it: `app_publish action=set section=pricing` with `allow_non_taxable: true`.
+It takes effect when an admin approves the publication; then `taxable: false` is accepted on
+create. Without approval it answers `403 non_taxable_not_allowed`. → publication flow in
 [salla-publication-consistency](../salla-publication-consistency/SKILL.md).
 
 ## Step 7 — Test on a demo store

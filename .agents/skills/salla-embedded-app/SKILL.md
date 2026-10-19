@@ -7,8 +7,8 @@ description: >
   Trust-but-Verify: FE embedded.auth.getToken() sends a short-lived token to YOUR backend,
   which verifies it via POST /exchange-authority/v1/introspect (header S-Source = your App
   ID) and mints its own session; call embedded.ready() only after that. Use native
-  Page/Nav/UI modules (No-Chrome rule), sync theme/RTL. Selling addons in-app →
-  salla-addon-purchase-embedded; publish flow → salla-app-builder.
+  Page/Nav/UI modules (No-Chrome rule), sync theme/RTL. Selling fixed-price addons in-app →
+  salla-addon-purchase-embedded; charging a computed amount → salla-checkout-sdk-purchase; publish flow → salla-app-builder.
 ---
 
 # Salla Embedded App Flow
@@ -57,8 +57,8 @@ Ask before starting:
    - `page` — `setTitle`, `navigate`, `redirect`, `navTo`
    - `nav` — action buttons (`setAction`/`onActionClick`/`clearAction`) and sub-nav items
    - `ui` — toasts, confirm dialogs, loading, breadcrumbs
-   - `checkout` — addon purchase
-3. **Does the page need to sell addons?** (activates the Checkout module)
+   - `checkout` — addon purchase, or a charge for a server-computed amount
+3. **Does the page need to sell addons or charge a dynamic amount?** (activates the Checkout module)
 
 ---
 
@@ -295,6 +295,10 @@ embedded.ui.breadcrumbs.hide(); // or .show()
 **Checkout — in-app addon purchase (if applicable):**
 → follow the **`salla-addon-purchase-embedded`** skill (the embedded/in-app purchase flow;
 for addon pricing/entitlement mechanics see `salla-addon-purchase`)
+
+**Checkout — charge a dynamic / usage-based amount (credits, top-ups, quotes):**
+→ follow the **`salla-checkout-sdk-purchase`** skill (backend creates the checkout, the page opens it
+with `embedded.checkout.create({ checkout_id })`, the `app.checkout.paid` webhook fulfils)
 
 Full method signatures → [`references/sdk-modules-guide.md`](references/sdk-modules-guide.md)
 

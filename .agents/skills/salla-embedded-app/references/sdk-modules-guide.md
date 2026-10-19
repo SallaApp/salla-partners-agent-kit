@@ -345,14 +345,14 @@ handles validation, error states, and abstraction.
 
 ## Module reference summary
 
-| Module   | Methods                                                                                                             |
-| -------- | ------------------------------------------------------------------------------------------------------------------- |
-| Core     | `init` · `onInit` · `ready` · `destroy` · `onThemeChange`                                                           |
-| Auth     | `getToken` · `refresh` · `introspect` (dev-only) — production authz is **backend** introspect (`S-Source`)          |
-| Page     | `setTitle` · `navigate` · `redirect` · `navTo`                                                                      |
-| Nav      | `setAction` · `onActionClick` · `clearAction` · `addNavItem` · `updateNavItem` · `removeNavItem` · `onNavItemClick` |
-| UI       | `toast.{success,error,warning,info,show}` · `loading.{show,hide}` · `confirm` · `breadcrumbs.{show,hide}`           |
-| Checkout | in-app addon purchase flow → [salla-addon-purchase-embedded](../../salla-addon-purchase-embedded/SKILL.md)          |
+| Module   | Methods                                                                                                                                                                                                                            |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core     | `init` · `onInit` · `ready` · `destroy` · `onThemeChange`                                                                                                                                                                          |
+| Auth     | `getToken` · `refresh` · `introspect` (dev-only) — production authz is **backend** introspect (`S-Source`)                                                                                                                         |
+| Page     | `setTitle` · `navigate` · `redirect` · `navTo`                                                                                                                                                                                     |
+| Nav      | `setAction` · `onActionClick` · `clearAction` · `addNavItem` · `updateNavItem` · `removeNavItem` · `onNavItemClick`                                                                                                                |
+| UI       | `toast.{success,error,warning,info,show}` · `loading.{show,hide}` · `confirm` · `breadcrumbs.{show,hide}`                                                                                                                          |
+| Checkout | in-app addon purchase flow → [salla-addon-purchase-embedded](../../salla-addon-purchase-embedded/SKILL.md); dynamic amount (`create({ checkout_id })`) → [salla-checkout-sdk-purchase](../../salla-checkout-sdk-purchase/SKILL.md) |
 
 > Per-module docs: https://docs.salla.dev/embedded-sdk/modules/auth.md ·
 > `.../modules/page.md` · `.../modules/nav.md` · `.../modules/ui.md` · `.../modules/checkout.md`

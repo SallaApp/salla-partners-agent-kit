@@ -17,16 +17,25 @@ Salla Merchant Dashboard, not a separate page or external redirect. This skill o
 payment — activation, entitlement, renewal — is webhook-driven and owned by
 [salla-addon-purchase](../salla-addon-purchase/SKILL.md).
 
+## Fixed price or computed amount
+
+This skill sells **add-ons at the price defined in the publication**. When your backend computes
+the amount (usage, credits, top-ups, quotes), use
+[salla-checkout-sdk-purchase](../salla-checkout-sdk-purchase/SKILL.md) instead: create the
+checkout on your backend, open it with `embedded.checkout.create({ checkout_id })`, fulfil on
+`app.checkout.paid`.
+
 ## Tools & MCPs
 
 The in-iframe purchase is an **embedded-SDK Checkout call, not an MCP tool** — no MCP action
 runs here.
 
-| Hand-off                                          | Skill                    |
-| ------------------------------------------------- | ------------------------ |
-| SDK init / handshake / No-Chrome                  | **salla-embedded-app**   |
-| Addon definition, activation webhook, entitlement | **salla-addon-purchase** |
-| Pricing primitives                                | **salla-app-billing**    |
+| Hand-off                                          | Skill                           |
+| ------------------------------------------------- | ------------------------------- |
+| SDK init / handshake / No-Chrome                  | **salla-embedded-app**          |
+| Addon definition, activation webhook, entitlement | **salla-addon-purchase**        |
+| Pricing primitives                                | **salla-app-billing**           |
+| Server-computed amount (credits, top-ups)         | **salla-checkout-sdk-purchase** |
 
 ---
 

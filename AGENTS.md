@@ -47,6 +47,7 @@ An app listing's "App Theme" / "App Impact" category is app publication, not a T
 | Post-install setup / onboarding steps                         | `salla-app-builder`             |
 | Addon billing lifecycle (activation, renewal, entitlement)    | `salla-addon-purchase`          |
 | In-app addon purchase UX (embedded flow)                      | `salla-addon-purchase-embedded` |
+| Charge a dynamic / usage-based amount (credits, top-ups)      | `salla-checkout-sdk-purchase`   |
 | SMS / WhatsApp / email apps                                   | `salla-communication-app`       |
 | Carriers, shipments, labels                                   | `salla-shipping-app`            |
 | Direct Admin API calls                                        | `salla-api-core`                |
@@ -81,7 +82,7 @@ An app listing's "App Theme" / "App Impact" category is app publication, not a T
 - `gemini-extension.json` — **Gemini CLI** manifest: `contextFileName: "AGENTS.md"` loads
   this router at session start, and `mcpServers` inlines the Salla MCP (Gemini's `httpUrl`
   field). Skills come from the auto-discovered `.agents/skills/` tree.
-- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 28
+- `.hermes-plugin/` — **Hermes** plugin: `plugin.yaml` (`provides_skills:` for all 29
   skills + MCP wiring), `install.sh` (clones the repo and symlinks `.hermes-plugin/` next
   to `.agents/skills/` in `~/.hermes/` at install time), and `__init__.py` (registers the
   canonical skill tree). No CLI passthrough — partners act through the MCP.

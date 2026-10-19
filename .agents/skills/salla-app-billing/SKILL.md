@@ -7,7 +7,8 @@ description: >
   app.trial.* events (one family — item_type splits plan vs addon), reconcile via salla_apps
   action=subscriptions, meter usage against the balance. Signatures → salla-webhooks; tokens
   → salla-app-auth; wiring → salla-app-lifecycle; in-app purchase UI → salla-addon-purchase /
-  salla-addon-purchase-embedded.
+  salla-addon-purchase-embedded; server-computed amounts (credits, top-ups) →
+  salla-checkout-sdk-purchase.
 ---
 
 # Salla App Billing Flow
@@ -308,7 +309,7 @@ or wrongly locks a paying merchant out. If one of these is your plan, re-read th
 
 | Tempting thought                                             | Why it's wrong                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| "slug / price on an addon is optional — I'll leave it out." | `name`, `price`, and `slug` are all required on every addon entry — the server rejects an incomplete addon. Omitting any one is a validation error (Step 1). |
+| "slug / price on an addon is optional — I'll leave it out."  | `name`, `price`, and `slug` are all required on every addon entry — the server rejects an incomplete addon. Omitting any one is a validation error (Step 1).                                                                                                                                                             |
 | "I'll unlock features straight from the event payload."      | A forged/replayed webhook would hand out paid access. Verify the signature + dedupe, then gate on **stored** entitlement state (Step 3).                                                                                                                                                                                 |
 | "Plans and addons need separate event handlers."             | They share one `app.subscription.*` family — branch on `item_type` (`item_slug` picks the addon). Separate handlers miss half the events (Step 3).                                                                                                                                                                       |
 | "I only need the subscription events; trials are different." | Trials ride the **same** payload shape (`app.trial.*`). Skip them and trial start/expiry falls through to wrong gating (Steps 3–4).                                                                                                                                                                                      |

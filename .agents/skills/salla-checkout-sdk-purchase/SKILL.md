@@ -55,8 +55,10 @@ Call `POST https://api.salla.dev/admin/v2/apps/checkouts` with
 - `items` — 1–5 lines, each `name`, `unit_price` (SAR, VAT-exclusive, ≤ 2 decimals), `quantity`
   (1–10000), optional `description`.
 - `taxable` — send `true` (the default) unless the app is approved for VAT-exempt checkouts (Step 6).
-- `expires_in` (minutes 15–10080, default 1440) and `metadata` (≤ 20 scalar keys, ≤ 1 KB, echoed
-  back in GET and the webhook) are optional.
+- `expires_in` — optional, minutes 15–10080, default 1440.
+
+Correlate the checkout, its GET responses and the `app.checkout.paid` webhook with your order by
+`reference_id`.
 
 Persist `data.id` (the `checkout_id`) next to your order, then return it to the embedded page.
 

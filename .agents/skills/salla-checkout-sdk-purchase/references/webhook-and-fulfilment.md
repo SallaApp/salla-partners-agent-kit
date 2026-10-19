@@ -36,15 +36,15 @@ signature and retries. Sent after the order is created. Treat it idempotently by
       "tax": 15,
       "tax_value": 18.75,
       "total": 143.75,
-      "metadata": { "plan": "pro" },
       "paid_at": "2026-10-19 12:40:01"
     }
   }
 }
 ```
 
-`merchant` is the store id. Only `app.checkout.paid` exists for checkouts; expiry and
-cancellation are read from `GET /apps/checkouts/{id}`.
+`merchant` is the store id; correlate the checkout with your order by `checkout.reference_id`.
+Only `app.checkout.paid` exists for checkouts; expiry and cancellation are read from
+`GET /apps/checkouts/{id}`.
 
 ## Idempotent handler (Node / TypeScript)
 
@@ -80,7 +80,6 @@ const res = await fetch("https://api.salla.dev/admin/v2/apps/checkouts", {
   body: JSON.stringify({
     reference_id: order.id,
     items: [{ name: "500 SMS credits", unit_price: 0.25, quantity: 500 }],
-    metadata: { plan: "pro" },
   }),
 });
 const body = await res.json();

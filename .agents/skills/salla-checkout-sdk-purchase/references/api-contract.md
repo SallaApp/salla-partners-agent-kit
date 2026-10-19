@@ -19,8 +19,7 @@ store. Rate limit: 60 requests/min per app + store.
     }
   ],
   "taxable": true,
-  "expires_in": 1440,
-  "metadata": { "plan": "pro" }
+  "expires_in": 1440
 }
 ```
 
@@ -35,7 +34,6 @@ store. Rate limit: 60 requests/min per app + store.
 | `sub_total` (Σ price×q) | within the effective limits: `min_total` ≤ sub_total ≤ `max_total`, else 422 `amount_out_of_range`                         |
 | `taxable`               | optional bool, default `true`; `false` only for apps approved for VAT-exempt checkouts, else 403 `non_taxable_not_allowed` |
 | `expires_in`            | optional, minutes 15–10080, default 1440                                                                                   |
-| `metadata`              | optional object, ≤ 20 keys, scalar values, ≤ 1 KB; echoed in GET and the webhook                                           |
 
 `201 Created` (`200 OK` when the same `reference_id` is replayed with an identical body):
 
@@ -64,7 +62,6 @@ store. Rate limit: 60 requests/min per app + store.
     "total": 143.75,
     "checkout_url": "https://s.salla.sa/checkout/zXbVlo",
     "order_id": null,
-    "metadata": { "plan": "pro" },
     "expires_at": "2026-10-20T12:31:25+03:00",
     "paid_at": null,
     "created_at": "2026-10-19T12:31:25+03:00"

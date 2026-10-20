@@ -91,7 +91,7 @@ Register `embedded.checkout.onResult` first, then open the drawer with the id fr
 import { embedded } from "@salla.sa/embedded-sdk";
 
 const off = embedded.checkout.onResult((r) => {
-  // r.status: "paid" | "pending" | "failed" | "cancelled"; r.order_id; r.checkout_id; r.context
+  // r.status: "paid" | "pending" | "failed" | "cancelled" | "success"; r.order_id; r.checkout_id; r.context
   if (r.status === "paid") showPending("Finishing your purchase…");
   else if (!r.success)
     embedded.ui.toast.error(r.error?.message ?? "Payment failed");
@@ -117,11 +117,14 @@ embedded.checkout.create({ checkout_id }, { context: { topup: "8812" } });
 Grant the credits (or deliver the service) from the webhook handler only. Payload →
 [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
 
-1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)); answer 200 fast, process async.
+1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)).
 2. Idempotency key = `data.checkout.id`. Insert it in a unique-keyed table inside the same
    transaction that applies the fulfilment; a duplicate delivery is a no-op.
 3. Match your order with `data.checkout.reference_id`; compare `sub_total` with what you charged.
-4. Fulfil for the store in `merchant`; `data.store_type` tells a live store from a demo store.
+4. Answer `200` only after the delivery is persisted or enqueued; anything else makes Salla retry.
+
+Refunds: none in phase 1 (D12) — there is no refund endpoint for a paid checkout. Handle business
+refunds by adjusting the merchant's balance in your own system.
 
 Reconcile missed events: `GET /apps/checkouts/{id}` (or list by `reference_id`) and fulfil when
 `status` is `paid`, through the same idempotent path. `POST /apps/checkouts/{id}/cancel` retires a
@@ -131,8 +134,9 @@ Reconcile missed events: `GET /apps/checkouts/{id}` (or list by `reference_id`) 
 
 ## Step 5 — Register the event and the webhook URL
 
-`salla_apps action=connect`, `app_id`, `webhook_url` (app events auto-deliver there — no
-subscribe call). Handle `app.checkout.paid` next to `app.subscription.*` in the same endpoint.
+`salla_apps action=connect`, `app_id`, `webhook_url`, `webhook_security_strategy: "signature"`
+(required — → [salla-webhooks](../salla-webhooks/SKILL.md)); app events auto-deliver there — no
+subscribe call. Handle `app.checkout.paid` next to `app.subscription.*` in the same endpoint.
 
 **Gate:** "salla_apps action=get shows webhook_url set, and the endpoint answers app.checkout.paid with 200?"
 
@@ -140,7 +144,7 @@ subscribe call). Handle `app.checkout.paid` next to `app.subscription.*` in the 
 
 Checkouts are VAT-taxed (`taxable: true`). To sell VAT-exempt, the app's publication requests
 approval. Primary route: Partners Portal → publication Pricing step → tick the checkbox "Allow
-VAT-exempt Checkout SDK purchases" (shown only to partners Salla enabled for it). MCP route, once
+VAT-exempt Checkout SDK purchases" (offered only for apps targeted by the `checkout_sdk_non_taxable` feature rule). MCP route, once
 partners-mcp ships it: `app_publish action=set section=pricing` with `allow_non_taxable: true`.
 It takes effect when an admin approves the publication; then `taxable: false` is accepted on
 create. Without approval it answers `403 non_taxable_not_allowed`. → publication flow in

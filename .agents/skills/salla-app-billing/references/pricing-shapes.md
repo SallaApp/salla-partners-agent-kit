@@ -107,9 +107,9 @@ opens it, and `app.checkout.paid` confirms payment → **salla-checkout-sdk-purc
 the `checkout-sdk` scope. Checkouts are VAT-taxed; for VAT-exempt sales set `allow_non_taxable`
 on the `pricing` section (below) and wait for admin approval.
 
-| Field               | Type / rule                                                                                                                 |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `allow_non_taxable` | bool, default `false` — request VAT-exempt checkouts; honoured after admin approval, only for partners Salla enabled for it |
+| Field               | Type / rule                                                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allow_non_taxable` | bool, default `false` — request VAT-exempt checkouts; honoured after admin approval, only for apps targeted by the `checkout_sdk_non_taxable` feature rule |
 
 ## Top-level (any type)
 

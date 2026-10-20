@@ -69,7 +69,9 @@ store. Rate limit: 60 requests/min per app + store.
 }
 ```
 
-`data.id` is the value to pass to `embedded.checkout.create({ checkout_id })`. Totals are computed
+`data.id` is the value to pass to `embedded.checkout.create({ checkout_id })`. Use
+`data.checkout_url` from the response verbatim when you need a payment link — the host varies by
+environment; construct no checkout URL of your own. Totals are computed
 by Salla (VAT 15 % when `taxable` is true; `tax: 0` and `tax_value: 0` when false).
 
 ## GET /apps/checkouts/{id} — show
@@ -78,7 +80,7 @@ Same `data` object. `404 checkout_not_found` for another app's or another store'
 
 ## GET /apps/checkouts?reference_id=&status=&page=&per_page= — list
 
-Paginated (Salla pagination envelope), this app + this store only, newest first.
+Paginated (Salla pagination envelope; `per_page` max 50), this app + this store only, newest first.
 `status` ∈ `pending` | `paid` | `expired` | `canceled`.
 
 ## POST /apps/checkouts/{id}/cancel — cancel a pending checkout
@@ -114,6 +116,9 @@ Paginated (Salla pagination envelope), this app + this store only, newest first.
 | 422  | `validation_failed` (+ `fields`)                   | body rules above                                                                                |
 | 429  | `rate_limit_exceeded`                              | > 60 req/min per app + store                                                                    |
 
+On any HTTP **401**, treat it as an auth failure (token missing, invalid, or without the scope)
+and refresh/re-auth — branch on the HTTP status, not on `error.code`.
+
 Public status: `pending` → `paid` | `expired` | `canceled`. An overdue `pending` checkout becomes
 `expired` (swept every 15 minutes) and can no longer be paid — create a new one.
 
@@ -122,7 +127,7 @@ Public status: `pending` → `paid` | `expired` | `canceled`. An overdue `pendin
 ```js
 const { checkout } = embedded;
 checkout.onResult((r) => {
-  /* r.status: paid | pending | failed | cancelled; r.order_id; r.checkout_id; r.context */
+  /* r.status: paid | pending | failed | cancelled | success; r.order_id; r.checkout_id; r.context */
 });
 checkout.create({ checkout_id: "zXbVlo" }, { context: { topup: "8812" } });
 ```

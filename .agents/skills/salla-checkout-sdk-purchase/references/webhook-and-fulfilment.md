@@ -13,9 +13,9 @@ signature and retries. Sent after the order is created. Treat it idempotently by
   "data": {
     "id": 1662840947,
     "app_name": "SMS Pro",
-    "app_type": "app",
+    "app_description": "Bulk SMS and WhatsApp campaigns for your store",
+    "app_type": "public",
     "categories": ["marketing"],
-    "store_type": "live",
     "checkout": {
       "id": "zXbVlo",
       "reference_id": "topup-8812",
@@ -50,9 +50,8 @@ Only `app.checkout.paid` exists for checkouts; expiry and cancellation are read 
 
 ```typescript
 app.post("/webhooks/salla", verifySallaSignature, async (req, res) => {
-  res.sendStatus(200); // answer fast, process async
   const evt = req.body;
-  if (evt.event !== "app.checkout.paid") return;
+  if (evt.event !== "app.checkout.paid") return res.sendStatus(200);
 
   const c = evt.data.checkout;
   await db.transaction(async (tx) => {
@@ -63,10 +62,12 @@ app.post("/webhooks/salla", verifySallaSignature, async (req, res) => {
     const order = await tx.findOrder(c.reference_id, evt.merchant);
     await tx.grantCredits(order, c.items); // fulfilment applied exactly once
   });
+  res.sendStatus(200); // 200 only after the delivery is persisted
 });
 ```
 
-`verifySallaSignature` → [salla-webhooks](../../salla-webhooks/SKILL.md).
+`verifySallaSignature` → [salla-webhooks](../../salla-webhooks/SKILL.md). Answer `200` only
+after the delivery is persisted or enqueued — anything else makes Salla retry.
 
 ## Backend create (Node / TypeScript)
 

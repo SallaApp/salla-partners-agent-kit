@@ -30,20 +30,20 @@ action=get`) and only use `free` (as `plan_type`, or a plan's `recurring: "free"
 
 `plans[]` — up to **8** (0–4 monthly, 0–4 yearly). Each plan object:
 
-| Field                 | Type / rule                                                                         |
-| --------------------- | ----------------------------------------------------------------------------------- |
-| `id`                  | existing plan id — round-trip it to UPDATE a plan in place (omit to create)         |
-| `name`                | `{ar,en}`, required                                                                 |
-| `subtitle`            | `{ar,en}`                                                                           |
-| `price`               | numeric, **SAR** (required unless `recurring: "free"`)                              |
-| `recurring`           | `free` \| `monthly` \| `yearly` \| **`one-time`**                                   |
-| `recommended`         | bool — highlight this plan                                                          |
-| `is_compare_included` | bool — show in the comparison table                                                 |
-| `hidden`              | bool                                                                                |
-| `initialization_cost` | numeric, **SAR**, nullable — one-time setup fee                                     |
-| `discount`            | bool                                                                                |
-| `additional_features` | array (per-plan)                                                                    |
-| `promotions`          | array, **max 1**: `{requirement 1–9, reward 1–6, start_date, end_date}`             |
+| Field                 | Type / rule                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `id`                  | existing plan id — round-trip it to UPDATE a plan in place (omit to create)                  |
+| `name`                | `{ar,en}`, required                                                                          |
+| `subtitle`            | `{ar,en}`                                                                                    |
+| `price`               | numeric, **SAR** (required unless `recurring: "free"`)                                       |
+| `recurring`           | `free` \| `monthly` \| `yearly` \| **`one-time`**                                            |
+| `recommended`         | bool — highlight this plan                                                                   |
+| `is_compare_included` | bool — show in the comparison table                                                          |
+| `hidden`              | bool                                                                                         |
+| `initialization_cost` | numeric, **SAR**, nullable — one-time setup fee                                              |
+| `discount`            | bool                                                                                         |
+| `additional_features` | array (per-plan)                                                                             |
+| `promotions`          | array, **max 1**: `{requirement 1–9, reward 1–6, start_date, end_date}`                      |
 | `balance`             | numeric, **SAR**, nullable — **required for one-time / on_demand** plans, null for recurring |
 
 `plan_features[]` — the comparison **matrix**, pivoted across plans (NOT per-plan):
@@ -55,12 +55,12 @@ action=get`) and only use `free` (as `plan_type`, or a plan's `recurring: "free"
 
 No `plans[]`. Top-level:
 
-| Field                      | Type / rule                                                                             |
-| -------------------------- | --------------------------------------------------------------------------------------- |
-| `one_time_price`           | numeric, **SAR**, digits 1–5, min 1                                                              |
-| `one_time_old_price`       | numeric, **SAR**, digits 1–5 — **must be `>` `one_time_price`** (strikethrough)                  |
+| Field                      | Type / rule                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `one_time_price`           | numeric, **SAR**, digits 1–5, min 1                                                                       |
+| `one_time_old_price`       | numeric, **SAR**, digits 1–5 — **must be `>` `one_time_price`** (strikethrough)                           |
 | `plan_additional_features` | array: `{ key (alnum/hyphen, distinct), name{ar,en} ≤50, price, adjustable, min, max }` — `price` **SAR** |
-| `plan_trial`               | integer days                                                                            |
+| `plan_trial`               | integer days                                                                                              |
 
 ## On-demand (`plan_type: "on_demand"`, Pay As You Go)
 
@@ -78,8 +78,8 @@ Usage balance is written back at runtime via `POST /apps/balance` (see salla-app
 all **required** (the server rejects any addon missing one with a validation error). All prices
 are in **SAR** (Saudi Riyals); there is no currency field or selector.
 
-| Field           | Type / rule                                                                                  |
-| --------------- | -------------------------------------------------------------------------------------------- |
+| Field           | Type / rule                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------- |
 | `name`          | `{ar,en}`, **required** — state the renewal cycle here when `support_renew: true`           |
 | `description`   | `{ar,en}` — state what recurs, how often, and what triggers a charge                        |
 | `price`         | numeric, **required**, 1–999999.99 **SAR** — no currency field; all prices are Saudi Riyals |
@@ -98,6 +98,18 @@ Addons are **always one-time at the publication level**. Renewal is the single
 
 In-app purchase of addons runs through the **checkout SDK** (frontend purchase cycle) →
 **salla-addon-purchase-embedded**.
+
+## Dynamic amounts (Checkout SDK) — not a publication shape
+
+A charge your backend computes (usage, credits, top-ups, quotes) has no pricing-section entry: the
+backend creates a checkout per charge through `POST /admin/v2/apps/checkouts`, the embedded page
+opens it, and `app.checkout.paid` confirms payment → **salla-checkout-sdk-purchase**. It needs
+the `checkout-sdk` scope. Checkouts are VAT-taxed; for VAT-exempt sales set `allow_non_taxable`
+on the `pricing` section (below) and wait for admin approval.
+
+| Field               | Type / rule                                                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allow_non_taxable` | bool, default `false` — request VAT-exempt checkouts; honoured after admin approval, only for apps targeted by the `checkout_sdk_non_taxable` feature rule |
 
 ## Top-level (any type)
 

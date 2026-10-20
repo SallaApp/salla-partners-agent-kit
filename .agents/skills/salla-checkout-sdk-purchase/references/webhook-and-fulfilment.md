@@ -20,7 +20,7 @@ signature and retries. Sent after the order is created. Treat it idempotently by
       "id": "zXbVlo",
       "reference_id": "topup-8812",
       "status": "paid",
-      "order_id": 1098273465,
+      "order_id": "1098273465",
       "currency": "SAR",
       "taxable": true,
       "items": [

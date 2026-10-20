@@ -98,18 +98,21 @@ Paginated (Salla pagination envelope), this app + this store only, newest first.
 }
 ```
 
-| HTTP | `error.code`                                       | When                                                                                    |
-| ---- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 401  | `unauthorized`                                     | missing / invalid token, or token without scope `checkout-sdk` (`.read_write` for POST) |
-| 403  | `checkout_not_enabled`                             | Checkout SDK is switched off platform-wide                                              |
-| 422  | `amount_out_of_range` (+ `min_total`, `max_total`) | `sub_total` outside the effective price limits                                          |
-| 403  | `non_taxable_not_allowed`                          | `taxable: false` for an app not approved for VAT-exempt checkouts                       |
-| 403  | `app_not_installed`                                | app not installed (or uninstalled) on the store                                         |
-| 404  | `checkout_not_found`                               | unknown id, or not this app + store                                                     |
-| 409  | `reference_id_conflict`                            | replayed `reference_id` with a different body                                           |
-| 409  | `checkout_not_cancelable`                          | status is not `pending`                                                                 |
-| 422  | `validation_failed` (+ `fields`)                   | body rules above                                                                        |
-| 429  | `rate_limit_exceeded`                              | > 60 req/min per app + store                                                            |
+| HTTP | `error.code`                                       | When                                                                                            |
+| ---- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 401  | `unauthorized`                                     | missing / invalid token, or token without scope `checkout-sdk` (`.read_write` for POST)         |
+| 403  | `checkout_not_enabled`                             | Checkout SDK is switched off platform-wide                                                      |
+| 422  | `amount_out_of_range` (+ `min_total`, `max_total`) | `sub_total` outside the effective price limits                                                  |
+| 403  | `non_taxable_not_allowed`                          | `taxable: false` for an app not approved for VAT-exempt checkouts                               |
+| 403  | `app_not_installed`                                | app not installed (or uninstalled) on the store                                                 |
+| 404  | `checkout_not_found`                               | unknown id, or not this app + store                                                             |
+| 409  | `reference_id_conflict`                            | replayed `reference_id` with a different body                                                   |
+| 409  | `checkout_not_cancelable`                          | status is not `pending`                                                                         |
+| 409  | `checkout_in_progress`                             | a concurrent create holds the lock for this `reference_id` — retry with the same `reference_id` |
+| 404  | `store_owner_not_found`                            | the store has no owner user — contact Salla support                                             |
+| 502  | `upstream_error`                                   | anything else from Dashboard — retry later with backoff                                         |
+| 422  | `validation_failed` (+ `fields`)                   | body rules above                                                                                |
+| 429  | `rate_limit_exceeded`                              | > 60 req/min per app + store                                                                    |
 
 Public status: `pending` → `paid` | `expired` | `canceled`. An overdue `pending` checkout becomes
 `expired` (swept every 15 minutes) and can no longer be paid — create a new one.

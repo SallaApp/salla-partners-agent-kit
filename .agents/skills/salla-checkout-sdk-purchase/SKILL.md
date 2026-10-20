@@ -73,6 +73,9 @@ Handle each error with its action:
 | `validation_failed`             | Read `fields`, fix the body, resend                                                             |
 | `app_not_installed`             | Ask the merchant to reinstall the app                                                           |
 | `checkout_not_found` (404)      | The id is not this app + store; create a new checkout                                           |
+| `store_owner_not_found` (404)   | The store has no owner user; contact Salla support                                              |
+| `checkout_in_progress` (409)    | A concurrent create holds the lock; retry with the same `reference_id`                          |
+| `upstream_error` (502)          | Retry later with backoff                                                                        |
 | `checkout_not_cancelable` (409) | The checkout is no longer pending; read its status with GET and stop                            |
 | `checkout_not_enabled`          | Feature switched off platform-wide; show "unavailable" and retry later                          |
 | `unauthorized` (401)            | Token lacks `checkout-sdk` (`read_write` for POST): re-run Step 1, merchant updates the app     |

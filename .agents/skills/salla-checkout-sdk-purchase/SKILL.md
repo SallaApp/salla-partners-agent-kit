@@ -128,8 +128,8 @@ Grant the credits (or deliver the service) from your backend only, after Salla c
 Payload → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
 
 1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)).
-2. Idempotency key = `data.checkout.id` — the same integer as the API's `cart_id`; one event per
-   checkout. Insert it in a unique-keyed table inside the same transaction that applies the
+2. Idempotency key = `data.checkout.cart_id` — the same integer `cart_id` as create and show;
+   one event per checkout. Insert it in a unique-keyed table inside the same transaction that applies the
    fulfilment; a duplicate delivery is a no-op.
 3. Match your order with `data.checkout.reference_id`; compare `sub_total` with what you charged.
 4. Answer `200` only after the delivery is persisted or enqueued; anything else makes Salla retry.
@@ -141,7 +141,7 @@ Reconcile missed events: `GET /admin/v2/checkouts/{cart_id}` with the id you sto
 when `status` is `paid`, through the same idempotent path. The API has two endpoints — create and
 show — so the stored `cart_id` is your only lookup key.
 
-**Gate:** "Handler verified, idempotent by `checkout.id`, and the only place that fulfils?"
+**Gate:** "Handler verified, idempotent by `checkout.cart_id`, and the only place that fulfils?"
 
 ## Step 5 — Register the event and the webhook URL
 
@@ -182,7 +182,7 @@ Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | "My app token already works for orders; skip the scope." | Checkout calls need `checkouts` on the token; without it every call answers `401` (Step 1).                           |
 | "`onResult` says paid — I'll grant the credits now."     | The client result is UX only; fulfil from the verified `app.checkout.paid` webhook or a backend GET (Steps 3–4).      |
-| "The webhook may arrive twice; the credits are small."   | Deliveries repeat and retry. Key the fulfilment on `checkout.id` in a unique-keyed table (Step 4).                    |
+| "The webhook may arrive twice; the credits are small."   | Deliveries repeat and retry. Key the fulfilment on `checkout.cart_id` in a unique-keyed table (Step 4).               |
 | "I'll build the price client-side and pass the items."   | The amount is computed on your backend and sent to the create API; the SDK opens only a checkout id (Steps 2–3).      |
 | "A fixed add-on is close enough for top-ups."            | Add-ons carry one publication price. Any computed amount uses this skill (Choose the right purchase skill).           |
 | "`taxable: false` is just a flag I can send."            | It needs `allow_non_taxable: 1` on the approved publication; otherwise `403 non_taxable_not_allowed` (Step 6).        |

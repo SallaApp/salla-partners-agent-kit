@@ -22,7 +22,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
   `reference_id` replaces an unpaid checkout and answers `403 reference_id_already_paid` once
   paid), open it with `embedded.checkout.create({ checkout_id })` (`@salla.sa/embedded-sdk`
   0.2.7+; after payment the merchant returns to the app's default embedded page), fulfil only on
-  the `app.checkout.paid` webhook (one per checkout, idempotent by `checkout.id` = `cart_id`,
+  the `app.checkout.paid` webhook (one per checkout, idempotent by `checkout.cart_id`, the same id as create and show,
   `tax` = VAT amount, `paid_at` ISO 8601), note Salla's own Checkout SDK commission (default
   15 %), and request VAT-exempt checkouts through the publication Pricing step
   (`allow_non_taxable: 1`, offered when `can_request_non_taxable` is true, read from the approved

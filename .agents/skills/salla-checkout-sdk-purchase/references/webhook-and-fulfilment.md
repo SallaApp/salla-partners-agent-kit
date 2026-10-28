@@ -4,7 +4,7 @@
 
 Delivered like `app.subscription.*` (App Events family): same app webhook URL, headers,
 signature and retries. Sent once per checkout, after the order is created, and carries every
-line. Treat it idempotently by `checkout.id`.
+line. Treat it idempotently by `checkout.cart_id`.
 
 ```json
 {
@@ -18,7 +18,7 @@ line. Treat it idempotently by `checkout.id`.
     "app_type": "public",
     "categories": ["marketing"],
     "checkout": {
-      "id": 1449378623,
+      "cart_id": 1449378623,
       "reference_id": "topup-8812",
       "taxable": true,
       "currency": "SAR",
@@ -43,8 +43,8 @@ line. Treat it idempotently by `checkout.id`.
 ```
 
 `merchant` is the store id; correlate the checkout with your order by `checkout.reference_id`.
-`checkout.id` is the same integer as the API's `cart_id`, and `checkout.order_id` is an integer
-too. `checkout.tax` is the VAT **amount** (`0` when
+`checkout.cart_id` is the same integer `cart_id` that create and show return (the SDK takes it
+as `String(cart_id)`), and `checkout.order_id` is an integer too. `checkout.tax` is the VAT **amount** (`0` when
 `taxable` is false). `checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as
 such. `app.checkout.paid` is the only checkout event (checkouts do not expire).
 
@@ -58,7 +58,7 @@ app.post("/webhooks/salla", verifySallaSignature, async (req, res) => {
   const c = evt.data.checkout;
   await db.transaction(async (tx) => {
     const first = await tx.insertIgnore("processed_checkouts", {
-      checkout_id: c.id, // same integer as the create response's cart_id
+      cart_id: c.cart_id, // same integer as create and show
     });
     if (!first) return; // duplicate delivery — already fulfilled
     const order = await tx.findOrder(c.reference_id, evt.merchant);

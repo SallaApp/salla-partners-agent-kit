@@ -430,17 +430,17 @@ async function handleWebhook(
 
 Subscribe to all of these — they keep your app in sync with merchant state:
 
-| Event                      | When                           | What to do                                                                  |
-| -------------------------- | ------------------------------ | --------------------------------------------------------------------------- |
-| `app.installed`            | First install                  | Provision resources, set defaults                                           |
-| `app.store.authorize`      | Install OR token refresh       | Save/update tokens in DB per merchant                                       |
-| `app.updated`              | Merchant updates app           | Salla fires `app.store.authorize` right after — wait for that               |
-| `app.trial.started`        | Trial begins                   | Enable trial features                                                       |
-| `app.subscription.started` | Paid plan activated            | Mark active, unlock paid features                                           |
-| `app.trial.expired`        | Trial ended, no upgrade        | Restrict access                                                             |
-| `app.subscription.expired` | Paid plan lapsed               | Restrict access, notify merchant                                            |
-| `app.checkout.paid`        | A Checkout SDK charge was paid | Fulfil once, idempotent by `data.checkout.id` → salla-checkout-sdk-purchase |
-| `app.uninstalled`          | Merchant removes app           | Clean up merchant data per retention policy                                 |
+| Event                      | When                           | What to do                                                                       |
+| -------------------------- | ------------------------------ | -------------------------------------------------------------------------------- |
+| `app.installed`            | First install                  | Provision resources, set defaults                                                |
+| `app.store.authorize`      | Install OR token refresh       | Save/update tokens in DB per merchant                                            |
+| `app.updated`              | Merchant updates app           | Salla fires `app.store.authorize` right after — wait for that                    |
+| `app.trial.started`        | Trial begins                   | Enable trial features                                                            |
+| `app.subscription.started` | Paid plan activated            | Mark active, unlock paid features                                                |
+| `app.trial.expired`        | Trial ended, no upgrade        | Restrict access                                                                  |
+| `app.subscription.expired` | Paid plan lapsed               | Restrict access, notify merchant                                                 |
+| `app.checkout.paid`        | A Checkout SDK charge was paid | Fulfil once, idempotent by `data.checkout.cart_id` → salla-checkout-sdk-purchase |
+| `app.uninstalled`          | Merchant removes app           | Clean up merchant data per retention policy                                      |
 
 `app.store.authorize` payload (illustrative shape — confirm exact fields via the MCP/docs):
 

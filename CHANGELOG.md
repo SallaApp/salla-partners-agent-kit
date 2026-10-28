@@ -15,21 +15,24 @@ versions the **skill content as a whole** — the `version` field in `package.js
 ### Added
 
 - **`salla-checkout-sdk-purchase` skill (DPD-20561).** Charging a server-computed amount (usage,
-  credits, top-ups, quotes) from an embedded app: create the checkout on the partner backend
-  (`POST /admin/v2/apps/checkouts` with the store's normal access token — no OAuth scope; read it
-  back with `GET /admin/v2/apps/checkouts/{id}`; checkouts do not expire, a create with the same
-  `reference_id` replaces an unpaid checkout and answers `403 reference_id_already_paid` once paid;
-  optional `redirect_uri` brings the merchant back to the app's page), open it with
-  `embedded.checkout.create({ checkout_id })` (`@salla.sa/embedded-sdk` 0.2.7+), fulfil only on the
-  `app.checkout.paid` webhook (one per checkout, idempotent by `checkout.id`, `tax` = VAT amount,
-  `paid_at` ISO 8601), note Salla's own Checkout SDK commission (default 15 %), and request
-  VAT-exempt checkouts through the publication Pricing step (`checkout_type: 1`, offered when
-  `can_request_non_taxable` is true). Every API error code maps to an action; payloads and the
-  demo-store test recipe live in `references/`.
+  credits, top-ups, quotes) from an embedded public app: add the `checkouts` scope, create the
+  checkout on the partner backend (`POST /admin/v2/checkouts` with the store access token;
+  `reference_id` required, line `amount` totals, `name` per locale; `201` returns `cart_id`; read it
+  with `GET /admin/v2/checkouts/{cart_id}`; checkouts do not expire, a create with the same
+  `reference_id` replaces an unpaid checkout and answers `403 reference_id_already_paid` once
+  paid), open it with `embedded.checkout.create({ checkout_id })` (`@salla.sa/embedded-sdk`
+  0.2.7+; after payment the merchant returns to the app's default embedded page), fulfil only on
+  the `app.checkout.paid` webhook (one per checkout, idempotent by `checkout.id` = `cart_id`,
+  `tax` = VAT amount, `paid_at` ISO 8601), note Salla's own Checkout SDK commission (default
+  15 %), and request VAT-exempt checkouts through the publication Pricing step
+  (`allow_non_taxable: 1`, offered when `can_request_non_taxable` is true, read from the approved
+  publication). Every API response maps to an action; payloads and the demo-store test recipe
+  live in `references/`.
 - Routing: `AGENTS.md`, `salla-app-expert` (skill + agent), `salla-embedded-app` and
   `salla-addon-purchase-embedded` send dynamic-amount charges to the new skill;
   `salla-app-billing` pricing shapes, `salla-webhooks` (`app.checkout.paid`),
-  and `salla-publication-consistency` (`checkout_type`) document their part. Requires the Checkout SDK feature enabled for the store (rollout).
+  `salla-publication-consistency` (`allow_non_taxable`) and `salla-app-auth` (`checkouts` scope)
+  document their part.
 
 ## [1.0.21] — 2026-10-12
 

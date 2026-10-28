@@ -30,7 +30,7 @@ line. Treat it idempotently by `checkout.id`.
       "status": "paid",
       "items": [
         {
-          "name": "500 SMS credits",
+          "name": "500 رسالة",
           "description": "Top-up for October",
           "unit_price": 0.25,
           "quantity": 500,
@@ -43,8 +43,8 @@ line. Treat it idempotently by `checkout.id`.
 ```
 
 `merchant` is the store id; correlate the checkout with your order by `checkout.reference_id`.
-`checkout.id` and `checkout.order_id` are numbers here, while the API returns `id` as a string —
-store and compare checkout ids as strings. `checkout.tax` is the VAT **amount** (`0` when
+`checkout.id` is the same integer as the API's `cart_id`, and `checkout.order_id` is an integer
+too. `checkout.tax` is the VAT **amount** (`0` when
 `taxable` is false). `checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as
 such. `app.checkout.paid` is the only checkout event (checkouts do not expire).
 
@@ -58,7 +58,7 @@ app.post("/webhooks/salla", verifySallaSignature, async (req, res) => {
   const c = evt.data.checkout;
   await db.transaction(async (tx) => {
     const first = await tx.insertIgnore("processed_checkouts", {
-      checkout_id: String(c.id),
+      checkout_id: c.id, // same integer as the create response's cart_id
     });
     if (!first) return; // duplicate delivery — already fulfilled
     const order = await tx.findOrder(c.reference_id, evt.merchant);
@@ -74,7 +74,7 @@ after the delivery is persisted or enqueued — anything else makes Salla retry.
 ## Backend create (Node / TypeScript)
 
 ```typescript
-const res = await fetch("https://api.salla.dev/admin/v2/apps/checkouts", {
+const res = await fetch("https://api.salla.dev/admin/v2/checkouts", {
   method: "POST",
   headers: {
     Authorization: `Bearer ${storeAccessToken}`,
@@ -82,37 +82,44 @@ const res = await fetch("https://api.salla.dev/admin/v2/apps/checkouts", {
   },
   body: JSON.stringify({
     reference_id: order.id,
-    items: [{ name: "500 SMS credits", unit_price: 0.25, quantity: 500 }],
-    redirect_uri: `/embedded/app/${appId}/topup`, // where the merchant lands after paying
+    items: [
+      // amount = line total (0.25 × 500), SAR, VAT-exclusive
+      {
+        name: { ar: "500 رسالة", en: "500 SMS credits" },
+        amount: 125,
+        quantity: 500,
+      },
+    ],
   }),
 });
 const body = await res.json();
 if (!res.ok) return handleCheckoutError(body.error); // table in SKILL.md Step 2
-await saveCheckoutId(order.id, body.data.id); // replaces any id stored for this order
-return { checkout_id: body.data.id };
+await saveCheckoutId(order.id, body.data.cart_id); // replaces any id stored for this order
+return { cart_id: body.data.cart_id };
 ```
 
 ## Reconciliation
 
-For a pending order with no webhook yet, `GET /apps/checkouts/{id}` with the `checkout_id` you
-stored on create, and fulfil through the same idempotent path when `status` is `paid`. A checkout
+For a pending order with no webhook yet, `GET /admin/v2/checkouts/{cart_id}` with the `cart_id`
+you stored on create, and fulfil through the same idempotent path when `status` is `paid`. A checkout
 stays `pending` until it is paid; to change the amount, create again with the same `reference_id`
 (it replaces the unpaid checkout).
 
 ## Test recipe
 
-1. Install the app on a demo store (→ salla-live-testing); the Checkout SDK must be enabled for
-   the store (otherwise `403 checkout_not_enabled`).
-2. From your backend, create a checkout with a small `unit_price` (inside the limits) and your
-   test `reference_id`; expect `201` and a `data.id`.
-3. Create again with the same `reference_id`: expect `201` and a new `data.id`; `GET` on the old
-   id answers `404 checkout_not_found`.
-4. Open the embedded page, call `checkout.create({ checkout_id })`; the native drawer opens with
-   your line items.
-5. Pay with the demo store's test card; `onResult` reports `paid` (pending UI only).
+1. Add the `checkouts` scope (`read_write`), then install the app on a demo store
+   (→ salla-live-testing) so the token carries it.
+2. From your backend, create a checkout with a small `amount` and your test `reference_id`;
+   expect `201` and a `data.cart_id`.
+3. Create again with the same `reference_id`: expect `201` and a new `data.cart_id`; `GET` on the
+   old id answers `404 not_found`.
+4. Open the embedded page, call `checkout.create({ checkout_id: String(cart_id) })`; the native
+   drawer opens with your line items.
+5. Pay with the demo store's test card; the dashboard returns to your app's default embedded page
+   and `onResult` reports `paid` there (pending UI only).
 6. Expect `app.checkout.paid` at your webhook URL; confirm the fulfilment ran once, and that
    re-sending the same payload changes nothing.
-7. `GET /apps/checkouts/{id}` shows `status: "paid"` with `order_id` and `paid_at`; a create with
+7. `GET /admin/v2/checkouts/{cart_id}` shows `status: "paid"` with `order_id` and `paid_at`; a create with
    the same `reference_id` now answers `403 reference_id_already_paid`.
-8. VAT-exempt (only with `checkout_type: 1` on your latest publication — a demo store reads the
-   latest one): create with `taxable: false` and expect `tax: 0`.
+8. VAT-exempt (only once the approved publication has `allow_non_taxable: 1`): create with
+   `taxable: false` and expect `tax: 0`.

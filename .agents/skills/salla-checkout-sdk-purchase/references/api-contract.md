@@ -1,57 +1,81 @@
 # Checkout API contract
 
-Base `https://api.salla.dev/admin/v2`. Auth: `Authorization: Bearer <store access token>` — the
-app's normal access token for that store, the same one `POST /apps/balance` and `POST /apps/events`
-use. No extra OAuth scope. The app is installed on the store. Two endpoints: create and show.
+Base `https://api.salla.dev/admin/v2` (the Merchant API). Auth:
+`Authorization: Bearer <store access token>` — the app's access token for that store, carrying the
+`checkouts` scope: `checkouts.read_write` for `POST`, `checkouts.read` or `checkouts.read_write`
+for `GET`. A token without it gets `401`. The store and the app come from the token; the app must
+be installed and active on the store. Two endpoints: create and show. Public apps only.
 
-Rate limit: 60 requests/min per app token + store by default (Salla can change it). Price limits:
-`min_total` / `max_total` are set per partner company, with a platform default.
-
-## POST /apps/checkouts — create
+## POST /checkouts — create
 
 ```json
 {
   "reference_id": "topup-8812",
   "items": [
     {
-      "name": "500 SMS credits",
+      "name": { "ar": "500 رسالة", "en": "500 SMS credits" },
       "description": "Top-up for October",
-      "unit_price": 0.25,
+      "amount": 125,
       "quantity": 500
     }
   ],
-  "taxable": true,
-  "redirect_uri": "/embedded/app/1912797071/topup"
+  "taxable": true
 }
 ```
 
-| Field                   | Rule                                                                                                                        |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `reference_id`          | required, string 1–64, `[A-Za-z0-9_-]`, your order id, unique per app + store (see "Same `reference_id`" below)             |
-| `items`                 | required, 1–5 items                                                                                                         |
-| `items.*.name`          | required, 1–100 chars (shown to the merchant as the line name)                                                              |
-| `items.*.description`   | optional, ≤ 255                                                                                                             |
-| `items.*.unit_price`    | required, numeric > 0, ≤ 2 decimals, VAT-exclusive, SAR                                                                     |
-| `items.*.quantity`      | required, integer 1–10000                                                                                                   |
-| `sub_total` (Σ price×q) | within your company's limits: `min_total` ≤ sub_total ≤ `max_total`, else 422 `amount_out_of_range`                         |
-| `taxable`               | optional bool, default `true`; `false` only when the publication has `checkout_type: 1`, else 403 `non_taxable_not_allowed` |
-| `redirect_uri`          | optional string ≤ 255 — a merchant dashboard path (appended to the dashboard host) where the merchant lands after paying    |
+| Field                 | Rule                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `reference_id`        | **required**, string ≤ 64 — your order id, unique per app + store (see "Same `reference_id`" below)                       |
+| `items`               | required, at least 1 line                                                                                                 |
+| `items.*.amount`      | required, numeric 1–999999.99 — the **line total** (unit price × quantity), SAR, VAT-exclusive                            |
+| `items.*.quantity`    | optional integer ≥ 1, default 1                                                                                           |
+| `items.*.name`        | required object of locale → string (≤ 255 each), e.g. `{ "ar": "…", "en": "…" }`; the Arabic name is the line's base name |
+| `items.*.description` | optional, ≤ 500                                                                                                           |
+| `items.*.image`       | optional URL ≤ 255                                                                                                        |
+| `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `allow_non_taxable: 1`                |
+| `currency`            | optional, default `SAR`                                                                                                   |
 
-`201 Created`, with the checkout as `GET /apps/checkouts/{id}` returns it:
+Salla sets the rest from the token: the source, the app, the partner, and the post-payment page
+(`/embedded/app/<app_id>`, which opens your app's default embedded page). A `redirect_uri` sent by
+an app is ignored. `cart_id`, `partner_company_id`, `items.*.service_id` and `items.*.service_type`
+are rejected with `422`.
+
+`201 Created`:
+
+```json
+{ "status": 201, "success": true, "data": { "cart_id": 1449378623 } }
+```
+
+`data.cart_id` (an integer) is the checkout id: store it, pass `String(cart_id)` to
+`embedded.checkout.create({ checkout_id })`, and read the checkout with `GET /checkouts/{cart_id}`.
+
+### Same `reference_id`
+
+- The earlier checkout is unpaid → it is replaced: a new checkout with a new `cart_id` is created,
+  and the old `cart_id` answers `404` from then on. Store the new one.
+- The earlier checkout is paid → `403 reference_id_already_paid`; nothing is created.
+
+Retrying a failed or timed-out create with the same `reference_id` is therefore safe.
+
+## GET /checkouts/{cart_id} — show
+
+Only this app's checkouts on this store; any other id answers `404 not_found`.
 
 ```json
 {
-  "status": 201,
+  "status": 200,
   "success": true,
   "data": {
-    "id": "1449378623",
+    "cart_id": 1449378623,
+    "store_id": 1729012345,
     "status": "pending",
     "reference_id": "topup-8812",
+    "app_id": 1912797071,
     "taxable": true,
     "currency": "SAR",
     "items": [
       {
-        "name": "500 SMS credits",
+        "name": "500 رسالة",
         "description": "Top-up for October",
         "unit_price": 0.25,
         "quantity": 500,
@@ -67,28 +91,15 @@ Rate limit: 60 requests/min per app token + store by default (Salla can change i
 }
 ```
 
-`data.id` is the value to pass to `embedded.checkout.create({ checkout_id })`. Totals are computed
-by Salla: `items[].total` = `unit_price` × `quantity`, `sub_total` = Σ line totals, `tax` = the VAT
-**amount** (the Marketplace VAT rate — 15 % in Saudi Arabia — per line, rounded per line, when
-`taxable` is true; `0` when false),
-`total` = `sub_total` + `tax`. Whole numbers may arrive as integers (`125`), fractions as floats.
-
-### Same `reference_id`
-
-- The earlier checkout is unpaid → it is replaced: a new checkout with a new `id` is created, and
-  the old `id` answers `404 checkout_not_found`. Store the new `id`.
-- The earlier checkout is paid → `403 reference_id_already_paid`; nothing is created.
-
-Retrying a failed or timed-out create with the same `reference_id` is therefore safe.
-
-## GET /apps/checkouts/{id} — show
-
-Same `data` object. `id` must belong to the token's app **and** store, otherwise
-`404 checkout_not_found` (also for a replaced checkout). Once paid, `status` is `"paid"`,
-`order_id` is set (a number) and `paid_at` is an ISO 8601 timestamp with an offset.
-
-Public status: `pending` → `paid`. There is no expiry: a checkout stays `pending` until it is paid
-or replaced by a new create with the same `reference_id`.
+- `status`: `pending` → `paid`. There is no expiry: a checkout stays `pending` until it is paid or
+  replaced by a new create with the same `reference_id`.
+- `items[].total` is the `amount` you sent; `unit_price` = `total / quantity`, rounded to 2
+  decimals; `name` is the Arabic base name.
+- `sub_total` = Σ line totals; `tax` = the VAT **amount** (the Marketplace VAT rate — 15 % in Saudi
+  Arabia — per line, rounded per line; `0` when `taxable` is false); `total` = `sub_total` + `tax`.
+- Once paid: `order_id` (integer) is set and `paid_at` is an ISO 8601 timestamp with an offset.
+- `cart_id`, `store_id`, `app_id` and `order_id` are integers. Whole amounts may arrive as integers
+  (`125`), fractions as floats.
 
 ## Errors (Salla error envelope)
 
@@ -98,27 +109,23 @@ or replaced by a new create with the same `reference_id`.
   "success": false,
   "error": {
     "code": "reference_id_already_paid",
-    "message": "A checkout with this reference_id has already been paid."
+    "message": "A checkout with this reference_id is already paid."
   }
 }
 ```
 
-| HTTP | `error.code`                                       | When                                                                 |
-| ---- | -------------------------------------------------- | -------------------------------------------------------------------- |
-| 401  | —                                                  | missing, invalid or expired access token — refresh it and retry once |
-| 403  | `checkout_not_enabled`                             | Checkout SDK is not enabled for this store                           |
-| 403  | `non_taxable_not_allowed`                          | `taxable: false` while the publication's `checkout_type` is not `1`  |
-| 403  | `reference_id_already_paid`                        | the checkout for this `reference_id` is already paid                 |
-| 404  | `checkout_not_found`                               | unknown or replaced id, or not this app + store                      |
-| 422  | `validation_failed` (+ `fields`)                   | body rules above                                                     |
-| 422  | `amount_out_of_range` (+ `min_total`, `max_total`) | `sub_total` outside your company's price limits                      |
-| 422  | other codes                                        | passed through from the checkout service — read `error.message`      |
-| 429  | `rate_limit_exceeded`                              | over the rate limit (default 60 req/min per app token + store)       |
-| 502  | `upstream_error`                                   | the checkout service failed — retry later with backoff               |
-| 503  | `checkout_limits_unavailable`                      | price limits temporarily unavailable — retry later with backoff      |
+| HTTP | `error.code`                | When                                                                      |
+| ---- | --------------------------- | ------------------------------------------------------------------------- |
+| 401  | —                           | token missing, invalid or expired, or without the `checkouts` scope       |
+| 403  | `non_taxable_not_allowed`   | `taxable: false` while the approved publication's `allow_non_taxable` ≠ 1 |
+| 403  | `reference_id_already_paid` | the checkout for this `reference_id` is already paid                      |
+| 403  | —                           | the app is not installed or not active on the store (see `error.message`) |
+| 404  | `not_found`                 | show: unknown or replaced id, or not this app + store                     |
+| 404  | `store_owner_not_found`     | the store has no owner user — contact Salla support                       |
+| 422  | (with `error.fields`)       | body rules above                                                          |
 
-On any HTTP **401**, treat it as an auth failure (token missing, invalid or expired) and refresh
-the token — branch on the HTTP status, not on `error.code`.
+On any HTTP **401**, treat it as an auth failure and refresh the token (or add the scope, then
+have the merchant re-authorise) — branch on the HTTP status, not on `error.code`.
 
 ## SDK call
 
@@ -132,8 +139,8 @@ checkout.create({ checkout_id: "1449378623" }, { context: { topup: "8812" } });
 
 `create(input, config?)` accepts `{ checkout_id: string }` as an alternative to the items form;
 mixing both, or an empty id, throws `INVALID_CHECKOUT_INPUT` before any message is sent. The
-response is the unchanged `embedded::checkout.response` plus `checkout_id`. After a 3DS redirect
-the host sends the `checkout_id` it stored when `create()` ran, never one read from the URL — the
-app still confirms payment with `GET /apps/checkouts/{id}` or the webhook. A checkout
-that does not belong to the app returns
+response is the unchanged `embedded::checkout.response` plus `checkout_id`. After payment the host
+opens the app's default embedded page with the result; its `checkout_id` is the one the host
+stored when `create()` ran, never one read from the URL — the app still confirms payment with
+`GET /checkouts/{cart_id}` or the webhook. A checkout that does not belong to the app returns
 `{ success: false, status: "failed", error: { code: "CHECKOUT_NOT_FOUND" } }`.

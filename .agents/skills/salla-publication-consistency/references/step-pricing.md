@@ -17,7 +17,7 @@ Read current values from `app_publish action=get` → `publication.*`:
 | One-time additional features   | `publication.plan_additional_features`                         | once model; `{key,name,price,adjustable,min,max}`.                                                                                                                                                                                                       |
 | Plan-feature comparison matrix | `publication.plan_features`                                    | recurring/on_demand; pivoted across plans.                                                                                                                                                                                                               |
 | Addons                         | `publication.addons`                                           | all types, max 5; `{name,description,price,slug,support_renew}` — `name`, `price`, `slug` **required** on every entry; prices in **SAR**; always one-time; `support_renew:true` ⇒ `external_recurring`.                                                  |
-| VAT-exempt checkouts           | `publication.checkout_type`                                    | `0` taxable only (default) \| `1` taxable and VAT-exempt Checkout SDK charges (`taxable: false`). Offered only when `can_request_non_taxable` is `true` (else saved as `0`); applies once the publication is approved → **salla-checkout-sdk-purchase**. |
+| VAT-exempt checkouts           | `publication.allow_non_taxable`                                | `0` taxable only (default) \| `1` VAT-exempt Checkout SDK charges (`taxable: false`) allowed too. Offered only when `can_request_non_taxable` is `true` (else saved as `0`); applies once the publication is approved → **salla-checkout-sdk-purchase**. |
 | Trial (top-level)              | `publication.plan_trial`                                       | integer days.                                                                                                                                                                                                                                            |
 | On-demand type                 | `publication.on_demand_type`                                   | `emails` \| `messages` \| `per-transaction`.                                                                                                                                                                                                             |
 | Unsubscribe rewards            | `publication.unsubscribe_reward` / `.unsubscribe_email_reward` | churn-prevention.                                                                                                                                                                                                                                        |
@@ -27,7 +27,7 @@ Read current values from `app_publish action=get` → `publication.*`:
 `recurring:"monthly"` (the period). Full shapes → **salla-app-billing**.
 
 > **Checkout SDK charges need no pricing entry.** An app that charges server-computed amounts sets
-> `checkout_type: 1` only when it must sell VAT-exempt → **salla-checkout-sdk-purchase**.
+> `allow_non_taxable: 1` only when it must sell VAT-exempt → **salla-checkout-sdk-purchase**.
 
 > **Paid pricing obliges a billing cycle.** A recurring plan or any addon means the app must
 > handle `app.subscription.*` (+ `app.trial.*` if a trial) and, for `external_recurring`, the

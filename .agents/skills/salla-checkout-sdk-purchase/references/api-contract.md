@@ -43,11 +43,26 @@ are rejected with `422`.
 `201 Created`:
 
 ```json
-{ "status": 201, "success": true, "data": { "cart_id": 1449378623 } }
+{
+  "status": 201,
+  "success": true,
+  "data": {
+    "cart_id": 1449378623,
+    "payment_url": "https://s.salla.sa/checkout/1449378623"
+  }
+}
 ```
 
-`data.cart_id` (an integer) is the checkout id: store it, pass `String(cart_id)` to
-`embedded.checkout.create({ checkout_id })`, and read the checkout with `GET /checkouts/{cart_id}`.
+`data.cart_id` (an integer) is the checkout id: store it and read the checkout with
+`GET /checkouts/{cart_id}`. The merchant pays it one of two ways:
+
+- **Embedded drawer** — pass `String(cart_id)` to `embedded.checkout.create({ checkout_id })`.
+- **Payment link** — send `data.payment_url` (`<dashboard URL>/checkout/<cart_id>`) to the
+  merchant; it opens the Dashboard payment page. Use the URL as returned — the host differs per
+  environment.
+
+After either path the merchant returns to `/embedded/app/<app_id>`, your app's default embedded
+page.
 
 ### Same `reference_id`
 
@@ -86,7 +101,8 @@ Only this app's checkouts on this store; any other id answers `404 not_found`.
     "tax": 18.75,
     "total": 143.75,
     "order_id": null,
-    "paid_at": null
+    "paid_at": null,
+    "payment_url": "https://s.salla.sa/checkout/1449378623"
   }
 }
 ```
@@ -98,6 +114,7 @@ Only this app's checkouts on this store; any other id answers `404 not_found`.
 - `sub_total` = Σ line totals; `tax` = the VAT **amount** (the Marketplace VAT rate — 15 % in Saudi
   Arabia — per line, rounded per line; `0` when `taxable` is false); `total` = `sub_total` + `tax`.
 - Once paid: `order_id` (integer) is set and `paid_at` is an ISO 8601 timestamp with an offset.
+- `payment_url` is the same direct payment link that create returned.
 - `cart_id`, `store_id`, `app_id` and `order_id` are integers. Whole amounts may arrive as integers
   (`125`), fractions as floats.
 

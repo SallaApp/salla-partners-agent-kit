@@ -66,9 +66,10 @@ Call `POST https://api.salla.dev/admin/v2/checkouts`. Full request, response and
 Salla sets the source, the partner and the post-payment page (your app's default embedded page);
 a checkout has no expiry and stays `pending` until it is paid or replaced.
 
-The create answers `201` with `data.cart_id` — the checkout id. Persist it next to your order
-(replacing any id stored for the same `reference_id`), then return it to the embedded page. Read
-the totals with `GET /admin/v2/checkouts/{cart_id}`.
+The create answers `201` with `data.cart_id` — the checkout id — and `data.payment_url`, the
+checkout's direct payment link. Persist both next to your order (replacing any stored for the same
+`reference_id`), then hand them to the payment path you use (Step 3). Read the totals with
+`GET /admin/v2/checkouts/{cart_id}`.
 
 Handle each error with its action:
 
@@ -85,9 +86,19 @@ Handle each error with its action:
 **Gate:** "Amount computed server-side, `reference_id` is your order id, `data.cart_id` stored,
 every response above mapped to an action?"
 
-## Step 3 — Open it in the embedded page
+## Step 3 — Let the merchant pay: embedded drawer or payment link
 
-Register `embedded.checkout.onResult` first, then open the drawer with the id from your backend:
+A checkout is paid one of two ways; both end on the same `app.checkout.paid` (Step 4):
+
+- **Embedded drawer** (the merchant is in your app) — `embedded.checkout.create({ checkout_id })`
+  opens the native checkout drawer over your page, as below.
+- **Payment link** (the merchant is elsewhere) — send `payment_url` to the merchant (email,
+  WhatsApp, a button outside the iframe). It opens the Salla Dashboard payment page for that
+  checkout; after paying, the merchant returns to `/embedded/app/<app_id>`, which opens your app's
+  default embedded page.
+
+For the drawer, register `embedded.checkout.onResult` first, then open it with the id from your
+backend:
 
 ```typescript
 import { embedded } from "@salla.sa/embedded-sdk";
@@ -119,8 +130,8 @@ embedded.checkout.create(
   `GET /admin/v2/checkouts/{cart_id}` or the webhook.
 - The `checkout_id` form needs `@salla.sa/embedded-sdk` `0.2.7` or newer.
 
-**Gate:** "`onResult` registered before `create()` and on the default page; the client result only
-shows a pending state?"
+**Gate:** "Drawer: `onResult` registered before `create()` and on the default page. Link: the
+`payment_url` from create or show, sent as is. Either way the client only shows a pending state?"
 
 ## Step 4 — Fulfil on `app.checkout.paid`
 

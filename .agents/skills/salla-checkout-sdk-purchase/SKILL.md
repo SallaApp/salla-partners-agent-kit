@@ -11,7 +11,9 @@ description: >
 
 Your backend computes the amount, Salla collects the payment in the merchant's native checkout
 drawer, and Salla tells your backend when it is paid. This skill owns the whole cycle: create →
-open → fulfil. Payouts follow the normal partner payout flow; there is nothing to configure.
+open → fulfil. Payouts follow the normal partner payout flow, with Salla's Checkout SDK
+commission (default 15 %, set per partner company, separate from payment links); there is
+nothing to configure.
 
 ## Choose the right purchase skill
 
@@ -49,35 +51,38 @@ retry once.
 Call `POST https://api.salla.dev/admin/v2/apps/checkouts`. Full request, response and error
 tables → [`references/api-contract.md`](references/api-contract.md) (load now).
 
-- `reference_id` — your own order id (1–64 chars, `[A-Za-z0-9_-]`). It is the idempotency key
-  per app + store: replaying the same body returns `200` with the existing checkout; a different
-  body with the same id answers `409 reference_id_conflict`.
+- `reference_id` — your own order id (1–64 chars, `[A-Za-z0-9_-]`), unique per app + store. A
+  new create with the same `reference_id` **replaces** the unpaid checkout (the old id answers
+  `404` from then on); once that checkout is paid, a create answers `403 reference_id_already_paid`.
 - `items` — 1–5 lines, each `name`, `unit_price` (SAR, VAT-exclusive, ≤ 2 decimals), `quantity`
   (1–10000), optional `description`.
 - `taxable` — send `true` (the default) unless the app is approved for VAT-exempt checkouts (Step 6).
-- `expires_in` — optional, minutes 15–10080, default 1440.
+- `redirect_uri` — optional dashboard path where the merchant lands after paying. Set it to your
+  embedded page (for example `/embedded/app/<app_id>/<page>`) so the page reloads and `onResult`
+  fires (Step 3).
+
+A checkout has no expiry: it stays `pending` until it is paid or replaced.
 
 Correlate the checkout and the `app.checkout.paid` webhook with your order by `reference_id`.
 
-Persist `data.id` (the `checkout_id`) next to your order, then return it to the embedded page.
+The create answers `201` with the checkout. Persist `data.id` (the `checkout_id`) next to your
+order — replacing any id stored for the same `reference_id` — then return it to the embedded page.
 
 Handle each error with its action:
 
-| `error.code`                        | Action                                                                                            |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `amount_out_of_range` (422)         | Show the merchant `min_total` / `max_total` from the response and ask for an amount inside them   |
-| `non_taxable_not_allowed` (403)     | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                          |
-| `reference_id_conflict` (409)       | Same order: resend the original body (→ `200`, same checkout). New data: use a new `reference_id` |
-| `checkout_in_progress` (409)        | A concurrent create holds the lock; retry with the same `reference_id` and body                   |
-| `rate_limit_exceeded` (429)         | Back off exponentially and retry (default limit: 60 requests/min per app token + store)           |
-| `validation_failed` (422)           | Read `fields`, fix the body, resend                                                               |
-| `app_not_installed` (403)           | Ask the merchant to reinstall the app                                                             |
-| `checkout_not_found` (404)          | The id is not this app + store; create a new checkout                                             |
-| `store_owner_not_found` (404)       | The store has no owner user; contact Salla support                                                |
-| `checkout_not_enabled` (403)        | Checkout SDK not enabled for this store; show "unavailable" and retry later                       |
-| `checkout_limits_unavailable` (503) | Price limits temporarily unavailable; retry later with backoff                                    |
-| `upstream_error` (502)              | Retry later with backoff                                                                          |
-| HTTP `401`                          | Token missing, invalid or expired: refresh it (Step 1) and retry once                             |
+| `error.code`                        | Action                                                                                          |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `amount_out_of_range` (422)         | Show the merchant `min_total` / `max_total` from the response and ask for an amount inside them |
+| `non_taxable_not_allowed` (403)     | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                        |
+| `reference_id_already_paid` (403)   | The order is already paid: fulfil it (Step 4) and create nothing new for this `reference_id`    |
+| `rate_limit_exceeded` (429)         | Back off exponentially and retry (default limit: 60 requests/min per app token + store)         |
+| `validation_failed` (422)           | Read `fields`, fix the body, resend                                                             |
+| any other 422                       | Passed through from the checkout service: read `error.message`, fix the body, resend            |
+| `checkout_not_found` (404)          | Not this app + store, or replaced by a newer create: use the id you stored last                 |
+| `checkout_not_enabled` (403)        | Checkout SDK not enabled for this store; show "unavailable" and retry later                     |
+| `checkout_limits_unavailable` (503) | Price limits temporarily unavailable; retry later with backoff                                  |
+| `upstream_error` (502)              | Retry later with backoff                                                                        |
+| HTTP `401`                          | Token missing, invalid or expired: refresh it (Step 1) and retry once                           |
 
 **Gate:** "Amount computed server-side, `reference_id` is your order id, `data.id` stored, every
 error code above mapped to an action?"
@@ -119,8 +124,9 @@ Grant the credits (or deliver the service) from your backend only, after Salla c
 Payload → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
 
 1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)).
-2. Idempotency key = `data.checkout.id`. Insert it in a unique-keyed table inside the same
-   transaction that applies the fulfilment; a duplicate delivery is a no-op.
+2. Idempotency key = `data.checkout.id` (one event per checkout; it arrives as a number, the
+   API `id` as a string — compare them as strings). Insert it in a unique-keyed table inside
+   the same transaction that applies the fulfilment; a duplicate delivery is a no-op.
 3. Match your order with `data.checkout.reference_id`; compare `sub_total` with what you charged.
 4. Answer `200` only after the delivery is persisted or enqueued; anything else makes Salla retry.
 
@@ -168,14 +174,14 @@ Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 
 ## Red Flags
 
-| Tempting thought                                        | Why it's wrong                                                                                                     |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| "`onResult` says paid — I'll grant the credits now."    | The client result is UX only; fulfil from the verified `app.checkout.paid` webhook or a backend GET (Steps 3–4).   |
-| "The webhook may arrive twice; the credits are small."  | Deliveries repeat and retry. Key the fulfilment on `checkout.id` in a unique-keyed table (Step 4).                 |
-| "I'll build the price client-side and pass the items."  | The amount is computed on your backend and sent to the create API; the SDK opens only a `checkout_id` (Steps 2–3). |
-| "A fixed add-on is close enough for top-ups."           | Add-ons carry one publication price. Any computed amount uses this skill (Choose the right purchase skill).        |
-| "`taxable: false` is just a flag I can send."           | It needs publication `checkout_type: 1`; otherwise `403 non_taxable_not_allowed` (Step 6).                         |
-| "Create failed with 409 — I'll retry with a random id." | Resend the original body under the same `reference_id` (Step 2); a random id double-charges the same order.        |
+| Tempting thought                                       | Why it's wrong                                                                                                        |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| "`onResult` says paid — I'll grant the credits now."   | The client result is UX only; fulfil from the verified `app.checkout.paid` webhook or a backend GET (Steps 3–4).      |
+| "The webhook may arrive twice; the credits are small." | Deliveries repeat and retry. Key the fulfilment on `checkout.id` in a unique-keyed table (Step 4).                    |
+| "I'll build the price client-side and pass the items." | The amount is computed on your backend and sent to the create API; the SDK opens only a `checkout_id` (Steps 2–3).    |
+| "A fixed add-on is close enough for top-ups."          | Add-ons carry one publication price. Any computed amount uses this skill (Choose the right purchase skill).           |
+| "`taxable: false` is just a flag I can send."          | It needs publication `checkout_type: 1`; otherwise `403 non_taxable_not_allowed` (Step 6).                            |
+| "Create failed — I'll retry with a random id."         | Retry with the same `reference_id` (Step 2): it replaces the unpaid checkout; a random id can charge one order twice. |
 
 ## Key Resources
 

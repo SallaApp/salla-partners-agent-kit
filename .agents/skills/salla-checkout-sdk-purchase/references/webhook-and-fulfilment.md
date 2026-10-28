@@ -3,7 +3,8 @@
 ## Event
 
 Delivered like `app.subscription.*` (App Events family): same app webhook URL, headers,
-signature and retries. Sent after the order is created. Treat it idempotently by `checkout.id`.
+signature and retries. Sent once per checkout, after the order is created, and carries every
+line. Treat it idempotently by `checkout.id`.
 
 ```json
 {
@@ -17,35 +18,35 @@ signature and retries. Sent after the order is created. Treat it idempotently by
     "app_type": "public",
     "categories": ["marketing"],
     "checkout": {
-      "id": "zXbVlo",
+      "id": 1449378623,
       "reference_id": "topup-8812",
-      "status": "paid",
-      "order_id": "1098273465",
-      "currency": "SAR",
       "taxable": true,
+      "currency": "SAR",
+      "sub_total": 125,
+      "tax": 18.75,
+      "total": 143.75,
+      "order_id": 1288447511,
+      "paid_at": "2026-10-19T12:40:01+03:00",
+      "status": "paid",
       "items": [
         {
           "name": "500 SMS credits",
           "description": "Top-up for October",
           "unit_price": 0.25,
           "quantity": 500,
-          "amount": 125.0
+          "total": 125
         }
-      ],
-      "sub_total": 125.0,
-      "tax": 15,
-      "tax_value": 18.75,
-      "total": 143.75,
-      "paid_at": "2026-10-19T09:40:01+00:00"
+      ]
     }
   }
 }
 ```
 
 `merchant` is the store id; correlate the checkout with your order by `checkout.reference_id`.
-`checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as such. `checkout.order_id`
-is a string. Only `app.checkout.paid` exists for checkouts; expiry is read from
-`GET /apps/checkouts/{id}`.
+`checkout.id` and `checkout.order_id` are numbers here, while the API returns `id` as a string —
+store and compare checkout ids as strings. `checkout.tax` is the VAT **amount** (`0` when
+`taxable` is false). `checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as
+such. `app.checkout.paid` is the only checkout event (checkouts do not expire).
 
 ## Idempotent handler (Node / TypeScript)
 
@@ -57,7 +58,7 @@ app.post("/webhooks/salla", verifySallaSignature, async (req, res) => {
   const c = evt.data.checkout;
   await db.transaction(async (tx) => {
     const first = await tx.insertIgnore("processed_checkouts", {
-      checkout_id: c.id,
+      checkout_id: String(c.id),
     });
     if (!first) return; // duplicate delivery — already fulfilled
     const order = await tx.findOrder(c.reference_id, evt.merchant);
@@ -82,18 +83,21 @@ const res = await fetch("https://api.salla.dev/admin/v2/apps/checkouts", {
   body: JSON.stringify({
     reference_id: order.id,
     items: [{ name: "500 SMS credits", unit_price: 0.25, quantity: 500 }],
+    redirect_uri: `/embedded/app/${appId}/topup`, // where the merchant lands after paying
   }),
 });
 const body = await res.json();
 if (!res.ok) return handleCheckoutError(body.error); // table in SKILL.md Step 2
+await saveCheckoutId(order.id, body.data.id); // replaces any id stored for this order
 return { checkout_id: body.data.id };
 ```
 
 ## Reconciliation
 
 For a pending order with no webhook yet, `GET /apps/checkouts/{id}` with the `checkout_id` you
-stored on create, and fulfil through the same idempotent path when `status` is `paid`. Mark the
-order failed when `status` is `expired`.
+stored on create, and fulfil through the same idempotent path when `status` is `paid`. A checkout
+stays `pending` until it is paid; to change the amount, create again with the same `reference_id`
+(it replaces the unpaid checkout).
 
 ## Test recipe
 
@@ -101,12 +105,14 @@ order failed when `status` is `expired`.
    the store (otherwise `403 checkout_not_enabled`).
 2. From your backend, create a checkout with a small `unit_price` (inside the limits) and your
    test `reference_id`; expect `201` and a `data.id`.
-3. Replay the same call: expect `200` and the same `data.id`. Change an item and replay: expect `409 reference_id_conflict`.
+3. Create again with the same `reference_id`: expect `201` and a new `data.id`; `GET` on the old
+   id answers `404 checkout_not_found`.
 4. Open the embedded page, call `checkout.create({ checkout_id })`; the native drawer opens with
    your line items.
 5. Pay with the demo store's test card; `onResult` reports `paid` (pending UI only).
 6. Expect `app.checkout.paid` at your webhook URL; confirm the fulfilment ran once, and that
    re-sending the same payload changes nothing.
-7. `GET /apps/checkouts/{id}` shows `status: "paid"` with `order_id` and `paid_at`.
+7. `GET /apps/checkouts/{id}` shows `status: "paid"` with `order_id` and `paid_at`; a create with
+   the same `reference_id` now answers `403 reference_id_already_paid`.
 8. VAT-exempt (only with `checkout_type: 1` on your latest publication — a demo store reads the
-   latest one): create with `taxable: false` and expect `tax: 0`, `tax_value: 0`.
+   latest one): create with `taxable: false` and expect `tax: 0`.

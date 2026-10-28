@@ -17,9 +17,12 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - **`salla-checkout-sdk-purchase` skill (DPD-20561).** Charging a server-computed amount (usage,
   credits, top-ups, quotes) from an embedded app: create the checkout on the partner backend
   (`POST /admin/v2/apps/checkouts` with the store's normal access token — no OAuth scope; read it
-  back with `GET /admin/v2/apps/checkouts/{id}`), open it with
+  back with `GET /admin/v2/apps/checkouts/{id}`; checkouts do not expire, a create with the same
+  `reference_id` replaces an unpaid checkout and answers `403 reference_id_already_paid` once paid;
+  optional `redirect_uri` brings the merchant back to the app's page), open it with
   `embedded.checkout.create({ checkout_id })` (`@salla.sa/embedded-sdk` 0.2.7+), fulfil only on the
-  `app.checkout.paid` webhook (idempotent by `checkout.id`, `paid_at` ISO 8601), and request
+  `app.checkout.paid` webhook (one per checkout, idempotent by `checkout.id`, `tax` = VAT amount,
+  `paid_at` ISO 8601), note Salla's own Checkout SDK commission (default 15 %), and request
   VAT-exempt checkouts through the publication Pricing step (`checkout_type: 1`, offered when
   `can_request_non_taxable` is true). Every API error code maps to an action; payloads and the
   demo-store test recipe live in `references/`.

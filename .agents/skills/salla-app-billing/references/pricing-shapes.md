@@ -103,13 +103,14 @@ In-app purchase of addons runs through the **checkout SDK** (frontend purchase c
 
 A charge your backend computes (usage, credits, top-ups, quotes) has no pricing-section entry: the
 backend creates a checkout per charge through `POST /admin/v2/apps/checkouts`, the embedded page
-opens it, and `app.checkout.paid` confirms payment → **salla-checkout-sdk-purchase**. It needs
-the `checkout-sdk` scope. Checkouts are VAT-taxed; for VAT-exempt sales set `allow_non_taxable`
-on the `pricing` section (below) and wait for admin approval.
+opens it, and `app.checkout.paid` confirms payment → **salla-checkout-sdk-purchase**. It uses the
+app's normal store access token (no extra scope). Checkouts are VAT-taxed; for VAT-exempt sales
+set `checkout_type: 1` on the `pricing` section (below) and wait for Salla to approve the
+publication.
 
-| Field               | Type / rule                                                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `allow_non_taxable` | bool, default `false` — request VAT-exempt checkouts; honoured after admin approval, only for apps targeted by the `checkout_sdk_non_taxable` feature rule |
+| Field           | Type / rule                                                                                                                                                                               |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `checkout_type` | integer, `0` = taxable checkouts only (default), `1` = taxable and VAT-exempt (`taxable: false`). Send `1` only when `can_request_non_taxable` is `true`; otherwise the Portal saves `0`. |
 
 ## Top-level (any type)
 

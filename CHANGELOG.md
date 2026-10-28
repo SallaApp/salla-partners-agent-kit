@@ -16,16 +16,17 @@ versions the **skill content as a whole** — the `version` field in `package.js
 
 - **`salla-checkout-sdk-purchase` skill (DPD-20561).** Charging a server-computed amount (usage,
   credits, top-ups, quotes) from an embedded app: create the checkout on the partner backend
-  (`POST /admin/v2/apps/checkouts`, scope `checkout-sdk`), open it with
-  `embedded.checkout.create({ checkout_id })`, fulfil only on the `app.checkout.paid` webhook
-  (idempotent by `checkout.id`), and request VAT-exempt approval through the publication Pricing step
-  (`allow_non_taxable`). Every API error code maps to an action; payloads and the demo-store test
-  recipe live in `references/`.
+  (`POST /admin/v2/apps/checkouts` with the store's normal access token — no OAuth scope; read it
+  back with `GET /admin/v2/apps/checkouts/{id}`), open it with
+  `embedded.checkout.create({ checkout_id })` (`@salla.sa/embedded-sdk` 0.2.7+), fulfil only on the
+  `app.checkout.paid` webhook (idempotent by `checkout.id`, `paid_at` ISO 8601), and request
+  VAT-exempt checkouts through the publication Pricing step (`checkout_type: 1`, offered when
+  `can_request_non_taxable` is true). Every API error code maps to an action; payloads and the
+  demo-store test recipe live in `references/`.
 - Routing: `AGENTS.md`, `salla-app-expert` (skill + agent), `salla-embedded-app` and
   `salla-addon-purchase-embedded` send dynamic-amount charges to the new skill;
   `salla-app-billing` pricing shapes, `salla-webhooks` (`app.checkout.paid`),
-  `salla-publication-consistency` (`allow_non_taxable`) and `salla-app-auth` (`checkout-sdk` scope)
-  document their part. Requires the Checkout SDK feature enabled for the partner (rollout).
+  and `salla-publication-consistency` (`checkout_type`) document their part. Requires the Checkout SDK feature enabled for the store (rollout).
 
 ## [1.0.21] — 2026-10-12
 

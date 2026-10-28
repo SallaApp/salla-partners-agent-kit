@@ -36,14 +36,15 @@ signature and retries. Sent after the order is created. Treat it idempotently by
       "tax": 15,
       "tax_value": 18.75,
       "total": 143.75,
-      "paid_at": "2026-10-19 12:40:01"
+      "paid_at": "2026-10-19T09:40:01+00:00"
     }
   }
 }
 ```
 
 `merchant` is the store id; correlate the checkout with your order by `checkout.reference_id`.
-Only `app.checkout.paid` exists for checkouts; expiry and cancellation are read from
+`checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as such. `checkout.order_id`
+is a string. Only `app.checkout.paid` exists for checkouts; expiry is read from
 `GET /apps/checkouts/{id}`.
 
 ## Idempotent handler (Node / TypeScript)
@@ -90,14 +91,14 @@ return { checkout_id: body.data.id };
 
 ## Reconciliation
 
-For a pending order with no webhook yet, `GET /apps/checkouts?reference_id=<order id>` and fulfil
-through the same idempotent path when `status` is `paid`. Mark the order failed when `status` is
-`expired` or `canceled`.
+For a pending order with no webhook yet, `GET /apps/checkouts/{id}` with the `checkout_id` you
+stored on create, and fulfil through the same idempotent path when `status` is `paid`. Mark the
+order failed when `status` is `expired`.
 
 ## Test recipe
 
-1. Install the app on a demo store (→ salla-live-testing) and grant `checkout-sdk` on install; the
-   scope must be enabled for your partner account.
+1. Install the app on a demo store (→ salla-live-testing); the Checkout SDK must be enabled for
+   the store (otherwise `403 checkout_not_enabled`).
 2. From your backend, create a checkout with a small `unit_price` (inside the limits) and your
    test `reference_id`; expect `201` and a `data.id`.
 3. Replay the same call: expect `200` and the same `data.id`. Change an item and replay: expect `409 reference_id_conflict`.
@@ -107,4 +108,5 @@ through the same idempotent path when `status` is `paid`. Mark the order failed 
 6. Expect `app.checkout.paid` at your webhook URL; confirm the fulfilment ran once, and that
    re-sending the same payload changes nothing.
 7. `GET /apps/checkouts/{id}` shows `status: "paid"` with `order_id` and `paid_at`.
-8. Create a second checkout and `POST /apps/checkouts/{id}/cancel`: expect `status: "canceled"`.
+8. VAT-exempt (only with `checkout_type: 1` on your latest publication — a demo store reads the
+   latest one): create with `taxable: false` and expect `tax: 0`, `tax_value: 0`.

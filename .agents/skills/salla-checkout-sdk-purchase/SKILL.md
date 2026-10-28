@@ -4,7 +4,7 @@ description: >
   Charging a merchant a server-computed amount (usage, credits, top-ups, quotes) from an embedded
   Salla app through the Checkout SDK. Use when the amount is computed by your backend rather than a
   fixed publication add-on price. Hand-offs → salla-addon-purchase-embedded (fixed-price add-ons),
-  salla-webhooks (signature), salla-app-auth (scope), salla-embedded-app (SDK init).
+  salla-webhooks (signature), salla-app-auth (store token), salla-embedded-app (SDK init).
 ---
 
 # Salla Checkout SDK Purchase — dynamic amounts
@@ -27,58 +27,57 @@ Default to this skill whenever the app charges a server-computed amount.
 
 1. **Embedded app** working — SDK initialized, session token verified server-side
    (→ [salla-embedded-app](../salla-embedded-app/SKILL.md)).
-2. **Scope `checkout-sdk` with level `read_write`** on the app (Step 1). The merchant grants it
-   on install/update. A token without it gets `401 unauthorized`.
-3. **Feature availability** — Salla enables the `checkout-sdk` scope per partner during rollout;
-   `salla_scopes action=get` lists it for an enabled partner. Platform-wide switch off → every
-   create answers `403 checkout_not_enabled`.
-4. **App installed** on the store, with that store's access token held by your backend
-   (→ [salla-app-auth](../salla-app-auth/SKILL.md)).
-5. **Webhook URL** set on the app and `app.checkout.paid` handled (Step 4).
+2. **App installed** on the store, with that store's access token held by your backend
+   (→ [salla-app-auth](../salla-app-auth/SKILL.md)). The Checkout SDK uses this normal app token,
+   like `POST /apps/balance` — it needs no extra OAuth scope.
+3. **Feature availability** — Salla enables the Checkout SDK per store during rollout. Where it is
+   not enabled, every call answers `403 checkout_not_enabled`.
+4. **Webhook URL** set on the app and `app.checkout.paid` handled (Steps 4–5).
 
-## Step 1 — Add the scope
+## Step 1 — Call from your backend with the store's token
 
-`salla_scopes action=set`, `app_id`, scopes including `"checkout-sdk": "read_write"` (keep the
-app's other scopes in the same map). Merchants who installed earlier re-grant on the next app
-update, so ask them to update the app before the first charge.
+Every Checkout SDK API call runs on your backend with
+`Authorization: Bearer <store access token>` — the token Salla issued for that store at install
+(`app.store.authorize`). The embedded page never holds this token; it asks your backend for a
+`checkout_id`. On `401`, refresh the token (→ [salla-app-auth](../salla-app-auth/SKILL.md)) and
+retry once.
 
-**Gate:** "`salla_scopes action=get` shows `checkout-sdk` selected with `read_write`?"
+**Gate:** "The create call runs server-side with the access token of the store being charged?"
 
 ## Step 2 — Create the checkout on your backend
 
-Call `POST https://api.salla.dev/admin/v2/apps/checkouts` with
-`Authorization: Bearer <store access token>`. Full request, response and error tables →
-[`references/api-contract.md`](references/api-contract.md) (load now).
+Call `POST https://api.salla.dev/admin/v2/apps/checkouts`. Full request, response and error
+tables → [`references/api-contract.md`](references/api-contract.md) (load now).
 
 - `reference_id` — your own order id (1–64 chars, `[A-Za-z0-9_-]`). It is the idempotency key
-  per app + store: replaying the same body returns `200` with the existing checkout.
+  per app + store: replaying the same body returns `200` with the existing checkout; a different
+  body with the same id answers `409 reference_id_conflict`.
 - `items` — 1–5 lines, each `name`, `unit_price` (SAR, VAT-exclusive, ≤ 2 decimals), `quantity`
   (1–10000), optional `description`.
 - `taxable` — send `true` (the default) unless the app is approved for VAT-exempt checkouts (Step 6).
 - `expires_in` — optional, minutes 15–10080, default 1440.
 
-Correlate the checkout, its GET responses and the `app.checkout.paid` webhook with your order by
-`reference_id`.
+Correlate the checkout and the `app.checkout.paid` webhook with your order by `reference_id`.
 
 Persist `data.id` (the `checkout_id`) next to your order, then return it to the embedded page.
 
 Handle each error with its action:
 
-| `error.code`                    | Action                                                                                          |
-| ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `amount_out_of_range`           | Show the merchant `min_total` / `max_total` from the response and ask for an amount inside them |
-| `non_taxable_not_allowed`       | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                        |
-| `reference_id_conflict`         | Reuse the existing checkout: `GET /apps/checkouts?reference_id=<id>`; use a new id for new data |
-| `rate_limit_exceeded` (429)     | Back off exponentially (limit: 60 requests/min per app + store) and retry                       |
-| `validation_failed`             | Read `fields`, fix the body, resend                                                             |
-| `app_not_installed`             | Ask the merchant to reinstall the app                                                           |
-| `checkout_not_found` (404)      | The id is not this app + store; create a new checkout                                           |
-| `store_owner_not_found` (404)   | The store has no owner user; contact Salla support                                              |
-| `checkout_in_progress` (409)    | A concurrent create holds the lock; retry with the same `reference_id`                          |
-| `upstream_error` (502)          | Retry later with backoff                                                                        |
-| `checkout_not_cancelable` (409) | The checkout is no longer pending; read its status with GET and stop                            |
-| `checkout_not_enabled`          | Feature switched off platform-wide; show "unavailable" and retry later                          |
-| `unauthorized` (401)            | Token lacks `checkout-sdk` (`read_write` for POST): re-run Step 1, merchant updates the app     |
+| `error.code`                        | Action                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `amount_out_of_range` (422)         | Show the merchant `min_total` / `max_total` from the response and ask for an amount inside them   |
+| `non_taxable_not_allowed` (403)     | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                          |
+| `reference_id_conflict` (409)       | Same order: resend the original body (→ `200`, same checkout). New data: use a new `reference_id` |
+| `checkout_in_progress` (409)        | A concurrent create holds the lock; retry with the same `reference_id` and body                   |
+| `rate_limit_exceeded` (429)         | Back off exponentially and retry (default limit: 60 requests/min per app token + store)           |
+| `validation_failed` (422)           | Read `fields`, fix the body, resend                                                               |
+| `app_not_installed` (403)           | Ask the merchant to reinstall the app                                                             |
+| `checkout_not_found` (404)          | The id is not this app + store; create a new checkout                                             |
+| `store_owner_not_found` (404)       | The store has no owner user; contact Salla support                                                |
+| `checkout_not_enabled` (403)        | Checkout SDK not enabled for this store; show "unavailable" and retry later                       |
+| `checkout_limits_unavailable` (503) | Price limits temporarily unavailable; retry later with backoff                                    |
+| `upstream_error` (502)              | Retry later with backoff                                                                          |
+| HTTP `401`                          | Token missing, invalid or expired: refresh it (Step 1) and retry once                             |
 
 **Gate:** "Amount computed server-side, `reference_id` is your order id, `data.id` stored, every
 error code above mapped to an action?"
@@ -107,15 +106,17 @@ embedded.checkout.create({ checkout_id }, { context: { topup: "8812" } });
 - `create({ checkout_id })` takes the id alone. Mixing it with `items`, or an empty id, throws
   `INVALID_CHECKOUT_INPUT` before anything is sent — wrap the call in try/catch.
 - A checkout that is not this app's answers `{ success:false, status:"failed", error:{ code:"CHECKOUT_NOT_FOUND" } }` — create a fresh one.
-- `onResult` also fires after a 3DS redirect reloads the iframe; keep `context` for restoring the page state.
-- Confirm signatures against the installed `@salla.sa/embedded-sdk` version (the `checkout_id` form needs `@salla.sa/embedded-sdk` `0.3.0` or newer, proposed in embedded-sdk#33).
+- `onResult` also fires after a 3DS redirect reloads the iframe. Its `checkout_id` is the id the
+  host stored when `create()` ran (never read from the URL); keep `context` for restoring the page
+  state. Confirm payment on your backend with `GET /apps/checkouts/{checkout_id}` or the webhook.
+- The `checkout_id` form needs `@salla.sa/embedded-sdk` `0.2.7` or newer.
 
 **Gate:** "`onResult` registered before `create()`; the client result only shows a pending state?"
 
 ## Step 4 — Fulfil on `app.checkout.paid`
 
-Grant the credits (or deliver the service) from the webhook handler only. Payload →
-[`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
+Grant the credits (or deliver the service) from your backend only, after Salla confirms payment.
+Payload → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
 
 1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)).
 2. Idempotency key = `data.checkout.id`. Insert it in a unique-keyed table inside the same
@@ -126,9 +127,9 @@ Grant the credits (or deliver the service) from the webhook handler only. Payloa
 Refunds: none in phase 1 (D12) — there is no refund endpoint for a paid checkout. Handle business
 refunds by adjusting the merchant's balance in your own system.
 
-Reconcile missed events: `GET /apps/checkouts/{id}` (or list by `reference_id`) and fulfil when
-`status` is `paid`, through the same idempotent path. `POST /apps/checkouts/{id}/cancel` retires a
-`pending` checkout you no longer want (`checkout_not_cancelable` once it is not pending).
+Reconcile missed events: `GET /apps/checkouts/{id}` with the `checkout_id` you stored, and fulfil
+when `status` is `paid`, through the same idempotent path. The API has two endpoints — create and
+show — so the stored `checkout_id` is your only lookup key.
 
 **Gate:** "Handler verified, idempotent by `checkout.id`, and the only place that fulfils?"
 
@@ -142,18 +143,25 @@ subscribe call. Handle `app.checkout.paid` next to `app.subscription.*` in the s
 
 ## Step 6 — VAT-exempt checkouts (only when the business needs them)
 
-Checkouts are VAT-taxed (`taxable: true`). To sell VAT-exempt, the app's publication requests
-approval. Primary route: Partners Portal → publication Pricing step → tick the checkbox "Allow
-VAT-exempt Checkout SDK purchases" (offered only for apps targeted by the `checkout_sdk_non_taxable` feature rule). MCP route, once
-partners-mcp ships it: `app_publish action=set section=pricing` with `allow_non_taxable: true`.
-It takes effect when an admin approves the publication; then `taxable: false` is accepted on
-create. Without approval it answers `403 non_taxable_not_allowed`. → publication flow in
+Checkouts are VAT-taxed (`taxable: true`). To sell VAT-exempt, the app's publication sets
+`checkout_type` to `1` (taxable and VAT-exempt; `0`, the default, is taxable only):
+
+1. `app_publish action=get` → `can_request_non_taxable`. Only when it is `true` does Salla offer
+   the option; otherwise the Portal saves `checkout_type: 0`.
+2. Partners Portal → publication Pricing step → choose the VAT-exempt checkout option, or
+   `app_publish action=set section=pricing` with `checkout_type: 1` (once partners-mcp ships it).
+3. Salla reviews it with the publication. Live stores use the **approved** publication; a partner
+   demo store uses the **latest** one, so you can test `taxable: false` before approval.
+
+Without it, `taxable: false` answers `403 non_taxable_not_allowed`. → publication flow in
 [salla-publication-consistency](../salla-publication-consistency/SKILL.md).
+
+**Gate:** "`checkout_type: 1` on the publication the store reads before any `taxable: false` create?"
 
 ## Step 7 — Test on a demo store
 
 Recipe → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md#test-recipe)
-(install on a demo store, grant the scope, create, pay with a test card, see the webhook).
+(install on a demo store, create, pay with a test card, see the webhook).
 Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 
 **Gate:** "One end-to-end run: create → drawer → paid → webhook → fulfilment applied once?"
@@ -162,12 +170,12 @@ Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 
 | Tempting thought                                        | Why it's wrong                                                                                                     |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| "`onResult` says paid — I'll grant the credits now."    | The client result is UX only; fulfil from the verified `app.checkout.paid` webhook (Steps 3–4).                    |
+| "`onResult` says paid — I'll grant the credits now."    | The client result is UX only; fulfil from the verified `app.checkout.paid` webhook or a backend GET (Steps 3–4).   |
 | "The webhook may arrive twice; the credits are small."  | Deliveries repeat and retry. Key the fulfilment on `checkout.id` in a unique-keyed table (Step 4).                 |
 | "I'll build the price client-side and pass the items."  | The amount is computed on your backend and sent to the create API; the SDK opens only a `checkout_id` (Steps 2–3). |
 | "A fixed add-on is close enough for top-ups."           | Add-ons carry one publication price. Any computed amount uses this skill (Choose the right purchase skill).        |
-| "`taxable: false` is just a flag I can send."           | It needs the admin-approved `allow_non_taxable`; otherwise `403 non_taxable_not_allowed` (Step 6).                 |
-| "Create failed with 409 — I'll retry with a random id." | Reuse the existing checkout through `reference_id` (Step 2); a random id double-charges the same order.            |
+| "`taxable: false` is just a flag I can send."           | It needs publication `checkout_type: 1`; otherwise `403 non_taxable_not_allowed` (Step 6).                         |
+| "Create failed with 409 — I'll retry with a random id." | Resend the original body under the same `reference_id` (Step 2); a random id double-charges the same order.        |
 
 ## Key Resources
 
@@ -177,4 +185,4 @@ Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 | Webhook payload, fulfilment, test | `references/webhook-and-fulfilment.md` |
 | Fixed-price add-on purchase       | salla-addon-purchase-embedded skill    |
 | Webhook transport and signature   | salla-webhooks skill                   |
-| Scopes and tokens                 | salla-app-auth skill                   |
+| Store access token and refresh    | salla-app-auth skill                   |

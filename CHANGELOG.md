@@ -17,7 +17,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 - **`salla-checkout-sdk-purchase` skill (DPD-20561).** Charging a server-computed amount (usage,
   credits, top-ups, quotes) from an embedded public app: add the `checkouts` scope, create the
   checkout on the partner backend (`POST /admin/v2/checkouts` with the store access token;
-  `reference_id` required, line `amount` totals, `name` per locale; `201` returns `cart_id` and `payment_url`; read it
+  `reference_id` required, line `amount` totals, `name` per locale; `201` returns the full checkout with `cart_id` and `payment_url`; read it
   with `GET /admin/v2/checkouts/{cart_id}`; checkouts do not expire, a create with the same
   `reference_id` replaces an unpaid checkout and answers `403 reference_id_already_paid` once
   paid), let the merchant pay in the embedded drawer (`embedded.checkout.create({ checkout_id })`) or through the direct `payment_url` (`@salla.sa/embedded-sdk`

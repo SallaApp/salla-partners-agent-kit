@@ -39,45 +39,11 @@ Salla sets the rest from the token: the source, the app, the partner, and the po
 an app is ignored. `cart_id`, `partner_company_id`, `items.*.service_id` and `items.*.service_type`
 are rejected with `422`.
 
-`201 Created`:
+`201 Created`, with the full checkout — the same object `GET /checkouts/{cart_id}` returns:
 
 ```json
 {
   "status": 201,
-  "success": true,
-  "data": {
-    "cart_id": 1449378623,
-    "payment_url": "https://s.salla.sa/checkout/1449378623"
-  }
-}
-```
-
-`data.cart_id` (an integer) is the checkout id: store it and read the checkout with
-`GET /checkouts/{cart_id}`. The merchant pays it one of two ways:
-
-- **Embedded drawer** — pass `String(cart_id)` to `embedded.checkout.create({ checkout_id })`.
-- **Payment link** — send `data.payment_url` (`<dashboard URL>/checkout/<cart_id>`) to the
-  merchant; it opens the Dashboard payment page. Use the URL as returned — the host differs per
-  environment.
-
-After either path the merchant returns to `/embedded/app/<app_id>`, your app's default embedded
-page.
-
-### Same `reference_id`
-
-- The earlier checkout is unpaid → it is replaced: a new checkout with a new `cart_id` is created,
-  and the old `cart_id` answers `404` from then on. Store the new one.
-- The earlier checkout is paid → `403 reference_id_already_paid`; nothing is created.
-
-Retrying a failed or timed-out create with the same `reference_id` is therefore safe.
-
-## GET /checkouts/{cart_id} — show
-
-Only this app's checkouts on this store; any other id answers `404 not_found`.
-
-```json
-{
-  "status": 200,
   "success": true,
   "data": {
     "cart_id": 1449378623,
@@ -110,12 +76,36 @@ Only this app's checkouts on this store; any other id answers `404 not_found`.
   replaced by a new create with the same `reference_id`.
 - `items[].total` is the `amount` you sent; `unit_price` = `total / quantity`, rounded to 2
   decimals; `name` is the Arabic base name.
-- `sub_total` = Σ line totals; `tax` = the VAT **amount** (the Marketplace VAT rate — 15 % in Saudi
-  Arabia — per line, rounded per line; `0` when `taxable` is false); `total` = `sub_total` + `tax`.
+- `sub_total`, `tax` and `total` are the cart's own totals, as the Dashboard checkout page shows
+  them: `tax` is the VAT **amount** (`0` on a VAT-exempt checkout), `total` = `sub_total` + `tax`.
 - Once paid: `order_id` (integer) is set and `paid_at` is an ISO 8601 timestamp with an offset.
-- `payment_url` is the same direct payment link that create returned.
+- `payment_url` is the checkout's direct payment link, `<dashboard URL>/checkout/<cart_id>`.
 - `cart_id`, `store_id`, `app_id` and `order_id` are integers. Whole amounts may arrive as integers
   (`125`), fractions as floats.
+
+Store `data.cart_id` (the checkout id) and `data.payment_url` with your order. The merchant pays
+the checkout one of two ways:
+
+- **Embedded drawer** — pass `String(cart_id)` to `embedded.checkout.create({ checkout_id })`.
+- **Payment link** — send `data.payment_url` to the merchant; it opens the Dashboard payment page.
+  Use the URL as returned — the host differs per environment.
+
+After either path the merchant returns to `/embedded/app/<app_id>`, your app's default embedded
+page.
+
+### Same `reference_id`
+
+- The earlier checkout is unpaid → it is replaced: a new checkout with a new `cart_id` is created,
+  and the old `cart_id` answers `404` from then on. Store the new one.
+- The earlier checkout is paid → `403 reference_id_already_paid`; nothing is created.
+
+Retrying a failed or timed-out create with the same `reference_id` is therefore safe.
+
+## GET /checkouts/{cart_id} — show
+
+The same checkout object as create (`status` 200), read live — use it to confirm payment
+(`status: "paid"`, `order_id`, `paid_at`). Only this app's checkouts on this store; any other id
+answers `404 not_found`.
 
 ## Errors (Salla error envelope)
 

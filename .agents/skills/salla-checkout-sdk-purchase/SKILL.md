@@ -66,10 +66,10 @@ Call `POST https://api.salla.dev/admin/v2/checkouts`. Full request, response and
 Salla sets the source, the partner and the post-payment page (your app's default embedded page);
 a checkout has no expiry and stays `pending` until it is paid or replaced.
 
-The create answers `201` with `data.cart_id` — the checkout id — and `data.payment_url`, the
-checkout's direct payment link. Persist both next to your order (replacing any stored for the same
-`reference_id`), then hand them to the payment path you use (Step 3). Read the totals with
-`GET /admin/v2/checkouts/{cart_id}`.
+The create answers `201` with the full checkout (the same object `GET /admin/v2/checkouts/{cart_id}`
+returns: status, items, `sub_total`, `tax`, `total`). From it, persist `data.cart_id` — the checkout
+id — and `data.payment_url`, its direct payment link, next to your order (replacing any stored for
+the same `reference_id`), then hand them to the payment path you use (Step 3).
 
 Handle each error with its action:
 

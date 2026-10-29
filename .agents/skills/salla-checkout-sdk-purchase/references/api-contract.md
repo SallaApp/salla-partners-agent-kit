@@ -90,8 +90,10 @@ the checkout one of two ways:
 - **Payment link** — send `data.payment_url` to the merchant; it opens the Dashboard payment page.
   Use the URL as returned — the host differs per environment.
 
-After either path the merchant returns to `/embedded/app/<app_id>`, your app's default embedded
-page.
+After either path the merchant returns to `/embedded/app/<app_id>?paid=1&legacy=0` (`paid=` empty
+when the payment failed; the URL carries no `order_id`), which opens your app's default embedded
+page with the result. Confirm payment with `GET /checkouts/{cart_id}` or the webhook, never from
+the URL.
 
 ### Same `reference_id`
 
@@ -125,7 +127,7 @@ answers `404 not_found`.
 | 401  | —                           | token missing, invalid or expired, or without the `checkouts` scope       |
 | 403  | `non_taxable_not_allowed`   | `taxable: false` while the approved publication's `allow_non_taxable` ≠ 1 |
 | 403  | `reference_id_already_paid` | the checkout for this `reference_id` is already paid                      |
-| 403  | —                           | the app is not installed or not active on the store (see `error.message`) |
+| 403  | `app_not_installed`         | the app is not installed on the store                                     |
 | 404  | `not_found`                 | show: unknown or replaced id, or not this app + store                     |
 | 404  | `store_owner_not_found`     | the store has no owner user — contact Salla support                       |
 | 422  | (with `error.fields`)       | body rules above                                                          |

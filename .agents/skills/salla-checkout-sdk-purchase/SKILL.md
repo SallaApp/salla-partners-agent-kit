@@ -73,15 +73,15 @@ the same `reference_id`), then hand them to the payment path you use (Step 3).
 
 Handle each error with its action:
 
-| Response                              | Action                                                                                         |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `403 non_taxable_not_allowed`         | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                       |
-| `403 reference_id_already_paid`       | The order is already paid: fulfil it (Step 4) and create nothing new for this `reference_id`   |
-| `403` app not installed or not active | Ask the merchant to install or re-activate the app                                             |
-| `404 not_found` (show)                | Not this app + store, or replaced by a newer create: use the id you stored last                |
-| `404 store_owner_not_found`           | The store has no owner user; contact Salla support                                             |
-| `422` (with `error.fields`)           | Fix the listed fields and resend (e.g. missing `reference_id`, `amount` out of range)          |
-| HTTP `401`                            | Token missing, expired, or without `checkouts`: refresh it, or complete Step 1, and retry once |
+| Response                        | Action                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `403 non_taxable_not_allowed`   | Send `taxable: true`, or complete the VAT-exempt approval (Step 6) first                       |
+| `403 reference_id_already_paid` | The order is already paid: fulfil it (Step 4) and create nothing new for this `reference_id`   |
+| `403 app_not_installed`         | The app is not installed on this store: ask the merchant to install it                         |
+| `404 not_found` (show)          | Not this app + store, or replaced by a newer create: use the id you stored last                |
+| `404 store_owner_not_found`     | The store has no owner user; contact Salla support                                             |
+| `422` (with `error.fields`)     | Fix the listed fields and resend (e.g. missing `reference_id`, `amount` out of range)          |
+| HTTP `401`                      | Token missing, expired, or without `checkouts`: refresh it, or complete Step 1, and retry once |
 
 **Gate:** "Amount computed server-side, `reference_id` is your order id, `data.cart_id` stored,
 every response above mapped to an action?"
@@ -123,7 +123,8 @@ embedded.checkout.create(
 - `create({ checkout_id })` takes the id alone, as a string. Mixing it with `items`, or an empty
   id, throws `INVALID_CHECKOUT_INPUT` before anything is sent — wrap the call in try/catch.
 - A checkout that is not this app's answers `{ success:false, status:"failed", error:{ code:"CHECKOUT_NOT_FOUND" } }` — create a fresh one.
-- After payment (including 3DS) the merchant returns to `/embedded/app/<app_id>`, and the host
+- After payment (including 3DS) the merchant returns to `/embedded/app/<app_id>?paid=1&legacy=0`
+  (`paid=` empty on failure; no `order_id` in the URL), and the host
   opens your app's **default embedded page** with the result: register `onResult` on that page
   too. Its `checkout_id` is the id the host stored when `create()` ran (never read from the URL);
   keep `context` for restoring the page state. Confirm payment on your backend with

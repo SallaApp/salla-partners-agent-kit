@@ -10,6 +10,30 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.22] — 2026-10-19
+
+### Added
+
+- **`salla-checkout-sdk-purchase` skill (DPD-20561).** Charging a server-computed amount (usage,
+  credits, top-ups, quotes) from an embedded public app: add the `checkouts` scope, create the
+  checkout on the partner backend (`POST /admin/v2/checkouts` with the store access token;
+  `reference_id` required, line `amount` totals, `name` per locale; `201` returns the full checkout with `cart_id` and `payment_url`; read it
+  with `GET /admin/v2/checkouts/{cart_id}`; checkouts do not expire, a create with the same
+  `reference_id` replaces an unpaid checkout and answers `403 reference_id_already_paid` once
+  paid), let the merchant pay in the embedded drawer (`embedded.checkout.create({ checkout_id })`) or through the direct `payment_url` (`@salla.sa/embedded-sdk`
+  0.2.7+; after payment the merchant returns to the app's default embedded page), fulfil only on
+  the `app.checkout.paid` webhook (one per checkout, idempotent by `checkout.cart_id`, the same id as create and show,
+  `tax` = VAT amount, `paid_at` ISO 8601), note Salla's own Checkout SDK commission (default
+  15 %), and request VAT-exempt checkouts through the publication Pricing step
+  (`allow_non_taxable: 1`, offered when `can_request_non_taxable` is true, read from the approved
+  publication). Every API response maps to an action; payloads and the demo-store test recipe
+  live in `references/`.
+- Routing: `AGENTS.md`, `salla-app-expert` (skill + agent), `salla-embedded-app` and
+  `salla-addon-purchase-embedded` send dynamic-amount charges to the new skill;
+  `salla-app-billing` pricing shapes, `salla-webhooks` (`app.checkout.paid`),
+  `salla-publication-consistency` (`allow_non_taxable`) and `salla-app-auth` (`checkouts` scope)
+  document their part.
+
 ## [1.0.21] — 2026-10-12
 
 ### Changed

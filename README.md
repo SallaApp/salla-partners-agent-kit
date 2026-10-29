@@ -46,14 +46,14 @@ For MCP setup and per-client instructions, see **[docs/getting-started.md](docs/
 - **Shipping & communication apps** — carriers/labels, or SMS/WhatsApp/email
   (`salla-shipping-app`, `salla-communication-app`).
 
-## Skills — 28 across 6 layers
+## Skills — 29 across 6 layers
 
 | Layer                    | Skills                                                                                                                                       |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Foundation               | `salla-app-expert` · `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`                                                   |
 | Hookables                | `salla-app-functions` · `salla-snippets` · `salla-snippets-migration` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
 | App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                                                       |
-| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded`                                       |
+| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded` · `salla-checkout-sdk-purchase`       |
 | Themes                   | `salla-theme-builder`                                                                                                                        |
 | Quality & release        | `salla-storefront-ui` · `salla-embedded-ui` · `salla-live-testing` · `salla-publication-consistency`                                         |
 

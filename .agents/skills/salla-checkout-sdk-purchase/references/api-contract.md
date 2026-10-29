@@ -31,7 +31,6 @@ be installed and active on the store. Two endpoints: create and show. Public app
 | `items.*.quantity`    | optional integer ≥ 1, default 1                                                                                           |
 | `items.*.name`        | required object of locale → string (≤ 255 each), e.g. `{ "ar": "…", "en": "…" }`; the Arabic name is the line's base name |
 | `items.*.description` | optional, ≤ 500                                                                                                           |
-| `items.*.image`       | optional URL ≤ 255                                                                                                        |
 | `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `allow_non_taxable: 1`                |
 | `currency`            | optional, default `SAR`                                                                                                   |
 

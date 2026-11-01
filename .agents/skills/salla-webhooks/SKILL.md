@@ -439,7 +439,7 @@ Subscribe to all of these — they keep your app in sync with merchant state:
 | `app.subscription.started` | Paid plan activated            | Mark active, unlock paid features                                                |
 | `app.trial.expired`        | Trial ended, no upgrade        | Restrict access                                                                  |
 | `app.subscription.expired` | Paid plan lapsed               | Restrict access, notify merchant                                                 |
-| `app.checkout.paid`        | A Checkout SDK charge was paid | Fulfil once, idempotent by `data.checkout.cart_id` → salla-checkout-sdk-purchase |
+| `app.checkout.paid`        | A Checkout SDK charge was paid | Fulfil once, idempotent by `data.checkout.id` → salla-checkout-sdk-purchase |
 | `app.uninstalled`          | Merchant removes app           | Clean up merchant data per retention policy                                      |
 
 `app.store.authorize` payload (illustrative shape — confirm exact fields via the MCP/docs):

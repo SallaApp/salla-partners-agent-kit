@@ -66,10 +66,11 @@ Call `POST https://api.salla.dev/admin/v2/checkouts`. Full request, response and
 Salla sets the source, the partner and the post-payment page (your app's default embedded page);
 a checkout has no expiry and stays `pending` until it is paid or replaced.
 
-The create answers `201` with the full checkout (the same object `GET /admin/v2/checkouts/{cart_id}`
-returns: status, items, `sub_total`, `tax`, `total`). From it, persist `data.cart_id` — the checkout
-id — and `data.payment_url`, its direct payment link, next to your order (replacing any stored for
-the same `reference_id`), then hand them to the payment path you use (Step 3).
+The create answers `201` with the full checkout (the same object `GET /admin/v2/checkouts/{id}`
+returns: status, `subtotal`, `tax`, `total` and each line's `amounts`, all as `{ amount, currency }`
+— shape in [`references/api-contract.md`](references/api-contract.md)). From it, persist `data.id`
+— the checkout id — and `data.checkout_url`, its direct payment link, next to your order (replacing
+any stored for the same `reference_id`), then hand them to the payment path you use (Step 3).
 
 Handle each error with its action:
 
@@ -83,7 +84,7 @@ Handle each error with its action:
 | `422` (with `error.fields`)     | Fix the listed fields and resend (e.g. missing `reference_id`, `amount` out of range)          |
 | HTTP `401`                      | Token missing, expired, or without `checkouts`: refresh it, or complete Step 1, and retry once |
 
-**Gate:** "Amount computed server-side, `reference_id` is your order id, `data.cart_id` stored,
+**Gate:** "Amount computed server-side, `reference_id` is your order id, `data.id` stored,
 every response above mapped to an action?"
 
 ## Step 3 — Let the merchant pay: embedded drawer or payment link
@@ -92,7 +93,7 @@ A checkout is paid one of two ways; both end on the same `app.checkout.paid` (St
 
 - **Embedded drawer** (the merchant is in your app) — `embedded.checkout.create({ checkout_id })`
   opens the native checkout drawer over your page, as below.
-- **Payment link** (the merchant is elsewhere) — send `payment_url` to the merchant (email,
+- **Payment link** (the merchant is elsewhere) — send `checkout_url` to the merchant (email,
   WhatsApp, a button outside the iframe). It opens the Salla Dashboard payment page for that
   checkout; after paying, the merchant returns to `/embedded/app/<app_id>`, which opens your app's
   default embedded page.
@@ -110,12 +111,12 @@ const off = embedded.checkout.onResult((r) => {
     embedded.ui.toast.error(r.error?.message ?? "Payment failed");
 });
 
-const { cart_id } = await fetchJson("/api/topup", {
+const { checkout_id } = await fetchJson("/api/topup", {
   method: "POST",
   body: { credits: 500 },
 });
 embedded.checkout.create(
-  { checkout_id: String(cart_id) },
+  { checkout_id: String(checkout_id) },
   { context: { topup: "8812" } },
 );
 ```
@@ -128,11 +129,11 @@ embedded.checkout.create(
   opens your app's **default embedded page** with the result: register `onResult` on that page
   too. Its `checkout_id` is the id the host stored when `create()` ran (never read from the URL);
   keep `context` for restoring the page state. Confirm payment on your backend with
-  `GET /admin/v2/checkouts/{cart_id}` or the webhook.
+  `GET /admin/v2/checkouts/{id}` or the webhook.
 - The `checkout_id` form needs `@salla.sa/embedded-sdk` `0.2.7` or newer.
 
 **Gate:** "Drawer: `onResult` registered before `create()` and on the default page. Link: the
-`payment_url` from create or show, sent as is. Either way the client only shows a pending state?"
+`checkout_url` from create or show, sent as is. Either way the client only shows a pending state?"
 
 ## Step 4 — Fulfil on `app.checkout.paid`
 
@@ -140,20 +141,20 @@ Grant the credits (or deliver the service) from your backend only, after Salla c
 Payload → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
 
 1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)).
-2. Idempotency key = `data.checkout.cart_id` — the same integer `cart_id` as create and show;
+2. Idempotency key = `data.checkout.id` — the same integer `id` as create and show;
    one event per checkout. Insert it in a unique-keyed table inside the same transaction that applies the
    fulfilment; a duplicate delivery is a no-op.
-3. Match your order with `data.checkout.reference_id`; compare `sub_total` with what you charged.
+3. Match your order with `data.checkout.reference_id`; compare `subtotal.amount` with what you charged.
 4. Answer `200` only after the delivery is persisted or enqueued; anything else makes Salla retry.
 
 Refunds: none in phase 1 (D12) — there is no refund endpoint for a paid checkout. Handle business
 refunds by adjusting the merchant's balance in your own system.
 
-Reconcile missed events: `GET /admin/v2/checkouts/{cart_id}` with the id you stored, and fulfil
+Reconcile missed events: `GET /admin/v2/checkouts/{id}` with the id you stored, and fulfil
 when `status` is `paid`, through the same idempotent path. The API has two endpoints — create and
-show — so the stored `cart_id` is your only lookup key.
+show — so the stored `id` is your only lookup key.
 
-**Gate:** "Handler verified, idempotent by `checkout.cart_id`, and the only place that fulfils?"
+**Gate:** "Handler verified, idempotent by `checkout.id`, and the only place that fulfils?"
 
 ## Step 5 — Register the event and the webhook URL
 
@@ -194,7 +195,7 @@ Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | "My app token already works for orders; skip the scope." | Checkout calls need `checkouts` on the token; without it every call answers `401` (Step 1).                           |
 | "`onResult` says paid — I'll grant the credits now."     | The client result is UX only; fulfil from the verified `app.checkout.paid` webhook or a backend GET (Steps 3–4).      |
-| "The webhook may arrive twice; the credits are small."   | Deliveries repeat and retry. Key the fulfilment on `checkout.cart_id` in a unique-keyed table (Step 4).               |
+| "The webhook may arrive twice; the credits are small."   | Deliveries repeat and retry. Key the fulfilment on `checkout.id` in a unique-keyed table (Step 4).                    |
 | "I'll build the price client-side and pass the items."   | The amount is computed on your backend and sent to the create API; the SDK opens only a checkout id (Steps 2–3).      |
 | "A fixed add-on is close enough for top-ups."            | Add-ons carry one publication price. Any computed amount uses this skill (Choose the right purchase skill).           |
 | "`taxable: false` is just a flag I can send."            | It needs `cart_tax_policy: 1` on the approved publication; otherwise `403 non_taxable_not_allowed` (Step 6).          |

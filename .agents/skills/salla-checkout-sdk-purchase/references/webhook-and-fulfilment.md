@@ -4,7 +4,7 @@
 
 Delivered like `app.subscription.*` (App Events family): same app webhook URL, headers,
 signature and retries. Sent once per checkout, after the order is created, and carries every
-line. Treat it idempotently by `checkout.cart_id`.
+line. Treat it idempotently by `checkout.id`.
 
 ```json
 {
@@ -18,23 +18,29 @@ line. Treat it idempotently by `checkout.cart_id`.
     "app_type": "public",
     "categories": ["marketing"],
     "checkout": {
-      "cart_id": 1449378623,
+      "id": 1449378623,
       "reference_id": "topup-8812",
-      "taxable": true,
-      "currency": "SAR",
-      "sub_total": 125,
-      "tax": 18.75,
-      "total": 143.75,
-      "order_id": 1288447511,
-      "paid_at": "2026-10-19T12:40:01+03:00",
       "status": "paid",
+      "subtotal": { "amount": 125, "currency": "SAR" },
+      "total_discount": { "amount": 0, "currency": "SAR" },
+      "tax": { "amount": 18.75, "currency": "SAR" },
+      "total": { "amount": 143.75, "currency": "SAR" },
+      "checkout_url": "https://s.salla.sa/checkout/1449378623",
+      "paid_at": "2026-10-19T12:40:01+03:00",
       "items": [
         {
           "name": "500 رسالة",
           "description": "Top-up for October",
-          "unit_price": 0.25,
           "quantity": 500,
-          "total": 125
+          "amounts": {
+            "price_without_tax": { "amount": 0.25, "currency": "SAR" },
+            "total_discount": { "amount": 0, "currency": "SAR" },
+            "tax": {
+              "percent": 15,
+              "amount": { "amount": 18.75, "currency": "SAR" }
+            },
+            "total": { "amount": 143.75, "currency": "SAR" }
+          }
         }
       ]
     }
@@ -43,10 +49,11 @@ line. Treat it idempotently by `checkout.cart_id`.
 ```
 
 `merchant` is the store id; correlate the checkout with your order by `checkout.reference_id`.
-`checkout.cart_id` is the same integer `cart_id` that create and show return (the SDK takes it
-as `String(cart_id)`), and `checkout.order_id` is an integer too. `checkout.tax` is the VAT **amount** (`0` when
-`taxable` is false). `checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as
-such. `app.checkout.paid` is the only checkout event (checkouts do not expire).
+`checkout` is the same object that create and show return (→ [api-contract.md](api-contract.md)):
+`checkout.id` is the same integer `id` (the SDK takes it as `String(id)`), every amount is a
+`{ amount, currency }` object, and `checkout.tax.amount` is the VAT **amount** (`0` on a VAT-exempt
+checkout). `checkout.paid_at` is an ISO 8601 timestamp with an offset — parse it as such.
+`app.checkout.paid` is the only checkout event (checkouts do not expire).
 
 ## Idempotent handler (Node / TypeScript)
 
@@ -58,7 +65,7 @@ app.post("/webhooks/salla", verifySallaSignature, async (req, res) => {
   const c = evt.data.checkout;
   await db.transaction(async (tx) => {
     const first = await tx.insertIgnore("processed_checkouts", {
-      cart_id: c.cart_id, // same integer as create and show
+      checkout_id: c.id, // same integer as create and show
     });
     if (!first) return; // duplicate delivery — already fulfilled
     const order = await tx.findOrder(c.reference_id, evt.merchant);
@@ -94,14 +101,14 @@ const res = await fetch("https://api.salla.dev/admin/v2/checkouts", {
 });
 const body = await res.json();
 if (!res.ok) return handleCheckoutError(body.error); // table in SKILL.md Step 2
-await saveCheckoutId(order.id, body.data.cart_id); // replaces any id stored for this order
-return { cart_id: body.data.cart_id };
+await saveCheckoutId(order.id, body.data.id); // replaces any id stored for this order
+return { checkout_id: body.data.id, checkout_url: body.data.checkout_url };
 ```
 
 ## Reconciliation
 
-For a pending order with no webhook yet, `GET /admin/v2/checkouts/{cart_id}` with the `cart_id`
-you stored on create, and fulfil through the same idempotent path when `status` is `paid`. A checkout
+For a pending order with no webhook yet, `GET /admin/v2/checkouts/{id}` with the `id` you stored
+on create, and fulfil through the same idempotent path when `status` is `paid`. A checkout
 stays `pending` until it is paid; to change the amount, create again with the same `reference_id`
 (it replaces the unpaid checkout).
 
@@ -110,16 +117,16 @@ stays `pending` until it is paid; to change the amount, create again with the sa
 1. Add the `checkouts` scope (`read_write`), then install the app on a demo store
    (→ salla-live-testing) so the token carries it.
 2. From your backend, create a checkout with a small `amount` and your test `reference_id`;
-   expect `201` and a `data.cart_id`.
-3. Create again with the same `reference_id`: expect `201` and a new `data.cart_id`; `GET` on the
+   expect `201` and a `data.id`.
+3. Create again with the same `reference_id`: expect `201` and a new `data.id`; `GET` on the
    old id answers `404 not_found`.
-4. Open the embedded page, call `checkout.create({ checkout_id: String(cart_id) })`; the native
+4. Open the embedded page, call `checkout.create({ checkout_id: String(id) })`; the native
    drawer opens with your line items.
 5. Pay with the demo store's test card; the dashboard returns to your app's default embedded page
    and `onResult` reports `paid` there (pending UI only).
 6. Expect `app.checkout.paid` at your webhook URL; confirm the fulfilment ran once, and that
    re-sending the same payload changes nothing.
-7. `GET /admin/v2/checkouts/{cart_id}` shows `status: "paid"` with `order_id` and `paid_at`; a create with
+7. `GET /admin/v2/checkouts/{id}` shows `status: "paid"` with `paid_at`; a create with
    the same `reference_id` now answers `403 reference_id_already_paid`.
 8. VAT-exempt (only once the approved publication has `cart_tax_policy: 1`): create with
-   `taxable: false` and expect `tax: 0`.
+   `taxable: false` and expect `tax.amount: 0` and each line's `tax.percent: 0`.

@@ -39,75 +39,86 @@ Salla sets the rest from the token: the source, the app, the partner, and the po
 an app is ignored. `cart_id`, `partner_company_id`, `items.*.service_id` and `items.*.service_type`
 are rejected with `422`.
 
-`201 Created`, with the full checkout — the same object `GET /checkouts/{cart_id}` returns:
+`201 Created`, with the full checkout — the same object `GET /checkouts/{id}` returns. Its
+structure and naming follow the abandoned-cart details API: every amount is a money object
+`{ "amount", "currency" }`.
 
 ```json
 {
   "status": 201,
   "success": true,
   "data": {
-    "cart_id": 1449378623,
-    "store_id": 1729012345,
-    "status": "pending",
+    "id": 1449378623,
     "reference_id": "topup-8812",
-    "app_id": 1912797071,
-    "taxable": true,
-    "currency": "SAR",
+    "status": "pending",
+    "subtotal": { "amount": 125, "currency": "SAR" },
+    "total_discount": { "amount": 0, "currency": "SAR" },
+    "tax": { "amount": 18.75, "currency": "SAR" },
+    "total": { "amount": 143.75, "currency": "SAR" },
+    "checkout_url": "https://s.salla.sa/checkout/1449378623",
+    "paid_at": null,
     "items": [
       {
         "name": "500 رسالة",
         "description": "Top-up for October",
-        "unit_price": 0.25,
         "quantity": 500,
-        "total": 125
+        "amounts": {
+          "price_without_tax": { "amount": 0.25, "currency": "SAR" },
+          "total_discount": { "amount": 0, "currency": "SAR" },
+          "tax": {
+            "percent": 15,
+            "amount": { "amount": 18.75, "currency": "SAR" }
+          },
+          "total": { "amount": 143.75, "currency": "SAR" }
+        }
       }
-    ],
-    "sub_total": 125,
-    "tax": 18.75,
-    "total": 143.75,
-    "order_id": null,
-    "paid_at": null,
-    "payment_url": "https://s.salla.sa/checkout/1449378623"
+    ]
   }
 }
 ```
 
+- `id` is the checkout id, an integer.
 - `status`: `pending` → `paid`. There is no expiry: a checkout stays `pending` until it is paid or
   replaced by a new create with the same `reference_id`.
-- `items[].total` is the `amount` you sent; `unit_price` = `total / quantity`, rounded to 2
-  decimals; `name` is the Arabic base name.
-- `sub_total`, `tax` and `total` are the cart's own totals, as the Dashboard checkout page shows
-  them: `tax` is the VAT **amount** (`0` on a VAT-exempt checkout), `total` = `sub_total` + `tax`.
-- Once paid: `order_id` (integer) is set and `paid_at` is an ISO 8601 timestamp with an offset.
-- `payment_url` is the checkout's direct payment link, `<dashboard URL>/checkout/<cart_id>`.
-- `cart_id`, `store_id`, `app_id` and `order_id` are integers. Whole amounts may arrive as integers
-  (`125`), fractions as floats.
+- `subtotal`, `tax` and `total` are the checkout's own totals, as the Dashboard checkout page shows
+  them: `tax` is the VAT **amount** (`0` on a VAT-exempt checkout), `total` = `subtotal` + `tax`.
+  `total_discount` is always `0` (checkouts take no coupon).
+- Each line's `amounts`, as in the abandoned-cart details:
+  - `price_without_tax` — the **unit** price before VAT: the line `amount` you sent ÷ `quantity`,
+    rounded to 2 decimals;
+  - `tax.percent` — the VAT rate as a number (`15`, or `0` on a VAT-exempt checkout);
+  - `tax.amount` — the line's VAT;
+  - `total` — the line total **with** VAT.
+- The lines add up to the totals: Σ `tax.amount` = `tax`, Σ line `total` = `total` (to the cent).
+- `name` is the Arabic base name.
+- Once paid: `status` is `paid` and `paid_at` is an ISO 8601 timestamp with an offset.
+- `checkout_url` is the checkout's direct payment link, `<dashboard URL>/checkout/<id>`.
+- Whole amounts may arrive as integers (`125`), fractions as floats.
 
-Store `data.cart_id` (the checkout id) and `data.payment_url` with your order. The merchant pays
-the checkout one of two ways:
+Store `data.id` (the checkout id) and `data.checkout_url` with your order. The merchant pays the
+checkout one of two ways:
 
-- **Embedded drawer** — pass `String(cart_id)` to `embedded.checkout.create({ checkout_id })`.
-- **Payment link** — send `data.payment_url` to the merchant; it opens the Dashboard payment page.
+- **Embedded drawer** — pass `String(id)` to `embedded.checkout.create({ checkout_id })`.
+- **Payment link** — send `data.checkout_url` to the merchant; it opens the Dashboard payment page.
   Use the URL as returned — the host differs per environment.
 
 After either path the merchant returns to `/embedded/app/<app_id>?paid=1&legacy=0` (`paid=` empty
-when the payment failed; the URL carries no `order_id`), which opens your app's default embedded
-page with the result. Confirm payment with `GET /checkouts/{cart_id}` or the webhook, never from
-the URL.
+when the payment failed; the URL carries no order id), which opens your app's default embedded page
+with the result. Confirm payment with `GET /checkouts/{id}` or the webhook, never from the URL.
 
 ### Same `reference_id`
 
-- The earlier checkout is unpaid → it is replaced: a new checkout with a new `cart_id` is created,
-  and the old `cart_id` answers `404` from then on. Store the new one.
+- The earlier checkout is unpaid → it is replaced: a new checkout with a new `id` is created, and
+  the old `id` answers `404` from then on. Store the new one.
 - The earlier checkout is paid → `403 reference_id_already_paid`; nothing is created.
 
 Retrying a failed or timed-out create with the same `reference_id` is therefore safe.
 
-## GET /checkouts/{cart_id} — show
+## GET /checkouts/{id} — show
 
 The same checkout object as create (`status` 200), read live — use it to confirm payment
-(`status: "paid"`, `order_id`, `paid_at`). Only this app's checkouts on this store; any other id
-answers `404 not_found`.
+(`status: "paid"`, `paid_at`). Only this app's checkouts on this store; any other id answers
+`404 not_found`.
 
 ## Errors (Salla error envelope)
 
@@ -150,5 +161,5 @@ mixing both, or an empty id, throws `INVALID_CHECKOUT_INPUT` before any message 
 response is the unchanged `embedded::checkout.response` plus `checkout_id`. After payment the host
 opens the app's default embedded page with the result; its `checkout_id` is the one the host
 stored when `create()` ran, never one read from the URL — the app still confirms payment with
-`GET /checkouts/{cart_id}` or the webhook. A checkout that does not belong to the app returns
+`GET /checkouts/{id}` or the webhook. A checkout that does not belong to the app returns
 `{ success: false, status: "failed", error: { code: "CHECKOUT_NOT_FOUND" } }`.

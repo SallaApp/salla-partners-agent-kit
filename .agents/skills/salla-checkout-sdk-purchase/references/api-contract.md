@@ -31,7 +31,7 @@ be installed and active on the store. Two endpoints: create and show. Public app
 | `items.*.quantity`    | optional integer ≥ 1, default 1                                                                                           |
 | `items.*.name`        | required object of locale → string (≤ 255 each), e.g. `{ "ar": "…", "en": "…" }`; the Arabic name is the line's base name |
 | `items.*.description` | optional, ≤ 500                                                                                                           |
-| `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `allow_non_taxable: 1`                |
+| `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `cart_tax_policy: 1`                  |
 | `currency`            | optional, default `SAR`                                                                                                   |
 
 Salla sets the rest from the token: the source, the app, the partner, and the post-payment page
@@ -122,15 +122,15 @@ answers `404 not_found`.
 }
 ```
 
-| HTTP | `error.code`                | When                                                                      |
-| ---- | --------------------------- | ------------------------------------------------------------------------- |
-| 401  | —                           | token missing, invalid or expired, or without the `checkouts` scope       |
-| 403  | `non_taxable_not_allowed`   | `taxable: false` while the approved publication's `allow_non_taxable` ≠ 1 |
-| 403  | `reference_id_already_paid` | the checkout for this `reference_id` is already paid                      |
-| 403  | `app_not_installed`         | the app is not installed on the store                                     |
-| 404  | `not_found`                 | show: unknown or replaced id, or not this app + store                     |
-| 404  | `store_owner_not_found`     | the store has no owner user — contact Salla support                       |
-| 422  | (with `error.fields`)       | body rules above                                                          |
+| HTTP | `error.code`                | When                                                                    |
+| ---- | --------------------------- | ----------------------------------------------------------------------- |
+| 401  | —                           | token missing, invalid or expired, or without the `checkouts` scope     |
+| 403  | `non_taxable_not_allowed`   | `taxable: false` while the approved publication's `cart_tax_policy` ≠ 1 |
+| 403  | `reference_id_already_paid` | the checkout for this `reference_id` is already paid                    |
+| 403  | `app_not_installed`         | the app is not installed on the store                                   |
+| 404  | `not_found`                 | show: unknown or replaced id, or not this app + store                   |
+| 404  | `store_owner_not_found`     | the store has no owner user — contact Salla support                     |
+| 422  | (with `error.fields`)       | body rules above                                                        |
 
 On any HTTP **401**, treat it as an auth failure and refresh the token (or add the scope, then
 have the merchant re-authorise) — branch on the HTTP status, not on `error.code`.

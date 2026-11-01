@@ -166,19 +166,19 @@ subscribe call. Handle `app.checkout.paid` next to `app.subscription.*` in the s
 ## Step 6 — VAT-exempt checkouts (only when the business needs them)
 
 Checkouts are VAT-taxed (`taxable: true`). To sell VAT-exempt, the app's publication sets
-`allow_non_taxable` to `1` (`0`, the default, is taxable only):
+`cart_tax_policy` to `1` (`0`, the default, is taxable only):
 
 1. `app_publish action=get` → `can_request_non_taxable`. Only when it is `true` does Salla offer
-   the option; otherwise the Portal saves `allow_non_taxable: 0`.
+   the option; otherwise the Portal saves `cart_tax_policy: 0`.
 2. Partners Portal → publication Pricing step → allow VAT-exempt Checkout SDK purchases, or
-   `app_publish action=set section=pricing` with `allow_non_taxable: 1` (once partners-mcp ships it).
+   `app_publish action=set section=pricing` with `cart_tax_policy: 1` (once partners-mcp ships it).
 3. Salla reviews it with the publication. The checkout API reads the value from the **approved**
    publication, on every store — demo stores included.
 
 Without it, `taxable: false` answers `403 non_taxable_not_allowed`. → publication flow in
 [salla-publication-consistency](../salla-publication-consistency/SKILL.md).
 
-**Gate:** "`allow_non_taxable: 1` on the approved publication before any `taxable: false` create?"
+**Gate:** "`cart_tax_policy: 1` on the approved publication before any `taxable: false` create?"
 
 ## Step 7 — Test on a demo store
 
@@ -197,7 +197,7 @@ Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 | "The webhook may arrive twice; the credits are small."   | Deliveries repeat and retry. Key the fulfilment on `checkout.cart_id` in a unique-keyed table (Step 4).               |
 | "I'll build the price client-side and pass the items."   | The amount is computed on your backend and sent to the create API; the SDK opens only a checkout id (Steps 2–3).      |
 | "A fixed add-on is close enough for top-ups."            | Add-ons carry one publication price. Any computed amount uses this skill (Choose the right purchase skill).           |
-| "`taxable: false` is just a flag I can send."            | It needs `allow_non_taxable: 1` on the approved publication; otherwise `403 non_taxable_not_allowed` (Step 6).        |
+| "`taxable: false` is just a flag I can send."            | It needs `cart_tax_policy: 1` on the approved publication; otherwise `403 non_taxable_not_allowed` (Step 6).          |
 | "Create failed — I'll retry with a random id."           | Retry with the same `reference_id` (Step 2): it replaces the unpaid checkout; a random id can charge one order twice. |
 
 ## Key Resources

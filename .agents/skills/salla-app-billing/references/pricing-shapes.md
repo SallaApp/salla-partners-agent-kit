@@ -105,12 +105,12 @@ A charge your backend computes (usage, credits, top-ups, quotes) has no pricing-
 backend creates a checkout per charge through `POST /admin/v2/checkouts`, the embedded page
 opens it, and `app.checkout.paid` confirms payment → **salla-checkout-sdk-purchase**. It needs the
 app scope `checkouts` (public apps only). Checkouts are VAT-taxed; for VAT-exempt sales set
-`allow_non_taxable: 1` on the `pricing` section (below) and wait for Salla to approve the
+`cart_tax_policy: 1` on the `pricing` section (below) and wait for Salla to approve the
 publication.
 
-| Field               | Type / rule                                                                                                                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `allow_non_taxable` | integer, `0` = taxable checkouts only (default), `1` = VAT-exempt (`taxable: false`) checkouts allowed too. Send `1` only when `can_request_non_taxable` is `true`; otherwise the Portal saves `0`. |
+| Field             | Type / rule                                                                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cart_tax_policy` | integer, `0` = taxable checkouts only (default), `1` = VAT-exempt (`taxable: false`) checkouts allowed too. Send `1` only when `can_request_non_taxable` is `true`; otherwise the Portal saves `0`. |
 
 ## Top-level (any type)
 

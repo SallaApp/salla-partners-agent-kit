@@ -121,5 +121,5 @@ stays `pending` until it is paid; to change the amount, create again with the sa
    re-sending the same payload changes nothing.
 7. `GET /admin/v2/checkouts/{cart_id}` shows `status: "paid"` with `order_id` and `paid_at`; a create with
    the same `reference_id` now answers `403 reference_id_already_paid`.
-8. VAT-exempt (only once the approved publication has `allow_non_taxable: 1`): create with
+8. VAT-exempt (only once the approved publication has `cart_tax_policy: 1`): create with
    `taxable: false` and expect `tax: 0`.

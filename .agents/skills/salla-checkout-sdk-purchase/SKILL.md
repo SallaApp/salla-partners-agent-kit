@@ -58,9 +58,11 @@ Call `POST https://api.salla.dev/admin/v2/checkouts`. Full request, response and
 - `reference_id` — **required**, your own order id (≤ 64 chars), unique per app + store. A new
   create with the same `reference_id` **replaces** the unpaid checkout (the old id answers `404`
   from then on); once that checkout is paid, a create answers `403 reference_id_already_paid`.
-- `items` — at least one line, each `amount` (the **line total** in SAR, VAT-exclusive, 1–999999.99),
+- `items` — at least one line, each `amount` (the **line total** in `currency`, VAT-exclusive, 1–999999.99),
   `quantity` (default 1), `name` as `{ "ar": "…", "en": "…" }` (Arabic is shown first), optional
   `description` (≤ 500).
+- `currency` — optional, default `SAR`; one of SAR, AED, KWD, BHD, QAR, OMR, JOD, EGP, LBP, USD, GBP,
+  EUR. Salla converts the charge to the store's billing currency; response amounts are in that currency.
 - `taxable` — send `true` (the default) unless the app is approved for VAT-exempt checkouts (Step 6).
 
 Salla sets the source, the partner and the post-payment page (your app's default embedded page);

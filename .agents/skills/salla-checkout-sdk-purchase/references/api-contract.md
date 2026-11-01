@@ -23,21 +23,26 @@ be installed and active on the store. Two endpoints: create and show. Public app
 }
 ```
 
-| Field                 | Rule                                                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `reference_id`        | **required**, string ≤ 64 — your order id, unique per app + store (see "Same `reference_id`" below)                       |
-| `items`               | required, at least 1 line                                                                                                 |
-| `items.*.amount`      | required, numeric 1–999999.99 — the **line total** (unit price × quantity), SAR, VAT-exclusive                            |
-| `items.*.quantity`    | optional integer ≥ 1, default 1                                                                                           |
-| `items.*.name`        | required object of locale → string (≤ 255 each), e.g. `{ "ar": "…", "en": "…" }`; the Arabic name is the line's base name |
-| `items.*.description` | optional, ≤ 500                                                                                                           |
-| `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `cart_tax_policy: 1`                  |
-| `currency`            | optional, default `SAR`                                                                                                   |
+| Field                 | Rule                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reference_id`        | **required**, string ≤ 64 — your order id, unique per app + store (see "Same `reference_id`" below)                                               |
+| `items`               | required, at least 1 line                                                                                                                         |
+| `items.*.amount`      | required, numeric 1–999999.99 — the **line total** (unit price × quantity), in `currency`, VAT-exclusive                                          |
+| `items.*.quantity`    | optional integer ≥ 1, default 1                                                                                                                   |
+| `items.*.name`        | required object of locale → string (≤ 255 each), e.g. `{ "ar": "…", "en": "…" }`; the Arabic name is the line's base name                         |
+| `items.*.description` | optional, ≤ 500                                                                                                                                   |
+| `items.*.currency`    | optional; when sent, equal to `currency` (else `422`)                                                                                             |
+| `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `cart_tax_policy: 1`                                          |
+| `currency`            | optional, default `SAR`, case-insensitive; one of `SAR`, `AED`, `KWD`, `BHD`, `QAR`, `OMR`, `JOD`, `EGP`, `LBP`, `USD`, `GBP`, `EUR` (else `422`) |
 
 Salla sets the rest from the token: the source, the app, the partner, and the post-payment page
 (`/embedded/app/<app_id>`, which opens your app's default embedded page). A `redirect_uri` sent by
 an app is ignored. `cart_id`, `partner_company_id`, `items.*.service_id` and `items.*.service_type`
 are rejected with `422`.
+
+Currency: you price the lines in `currency`; Salla converts the charge to the store's billing
+currency (set by the store's country) at the current rate, and every amount in the response comes
+back in that billing currency — read `currency` from each money object.
 
 `201 Created`, with the full checkout — the same object `GET /checkouts/{id}` returns. Its
 structure and naming follow the abandoned-cart details API: every amount is a money object

@@ -143,13 +143,13 @@ Use a skill by name when you want a specific flow: _"use the salla-shipping-app 
 
 ## 6. Skills
 
-| Layer                    | Skills                                                                                                          |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Foundation               | `salla-app-expert` (master router) · `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`      |
-| Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder` |
-| App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                          |
-| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded`          |
-| Quality & release        | `salla-storefront-ui` · `salla-embedded-ui` · `salla-live-testing` · `salla-publication-consistency`            |
+| Layer                    | Skills                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Foundation               | `salla-app-expert` (master router) · `salla-api-core` · `salla-app-auth` · `salla-webhooks` · `salla-docs`                             |
+| Hookables                | `salla-app-functions` · `salla-snippets` · `salla-embedded-app` · `salla-app-settings` · `salla-app-ui-builder`                        |
+| App types                | `salla-app-builder` · `salla-shipping-app` · `salla-communication-app`                                                                 |
+| Lifecycle & monetization | `salla-app-lifecycle` · `salla-app-billing` · `salla-addon-purchase` · `salla-addon-purchase-embedded` · `salla-checkout-sdk-purchase` |
+| Quality & release        | `salla-storefront-ui` · `salla-embedded-ui` · `salla-live-testing` · `salla-publication-consistency`                                   |
 
 ---
 

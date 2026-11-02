@@ -99,6 +99,7 @@ Every behavior attaches at exactly one surface. Decide in this order:
 | Post-install setup / onboarding steps                                                                | [salla-app-builder](../salla-app-builder/SKILL.md)                         |
 | Addon billing lifecycle (activation, renewal, entitlement)                                           | [salla-addon-purchase](../salla-addon-purchase/SKILL.md)                   |
 | In-app addon purchase UX (embedded flow)                                                             | [salla-addon-purchase-embedded](../salla-addon-purchase-embedded/SKILL.md) |
+| Charge a dynamic / usage-based amount (credits, top-ups, quotes)                                     | [salla-checkout-sdk-purchase](../salla-checkout-sdk-purchase/SKILL.md)     |
 | SMS / WhatsApp / email channel apps                                                                  | [salla-communication-app](../salla-communication-app/SKILL.md)             |
 | Carriers, shipments, labels, tracking, returns                                                       | [salla-shipping-app](../salla-shipping-app/SKILL.md)                       |
 | Direct Admin (Merchant) API calls, pagination, errors, rate limits                                   | [salla-api-core](../salla-api-core/SKILL.md)                               |

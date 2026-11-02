@@ -322,7 +322,12 @@ Confirm the app's valid resource slugs (and per-app disabled flags) via
 orders          products        customers       branches
 settings        webhooks        payments        taxes
 specialoffers   categories      brands          metadata
+checkouts
 ```
+
+`checkouts` (set `read_write`; `read` only reads) lets the backend create Checkout SDK checkouts
+for server-computed charges → **salla-checkout-sdk-purchase**. It is offered to public apps only;
+private apps never see it.
 
 ### App events
 

@@ -1,8 +1,8 @@
 ---
 name: salla-checkout-sdk-purchase
 description: >
-  Charging a merchant a server-computed amount (usage, credits, top-ups, quotes) from an embedded
-  Salla app through the Checkout SDK. Use when the amount is computed by your backend rather than a
+  Charging a merchant a server-computed amount (usage, credits, top-ups, quotes) from a public
+  Salla app, embedded or not, through the Checkout SDK. Use when the amount is computed by your backend rather than a
   fixed publication add-on price. Hand-offs → salla-addon-purchase-embedded (fixed-price add-ons),
   salla-webhooks (signature), salla-app-auth (scope, token), salla-embedded-app (SDK init).
 ---
@@ -28,9 +28,10 @@ Default to this skill whenever the app charges a server-computed amount.
 ## Prerequisites
 
 1. **Public app** — the `checkouts` scope is not offered to private apps.
-2. **Embedded app** working — SDK initialized, session token verified server-side, and a
-   **default embedded page** that handles the payment result (Step 3)
-   (→ [salla-embedded-app](../salla-embedded-app/SKILL.md)).
+2. **Embedded mode only for the in-app drawer** (`embedded.checkout.create`): SDK initialized,
+   session token verified server-side, and a **default embedded page** that handles the payment
+   result (Step 3) (→ [salla-embedded-app](../salla-embedded-app/SKILL.md)). A public app with no
+   embedded pages creates the checkout from its backend and sends the merchant to `checkout_url`.
 3. **App installed and active** on the store, with that store's access token held by your
    backend (→ [salla-app-auth](../salla-app-auth/SKILL.md)).
 4. **Webhook URL** set on the app and `app.checkout.paid` handled (Steps 4–5).
@@ -65,8 +66,7 @@ Call `POST https://api.salla.dev/admin/v2/checkouts`. Full request, response and
   EUR. Salla converts the charge to the store's billing currency; response amounts are in that currency.
 - `taxable` — send `true` (the default) unless the app is approved for VAT-exempt checkouts (Step 6).
 
-Salla sets the source, the partner and the post-payment page (your app's default embedded page);
-a checkout has no expiry and stays `pending` until it is paid or replaced.
+Salla sets the source, the partner and the post-payment page from the app type (Step 3); a checkout has no expiry and stays `pending` until it is paid or replaced.
 
 The create answers `201` with the full checkout (the same object `GET /admin/v2/checkouts/{id}`
 returns: status, `subtotal`, `tax`, `total` and each line's `amounts`, all as `{ amount, currency }`
@@ -93,12 +93,21 @@ every response above mapped to an action?"
 
 A checkout is paid one of two ways; both end on the same `app.checkout.paid` (Step 4):
 
-- **Embedded drawer** (the merchant is in your app) — `embedded.checkout.create({ checkout_id })`
+- **Embedded drawer** (the merchant is in your embedded app) — `embedded.checkout.create({ checkout_id })`
   opens the native checkout drawer over your page, as below.
-- **Payment link** (the merchant is elsewhere) — send `checkout_url` to the merchant (email,
-  WhatsApp, a button outside the iframe). It opens the Salla Dashboard payment page for that
-  checkout; after paying, the merchant returns to `/embedded/app/<app_id>`, which opens your app's
-  default embedded page.
+- **Payment link** (non-embedded apps, or a merchant elsewhere) — send `checkout_url` to the
+  merchant: a button in your own partner dashboard, email, WhatsApp. It opens the Salla Dashboard
+  payment page for that checkout.
+
+Salla picks the return page after payment from the app type; it is not configurable and a
+`redirect_uri` sent by the app is ignored:
+
+| App type     | Return page                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Embedded     | `/embedded/app/<app_id>?paid=1&legacy=0` — opens the default embedded page                                          |
+| Non-embedded | `/apps/installed/<installed app id>?paid=1&legacy=0` — the app's installed-app page in the Salla merchant dashboard |
+
+`paid=` is empty when the payment failed; the URL carries no order id.
 
 For the drawer, register `embedded.checkout.onResult` first, then open it with the id from your
 backend:
@@ -126,20 +135,23 @@ embedded.checkout.create(
 - `create({ checkout_id })` takes the id alone, as a string. Mixing it with `items`, or an empty
   id, throws `INVALID_CHECKOUT_INPUT` before anything is sent — wrap the call in try/catch.
 - A checkout that is not this app's answers `{ success:false, status:"failed", error:{ code:"CHECKOUT_NOT_FOUND" } }` — create a fresh one.
-- After payment (including 3DS) the merchant returns to `/embedded/app/<app_id>?paid=1&legacy=0`
-  (`paid=` empty on failure; no `order_id` in the URL), and the host
-  opens your app's **default embedded page** with the result: register `onResult` on that page
+- After payment (including 3DS) an embedded app's merchant returns to the embedded return page
+  above, and the host opens your app's **default embedded page** with the result: register `onResult` on that page
   too. Its `checkout_id` is the id the host stored when `create()` ran (never read from the URL);
-  keep `context` for restoring the page state. Confirm payment on your backend with
+  keep `context` for restoring the page state.
+- A non-embedded app's installed-app page shows the merchant the payment outcome; fulfilment
+  never waits for it. For both types, confirm payment on your backend with
   `GET /admin/v2/checkouts/{id}` or the webhook.
 - The `checkout_id` form needs `@salla.sa/embedded-sdk` `0.2.7` or newer.
 
-**Gate:** "Drawer: `onResult` registered before `create()` and on the default page. Link: the
-`checkout_url` from create or show, sent as is. Either way the client only shows a pending state?"
+**Gate:** "Drawer: `onResult` registered before `create()` and on the default page. Link (the only
+path of a non-embedded app): the `checkout_url` from create or show, sent as is. Either way the
+client only shows a pending state?"
 
 ## Step 4 — Fulfil on `app.checkout.paid`
 
 Grant the credits (or deliver the service) from your backend only, after Salla confirms payment.
+`app.checkout.paid` reaches the app's webhook URL for every paid checkout, embedded or not.
 Payload → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md) (load now).
 
 1. Verify the signature before any logic (→ [salla-webhooks](../salla-webhooks/SKILL.md)).
@@ -186,10 +198,12 @@ Without it, `taxable: false` answers `403 non_taxable_not_allowed`. → publicat
 ## Step 7 — Test on a demo store
 
 Recipe → [`references/webhook-and-fulfilment.md`](references/webhook-and-fulfilment.md#test-recipe)
-(install on a demo store, create, pay with a test card, see the webhook).
+(install on a demo store, create, confirm at 0 with no card, see the webhook). On a partner demo
+store a Checkout API purchase costs 0, like an add-on purchase: `subtotal`, `tax` and `total` are
+0 and `app.checkout.paid` arrives with total 0. A normal store is charged the requested amount.
 Follow [salla-live-testing](../salla-live-testing/SKILL.md) for the store setup.
 
-**Gate:** "One end-to-end run: create → drawer → paid → webhook → fulfilment applied once?"
+**Gate:** "One end-to-end run: create → drawer or `checkout_url` → paid → webhook → fulfilment applied once?"
 
 ## Red Flags
 

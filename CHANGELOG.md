@@ -10,6 +10,20 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.23] — 2026-11-08
+
+### Changed
+
+- **`salla-checkout-sdk-purchase` covers non-embedded public apps.** Embedded mode is needed only
+  for the in-app drawer (`embedded.checkout.create`); a public app with no embedded pages creates
+  the checkout on its backend and sends the merchant to `checkout_url`. Salla picks the return
+  page after payment from the app type: `/embedded/app/<app_id>?paid=1&legacy=0` for an embedded
+  app, `/apps/installed/<installed app id>?paid=1&legacy=0` (the installed-app page in the Salla
+  merchant dashboard) for a non-embedded app; a `redirect_uri` is ignored. `app.checkout.paid` is
+  delivered for every paid checkout, embedded or not. On a partner demo store a Checkout API
+  purchase costs 0 (`subtotal`, `tax`, `total` are 0, no card, the webhook arrives with total 0);
+  a normal store is charged the requested amount. The test recipe is updated accordingly.
+
 ## [1.0.22] — 2026-10-19
 
 ### Added

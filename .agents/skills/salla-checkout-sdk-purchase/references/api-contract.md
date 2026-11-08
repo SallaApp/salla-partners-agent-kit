@@ -35,9 +35,10 @@ be installed and active on the store. Two endpoints: create and show. Public app
 | `taxable`             | optional bool, default `true`; `false` only when the app's approved publication has `cart_tax_policy: 1`                                          |
 | `currency`            | optional, default `SAR`, case-insensitive; one of `SAR`, `AED`, `KWD`, `BHD`, `QAR`, `OMR`, `JOD`, `EGP`, `LBP`, `USD`, `GBP`, `EUR` (else `422`) |
 
-Salla sets the rest from the token: the source, the app, the partner, and the post-payment page
-(`/embedded/app/<app_id>`, which opens your app's default embedded page). A `redirect_uri` sent by
-an app is ignored. `cart_id`, `partner_company_id`, `items.*.service_id` and `items.*.service_type`
+Salla sets the rest from the token: the source, the app, the partner, and the post-payment page,
+chosen from the app type: `/embedded/app/<app_id>` for an embedded app (it opens the default
+embedded page), `/apps/installed/<installed app id>` in the Salla merchant dashboard for a
+non-embedded app. A `redirect_uri` sent by an app is ignored. `cart_id`, `partner_company_id`, `items.*.service_id` and `items.*.service_type`
 are rejected with `422`.
 
 Currency: you price the lines in `currency`; Salla converts the charge to the store's billing
@@ -103,13 +104,20 @@ structure and naming follow the abandoned-cart details API: every amount is a mo
 Store `data.id` (the checkout id) and `data.checkout_url` with your order. The merchant pays the
 checkout one of two ways:
 
-- **Embedded drawer** — pass `String(id)` to `embedded.checkout.create({ checkout_id })`.
-- **Payment link** — send `data.checkout_url` to the merchant; it opens the Dashboard payment page.
-  Use the URL as returned — the host differs per environment.
+- **Embedded drawer** (embedded apps) — pass `String(id)` to `embedded.checkout.create({ checkout_id })`.
+- **Payment link** (any app; the path of a non-embedded app) — send `data.checkout_url` to the
+  merchant; it opens the Dashboard payment page. Use the URL as returned — the host differs per
+  environment.
 
-After either path the merchant returns to `/embedded/app/<app_id>?paid=1&legacy=0` (`paid=` empty
-when the payment failed; the URL carries no order id), which opens your app's default embedded page
-with the result. Confirm payment with `GET /checkouts/{id}` or the webhook, never from the URL.
+After either path the merchant returns to the page for the app type (`paid=` empty when the
+payment failed; the URL carries no order id):
+
+- embedded app → `/embedded/app/<app_id>?paid=1&legacy=0`, which opens your app's default embedded
+  page with the result;
+- non-embedded app → `/apps/installed/<installed app id>?paid=1&legacy=0`, the app's installed-app
+  page in the Salla merchant dashboard.
+
+Confirm payment with `GET /checkouts/{id}` or the webhook, never from the URL.
 
 ### Same `reference_id`
 

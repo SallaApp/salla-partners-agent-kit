@@ -3,7 +3,7 @@
 ## Event
 
 Delivered like `app.subscription.*` (App Events family): same app webhook URL, headers,
-signature and retries. Sent once per checkout, after the order is created, and carries every
+signature and retries, for embedded and non-embedded apps alike. Sent once per checkout, after the order is created, and carries every
 line. Treat it idempotently by `checkout.id`.
 
 ```json
@@ -120,11 +120,14 @@ stays `pending` until it is paid; to change the amount, create again with the sa
    expect `201` and a `data.id`.
 3. Create again with the same `reference_id`: expect `201` and a new `data.id`; `GET` on the
    old id answers `404 not_found`.
-4. Open the embedded page, call `checkout.create({ checkout_id: String(id) })`; the native
-   drawer opens with your line items.
-5. Pay with the demo store's test card; the dashboard returns to your app's default embedded page
-   and `onResult` reports `paid` there (pending UI only).
-6. Expect `app.checkout.paid` at your webhook URL; confirm the fulfilment ran once, and that
+4. Embedded app: open the embedded page and call `checkout.create({ checkout_id: String(id) })`;
+   the native drawer opens with your line items. Non-embedded app: open `data.checkout_url` from
+   your partner dashboard.
+5. A partner demo store charges 0 for Checkout API purchases (`subtotal`, `tax` and `total` are 0):
+   confirm without a card. Embedded: the dashboard returns to your app's default embedded page and
+   `onResult` reports `paid` there (pending UI only). Non-embedded: the merchant lands on the
+   app's installed-app page in the dashboard.
+6. Expect `app.checkout.paid` at your webhook URL with total 0; confirm the fulfilment ran once, and that
    re-sending the same payload changes nothing.
 7. `GET /admin/v2/checkouts/{id}` shows `status: "paid"` with `paid_at`; a create with
    the same `reference_id` now answers `403 reference_id_already_paid`.

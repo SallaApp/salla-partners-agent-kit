@@ -33,9 +33,11 @@ trigger names and categories; **`salla_functions action=get`** for a trigger's a
 | **Asynchronous event** | After the operation  | No           | 30 s          | Fire-and-forget: logged, does **not** affect the flow.                 |
 | **Synchronous action** | Before the operation | Yes          | **5 s total** | Blocking: can **modify** parameters or **reject/block** the operation. |
 
-- **Sync actions** are exactly the `merchant_actions` category — `shipment.creating` and
-  `shipment.cancelling` (confirm the category via `salla_functions action=list_triggers`
-  rather than the verb form). They intercept the lifecycle before it completes: erroring
+- **Sync actions** are exactly the `merchant_actions` category — `shipment.creating`,
+  `shipment.cancelling` and `app.settings.validating` (confirm the category via
+  `salla_functions action=list_triggers` rather than the verb form).
+  `app.settings.validating` checks the merchant's settings before they are saved (10 s limit):
+  `Resp.success()` saves, a 422 with field errors blocks → [salla-app-settings](../salla-app-settings/SKILL.md). They intercept the lifecycle before it completes: erroring
   cancels the operation, succeeding can modify its data. `shipment.creating` is the documented
   sync example and returns a **`Shipment`** (`(context: Shipments): Promise<Shipment>`), not
   a plain `Resp` — it sets the shipment number/label. Builder mechanics →

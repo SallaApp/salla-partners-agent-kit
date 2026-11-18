@@ -105,9 +105,15 @@ async function setSandboxMode(appId: number, token: string, enabled: boolean) {
 
 ---
 
-## Validating Settings (public Validation URL)
+## Validating Settings
 
-The Validation URL is a **public, signature-free** endpoint Salla POSTs to **before
+Validate with an App Function on the `app.settings.validating` trigger. It runs synchronously
+before Salla saves, with the values in `context.payload.data.fields`; return `Resp.success()`
+to save or `Resp.error().setStatus(422).setMessage(message, { field_id: [...] })` to block.
+Full contract → [form-builder.md](./form-builder.md). The Validation URL below is the legacy
+path for apps that don't have the function yet.
+
+The legacy Validation URL is a **public, signature-free** endpoint Salla POSTs to **before
 saving**. There is no `Authorization` header or signature to verify — it exists only so you
 can accept or reject the proposed values. It is **not** a storage hook: persist settings
 from the `app.settings.updated` webhook (the storage source of truth — see
@@ -142,4 +148,4 @@ app.post("/settings/validate", express.json(), (req, res) => {
 | `app.updated`          | Re-POST if your schema changed (add new keys with defaults)                                                                                                                      |
 | `app.settings.updated` | Merchant saved the form — this event **activates the app**; persist `data.settings` from the payload (authoritative — you may not hold a token to GET)                           |
 | `app.uninstalled`      | A deleted app gets no further access or webhooks; Salla handles its own uninstall. Any partner-side cleanup of your stored copy is your choice — Salla does NOT clear it for you |
-| Merchant edits form    | Salla POSTs to your public Validation URL (if set, validate-only, no signature) → on success Salla stores the values and fires `app.settings.updated`                            |
+| Merchant edits form    | Salla runs your `app.settings.validating` function (or POSTs to a legacy Validation URL), if set → on success Salla stores the values and fires `app.settings.updated`                |

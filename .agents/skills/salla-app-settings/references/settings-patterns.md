@@ -148,4 +148,4 @@ app.post("/settings/validate", express.json(), (req, res) => {
 | `app.updated`          | Re-POST if your schema changed (add new keys with defaults)                                                                                                                      |
 | `app.settings.updated` | Merchant saved the form — this event **activates the app**; persist `data.settings` from the payload (authoritative — you may not hold a token to GET)                           |
 | `app.uninstalled`      | A deleted app gets no further access or webhooks; Salla handles its own uninstall. Any partner-side cleanup of your stored copy is your choice — Salla does NOT clear it for you |
-| Merchant edits form    | Salla runs your `app.settings.validating` function (or POSTs to a legacy Validation URL), if set → on success Salla stores the values and fires `app.settings.updated`                |
+| Merchant edits form    | Salla runs your `app.settings.validating` function (or POSTs to a legacy Validation URL), if set → on success Salla stores the values and fires `app.settings.updated`           |

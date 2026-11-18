@@ -33,12 +33,12 @@ Salla Partners MCP tools. Follow the steps in order — complete each gate befor
 
 ## Tools
 
-| Tool             | Action               | What it does                                        |
-| ---------------- | -------------------- | --------------------------------------------------- |
-| `salla_settings` | `define_form`        | Register the merchant settings form (field objects) |
+| Tool             | Action               | What it does                                          |
+| ---------------- | -------------------- | ----------------------------------------------------- |
+| `salla_settings` | `define_form`        | Register the merchant settings form (field objects)   |
 | `salla_settings` | `set_validation_url` | LEGACY: set, or clear with `null`, the Validation URL |
-| `salla_settings` | `list_features`      | Read the app's supported features                   |
-| `salla_settings` | `set_features`       | Set supported features                              |
+| `salla_settings` | `list_features`      | Read the app's supported features                     |
+| `salla_settings` | `set_features`       | Set supported features                                |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Every action needs
 > the app's `app_id`. If a tool returns "Salla session expired", re-run the login flow.
@@ -152,7 +152,8 @@ value on each required field?"
    The **Validation URL** (`set_validation_url`) is legacy. An app without the function keeps
    using it, but the Portal refuses a new or changed URL (422) once the partner is moved to the
    function. Clear an old URL with `validation_url: null` after the function is published.
-   `salla_apps action=get` shows `has_settings_validation_function`.
+   `salla_apps action=get` shows `has_settings_validation_function`: `true` when the app's
+   live (published) version has the function.
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
 

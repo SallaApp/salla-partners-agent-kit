@@ -125,7 +125,9 @@ export default async (context: AppSettingsValidating): Promise<Resp> => {
   if (!fields.api_key) errors.api_key = ["API key is required"];
 
   if (Object.keys(errors).length > 0) {
-    return Resp.error().setStatus(422).setMessage("Please fix the highlighted fields", errors);
+    return Resp.error()
+      .setStatus(422)
+      .setMessage("Please fix the highlighted fields", errors);
   }
 
   return Resp.success().setData({});

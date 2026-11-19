@@ -102,7 +102,8 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
 
    **Gate:** "Access policy: current lists read with `salla_apps action=get`, each list sent
    whole, `trusted_asn` + `allowed_countries` in one call, saved lists confirmed in the
-   result's `access_policy`?"
+   result's `access_policy` when present (an IP-only account returns none: there the save
+   succeeded when `_partial` has no `trusted_ips` entry)?"
 
    > **The MCP never mints or rotates the signing secret — read it live before deploying.**
    > `connect` does not touch the webhook signing secret. Create or rotate it **manually in

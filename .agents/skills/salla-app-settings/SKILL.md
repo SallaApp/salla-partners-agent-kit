@@ -152,8 +152,6 @@ value on each required field?"
    The **Validation URL** (`set_validation_url`) is legacy. An app without the function keeps
    using it, but the Portal refuses a new or changed URL (422) once the partner is moved to the
    function. Clear an old URL with `validation_url: null` after the function is published.
-   `salla_apps action=get` shows `has_settings_validation_function`: `true` when the app's
-   live (published) version has the function.
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
 

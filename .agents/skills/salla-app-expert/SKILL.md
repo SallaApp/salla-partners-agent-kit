@@ -116,7 +116,7 @@ There are only two kinds of app-config change:
 | Kind               | What                                                                                               | Demo stores | Merchants' live stores                   |
 | ------------------ | -------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------- |
 | **Needs approval** | webhooks, events, scopes, settings form, snippets, embedded pages, onboarding steps, App Functions | now         | only after a new publication is approved |
-| **Instant**        | `redirect_urls`, `trusted_ips` (`salla_apps connect`)                                              | now         | now — every merchant, no approval        |
+| **Instant**        | `redirect_urls`, `trusted_ips`, `trusted_asn`, `allowed_countries` (`salla_apps connect`)          | now         | now — every merchant, no approval        |
 
 A private app's **webhooks** are instant too; its other config needs a new private publication.
 

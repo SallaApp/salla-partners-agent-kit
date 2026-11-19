@@ -10,6 +10,19 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.26] — 2026-11-19
+
+### Changed
+
+- **Skills state the two access policy rules now on for every account.** An app's first
+  publication needs at least one trusted IP or network (countries alone do not count; updates of
+  a published app are not checked), and a save that would leave the policy with no IP and no
+  network is refused with nothing saved. `salla-app-auth` replaces "`[]` clears it" with the
+  keep-at-least-one rule, says to send both lists in one call when moving from IPs to networks,
+  and gains a Red Flags row. `salla-publication-consistency`, `salla-app-builder` (with its
+  private apps reference, which gains the refusal in its error table) and `salla-app-expert` add
+  the prerequisite to their publish steps and gates.
+
 ## [1.0.25] — 2026-11-19
 
 ### Changed

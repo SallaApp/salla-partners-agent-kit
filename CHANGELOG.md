@@ -10,7 +10,7 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
-## [1.0.24] — 2026-11-18
+## [1.0.26] — 2026-11-19
 
 ### Changed
 
@@ -21,6 +21,19 @@ versions the **skill content as a whole** — the `version` field in `package.js
   Portal refuses a new or changed URL once the partner is moved to the function, and
   `set_validation_url` accepts `null` to clear an old one. `salla-app-functions-design` lists
   the trigger with the other `merchant_actions` sync actions.
+
+## [1.0.25] — 2026-11-19
+
+### Changed
+
+- **Skills cover whitelisting a network (ASN) and countries for an app, alongside IPs.**
+  `salla-app-auth` renames "IP whitelisting" to "Access policy: IPs and networks": a call passes
+  when its IP is listed, or when its network and its country both match; a network needs at
+  least one country and countries need a network; a list you send replaces the stored one, so
+  the Connect step gains a gate and a Red Flags row for sending each list whole; IPs and
+  networks share `access_limits.max_entries` and countries use `access_limits.max_countries`;
+  and the change reaches every merchant without approval. `salla-app-builder` and
+  `salla-app-expert` list the new fields and point to it.
 
 ## [1.0.23] — 2026-11-08
 

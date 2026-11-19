@@ -353,13 +353,14 @@ Full payload shapes: `references/app-events.md`. Lifecycle handling →
 Restrict your app to known servers: Partners Portal → My Apps → Your App → **App
 Trusted IPs** (or pass the lists below in `salla_apps action=connect`). Reduces attack
 surface for production apps. A call is allowed when its IP is in `trusted_ips`, or when its
-network is in `trusted_asn` and its country is in `allowed_countries`. At least one IP or
-network is required before the app's first publication; countries alone do not count; updates
-of a published app are not checked:
+network is in `trusted_asn` and its country is in `allowed_countries`:
 
 - `trusted_ips` — the server IPs.
 - `trusted_asn` — a network number, with or without the prefix (`AS16509` or `16509`).
 - `allowed_countries` — ISO 3166-1 alpha-2 codes (`SA`, `AE`) the network may be used from.
+
+At least one IP or network is required before the app's first publication; countries alone do
+not count; updates of a published app are not checked.
 
 Rules:
 
@@ -368,7 +369,7 @@ Rules:
 - A list you send **replaces** the stored one; a list you leave out stays. The saved policy
   keeps at least one IP or network: `[]` empties a list only while another keeps an entry
   (otherwise `_partial` reports `access_policy_empty` and nothing is saved). To move from IPs
-  to networks, send both lists in one call.
+  to networks, send `trusted_ips: []` with `trusted_asn` and `allowed_countries` in one call.
 - Keep IPs and networks together within `access_limits.max_entries` and countries within
   `access_limits.max_countries` (read from the `connect` result or `action=get`). If a list is
   too long, send fewer entries.

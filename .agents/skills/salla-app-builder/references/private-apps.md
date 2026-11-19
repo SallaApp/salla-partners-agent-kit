@@ -54,9 +54,10 @@ account kind?"
 
 ## Step 2 — Publish
 
-0. Set at least one trusted IP or network with `salla_apps action=connect` (Access policy in
-   **salla-app-auth**). The app's first publication needs one; updates of a published app are
-   not checked.
+Before the first publication, set at least one trusted IP or network with
+`salla_apps action=connect` (Access policy in **salla-app-auth**); updates of a published app
+are not checked.
+
 1. If `is_already_submitted` is true, a publication is already pending: wait for it, or pull
    it back with `salla_private_apps action=withdraw` before publishing again.
 2. Confirm with the partner first. For a merchant partner the app usually goes **live right

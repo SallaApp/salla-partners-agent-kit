@@ -106,16 +106,16 @@ Use the answers to tailor Steps 1, 4–7.
    ([docs.salla.dev/421410m0.md](https://docs.salla.dev/421410m0.md)); via the MCP these
    map to the fields below. Call `salla_apps` with `action: "create"` and:
 
-| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                                                           |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Field                        | Requirement                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name` + `name_ar`           | Salla expects the app name in Arabic, in plain letters with no diacritics/tashkeel (e.g. هريفاي, not هرّفاي), and unique across Salla apps. Treat these as Portal-enforced — let `create` validate: submit, then act on the error (rename and resubmit if the name is taken or invalid) rather than pre-checking client-side. Confirm the exact constraints from the `create` response when in doubt. |
-| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                                                          |
-| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                                                             |
-| `app_url`                    | The app's live URL — read it from the deployed Vercel project (Grounding rule 1), not a guessed `*.vercel.app`. This is the **source** domain; if it later changes, update it here too (Step 1 gate / domain-consistency checklist).                                                                                                                                                                  |
-| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                         |
-| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                         |
-| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                            |
-| `is_paid`                    | required for a **private** app — pass `private_app_is_paid` from step 3a.                                                                                                                                                                                                                                                                                                                             |
+| `type`                       | from step 1 (`private` or a public category)                                                                                                                                                                                                                                                                                                                                                         |
+| `short_description` (+`_ar`) | 50–200 chars each — bilingual like `name`                                                                                                                                                                                                                                                                                                                                                            |
+| `app_url`                    | The app's live URL — read it from the deployed Vercel project (Grounding rule 1), not a guessed `*.vercel.app`. This is the **source** domain; if it later changes, update it here too (Step 1 gate / domain-consistency checklist).                                                                                                                                                                 |
+| `email`                      | support email                                                                                                                                                                                                                                                                                                                                                                                        |
+| `logo`                       | file `id` from `salla_upload`                                                                                                                                                                                                                                                                                                                                                                        |
+| `sub_category_id`            | required when `type` is `app` / `shipping`                                                                                                                                                                                                                                                                                                                                                           |
+| `is_paid`                    | required for a **private** app — pass `private_app_is_paid` from step 3a.                                                                                                                                                                                                                                                                                                                            |
 
 **3a. Private app only:** before `create`, call `salla_private_apps action=status` with no
 `app_id` and pass its `private_app_is_paid` as `is_paid` (merchant partners get `"0"`;
@@ -184,7 +184,8 @@ app's valid scope slugs and current selection:
      requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
    - `trusted_ips`, `trusted_asn` + `allowed_countries` (together — see **salla-app-auth**,
-     Access policy), `webhook_headers`
+     Access policy), `webhook_headers`. Set at least one IP or network: the app's first
+     publication needs it.
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 
@@ -199,7 +200,7 @@ reimplement here.)
 
 **Gate:** "Scopes + redirect + webhook applied (no `_partial`), and a read-back
 (`salla_scopes action=get` / `salla_apps action=get`) confirms the scopes, redirect, and
-webhook URL actually stuck (Grounding rule 2). The webhook URL is the live deployed domain
+webhook URL actually stuck (Grounding rule 2), and at least one IP or network is set. The webhook URL is the live deployed domain
 (Grounding rule 1), returning 200, with the secret stored?"
 
 ---
@@ -358,7 +359,7 @@ Integrates a carrier or fulfillment provider:
   screenshots, benefits, contact, etc.). Mechanics → **follow
   [salla-publication-consistency](../salla-publication-consistency/SKILL.md)**.
 
-**Gate:** "Is `type` `private`? → `salla_private_apps action=status app_id` → the partner
+**Gate:** "Is `type` `private`, with at least one IP or network set? → `salla_private_apps action=status app_id` → the partner
 explicitly confirmed → `publish` with `confirm: true` → once the publication is `approved`
 (a regular partner's goes to Salla review first), `create_request` per store
 ([references/private-apps.md](references/private-apps.md)), then STOP — no `app_publish`,
@@ -412,7 +413,7 @@ true`) — **never before** review + confirmation. Once submitted and approved i
 
 Testing guide: references/demo-store-testing.md
 
-**Gate:** "Sections validated + saved as a draft, the partner reviewed the real `/publish`
+**Gate:** "At least one IP or network set, sections validated + saved as a draft, the partner reviewed the real `/publish`
 link, and the publish request is sent only on their one-click submit or explicit confirmation?"
 
 ### Red Flags — publishing

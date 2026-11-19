@@ -101,7 +101,8 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
    (Set trusted IPs or networks here too — Part: Access policy below.)
 
    **Gate:** "Access policy: current lists read with `salla_apps action=get`, each list sent
-   whole, `trusted_asn` + `allowed_countries` in one call, saved lists confirmed in the
+   whole, at least one IP or network remains, `trusted_asn` + `allowed_countries` in one call,
+   saved lists confirmed in the
    result's `access_policy` when present (an IP-only account returns none: there the save
    succeeded when `_partial` has no `trusted_ips` entry)?"
 
@@ -297,6 +298,7 @@ yourself thinking one of these, stop and re-read the named step.
 | "I'll re-run `connect` to (re)mint the webhook secret before deploying." | `connect` never mints or rotates the signing secret — the MCP is read-only for it. Create/rotate it in the Portal (`https://portal.salla.partners/apps/{app_id}`); before deploy read the current `webhook_secret` via `salla_apps action=get` and use that exact value (Step 2). |
 | "I'll reuse the webhook secret I noted earlier."                         | Rotating the secret in the Portal invalidates the old value, so a secret remembered from a past session or before a compaction may be stale → all verification fails. Read it live via `salla_apps action=get` before deploy (Step 2).                                            |
 | "Tokens in logs are fine for debugging."                                 | Access/refresh tokens and the client secret are secrets — encrypt at rest, never log them (Step 3).                                                                                                                                                                               |
+| "I'll clear the IPs with `[]` and add networks later."                   | Refused and nothing is saved; send the replacement entries in the same call (Step 2).                                                                                                                                                                                             |
 | "I'll just send the new IP."                                             | A list you send replaces the stored one for every merchant at once, so a partial list locks the app's other servers out. Read the current lists with `salla_apps action=get` and send each list whole (Step 2).                                                                   |
 
 ---
@@ -357,11 +359,17 @@ network is in `trusted_asn` and its country is in `allowed_countries`:
 - `trusted_asn` — a network number, with or without the prefix (`AS16509` or `16509`).
 - `allowed_countries` — ISO 3166-1 alpha-2 codes (`SA`, `AE`) the network may be used from.
 
+At least one IP or network is required before the app's first publication; countries alone do
+not count; updates of a published app are not checked.
+
 Rules:
 
 - A network needs at least one country, and countries need a network. Send `trusted_asn` and
   `allowed_countries` **in the same call**.
-- A list you send **replaces** the stored one; `[]` clears it; a list you leave out stays.
+- A list you send **replaces** the stored one; a list you leave out stays. The saved policy
+  keeps at least one IP or network: `[]` empties a list only while another keeps an entry
+  (otherwise `_partial` reports `access_policy_empty` and nothing is saved). To move from IPs
+  to networks, send `trusted_ips: []` with `trusted_asn` and `allowed_countries` in one call.
 - Keep IPs and networks together within `access_limits.max_entries` and countries within
   `access_limits.max_countries` (read from the `connect` result or `action=get`). If a list is
   too long, send fewer entries.

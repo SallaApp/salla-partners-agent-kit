@@ -19,7 +19,7 @@ they publish with `salla_private_apps action=publish` →
 
 Check these first; they gate the whole flow regardless of the sections:
 
-All three are readable from app details — `app_publish action=get` (or `salla_apps action=get`)
+The first three are readable from app details — `app_publish action=get` (or `salla_apps action=get`)
 returns `can_publish`, `requires_citc`, and `can_have_free_plan`. Check them before filling:
 
 1. **The app must be publishable.** `can_publish` must be `true`. If `false`, the app cannot be
@@ -30,6 +30,9 @@ returns `can_publish`, `requires_citc`, and `can_have_free_plan`. Check them bef
 3. **CITC certification (SMS communication apps).** When `requires_citc` is `true`, the partner
    must upload a CITC certification on the account verification form before publishing (Saudi
    regulatory requirement) → **salla-communication-app**.
+4. **An access policy entry exists.** An IP or network shows in `salla_apps action=get`
+   (`trusted_ip` / `trusted_asn`); if not, set one with `salla_apps action=connect` before
+   validate. The first publication needs one; updates of a published app are not checked.
 
 Prepare a Salla app for review via `app_publish` (base `/app/{id}/publication`): a
 readiness-driven loop, not one bulk call. Fill sections one at a time; the **server** decides
@@ -54,14 +57,14 @@ complete.
 
 ## The loop (`app_publish`, base `/app/{id}/publication`)
 
-| action                 | verb | body                   | does                                                                                                                                                                                           |
-| ---------------------- | ---- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open`                 | POST | —                      | Create the draft + return the per-section readiness checklist; opening also makes `app_page_builder` available for listing content.                                                            |
-| `get`                  | GET  | —                      | Read-only: the FULL current draft (`publication_last_save` — every saved value) + scopes + `webhook_config`. RESUME/REVIEW entry — readiness shows what's MISSING, `get` shows what's THERE.           |
-| `readiness`            | GET  | —                      | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.                                                                                                 |
-| `set`                  | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                                            |
-| `validate`             | PUT  | —                      | Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit.                                                         |
-| `send_publish_request` | PUT  | `confirm:true`         | Send the app to Salla review — **HARD-GATED**: only after `validate` + the partner reviewed the `/publish` link + **confirmed**. Without `confirm:true` it does NOT submit (returns the link). |
+| action                 | verb | body                   | does                                                                                                                                                                                              |
+| ---------------------- | ---- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open`                 | POST | —                      | Create the draft + return the per-section readiness checklist; opening also makes `app_page_builder` available for listing content.                                                               |
+| `get`                  | GET  | —                      | Read-only: the FULL current draft (`publication_last_save` — every saved value) + scopes + `webhook_config`. RESUME/REVIEW entry — readiness shows what's MISSING, `get` shows what's THERE.      |
+| `readiness`            | GET  | —                      | Re-fetch the checklist: which sections are `complete` + the exact `missing` fields. Pure read.                                                                                                    |
+| `set`                  | PUT  | `{ section, ...data }` | Write ONE section; only the fields you pass are touched; returns updated readiness.                                                                                                               |
+| `validate`             | PUT  | —                      | Validate all sections + **save the DRAFT**; returns a valid publication. Incomplete → **422 + missing sections**. Does **not** submit.                                                            |
+| `send_publish_request` | PUT  | `confirm:true`         | Send the app to Salla review — **HARD-GATED**: only after `validate` + the partner reviewed the `/publish` link + **confirmed**. Without `confirm:true` it does NOT submit (returns the link).    |
 | `withdraw`             | PUT  | —                      | Pull a publication that's in review (submitted/reviewing) back out — e.g. when it carries an older webhook config than development. Then `validate` and submit again. Only with the partner's OK. |
 
 Listing content (name, description, logo, screenshots, benefits) is authored with
@@ -140,6 +143,7 @@ readiness:
 | Listing content: `name`, `description`, `logo`, `screenshots`, `benefits` | `app_page_builder` → **salla-app-ui-builder**        |
 | OAuth scopes (request the minimum needed)                                 | `salla_scopes` → **salla-app-auth**                  |
 | Webhook url / signing secret / headers                                    | `salla_apps action=connect` → **salla-webhooks**     |
+| Trusted IP or network (first publication)                                 | `salla_apps action=connect` → **salla-app-auth**     |
 | Store-event subscriptions (`order.*`, `product.*`, …)                     | `salla_events action=subscribe` → **salla-webhooks** |
 | Merchant settings FORM                                                    | `salla_settings` → **salla-app-settings**            |
 
@@ -260,7 +264,7 @@ been explicitly told to replace before submitting?"
    `app_publish action=send_publish_request` with `confirm: true`. **Hard rule:** never send the
    request before a clean `validate`, the partner being shown the link, and their confirmation.
 
-**Gate:** "All sections validated + saved as a draft; for paid pricing (recurring plan or any
+**Gate:** "An IP or network shows in `salla_apps action=get`; all sections validated + saved as a draft; for paid pricing (recurring plan or any
 addon) the billing cycle is wired + confirmed (else kept as a draft until it is); the partner was
 given the real `/publish` link and asked to review — and `send_publish_request` fires ONLY after
 they confirm (or they submit one-click themselves)?"
@@ -280,5 +284,6 @@ explicit confirmation (then `send_publish_request confirm=true`), never before.
 | "Validate passed and the app sells a subscription/addon — I'll submit."             | Paid pricing requires the billing cycle wired **and** confirmed first (Step 6b). If it isn't, keep the saved draft and implement the cycle (salla-app-billing / salla-addon-purchase) before submit.                                                                                                                                                                                                                                                                                                                 |
 | "The `webhook_url` is set, that's enough to go to review."                          | Receiving ≠ handling. The `app.subscription.*` / `app.trial.*` events auto-deliver to the `webhook_url` (app events — no subscribe call needed), so the auto-check proves the receiver is wired at the PLATFORM level, not that the handler is deployed and working. The app must provision on `started`, re-point on `renewed`, revoke on `expired`/`canceled` (check `item_type`), call the renew API for `external_recurring`, and be verified by a real test event (salla-live-testing) before submit (Step 6b). |
 | "I need to subscribe the app to its subscription/trial events first."               | You don't — those are **app events**, auto-delivered to the `webhook_url` because the app is subscribed to its own app events by default. There's no subscribe step to check; `salla_events action=subscribe` is for store events (`order.*`, `product.*`). The billing gate is `webhook_url` set + handler covers the full family (Step 6b → salla-app-billing Step 2).                                                                                                                                             |
+| "All sections are complete, so I'll submit." (no IP or network set)                 | The first publication needs at least one trusted IP or network; validate returns `access_policy_required` without it. Set one with `salla_apps action=connect` (prerequisite 4).                                                                                                                                                                                                                                                                                                                                     |
 | "All sections are complete, so I'll submit." (app not publishable / unverified)     | Check the prerequisites first: `can_publish` must be `true` and the partner's account verified at `portal.salla.partners/account` (an unverified account fails submit with `id_verification`); an SMS communication app needs a CITC certification on the verification form (salla-communication-app).                                                                                                                                                                                                               |
 | "I'll reuse the `sub_category_id` call's `type` result for `main_category_id` too." | `main_category_id` is NOT type-scoped — it always comes from that same `salla_reference action=categories` call's `main_categories` (category type `app_impact`, one shared "App Theme"/"App Impact" list for every app type). The `categories` array is a THIRD, separate list (category type `app`). Neither is the `sub_categories` tree used for create's `sub_category_id` (step-basic-information.md).                                                                                                         |

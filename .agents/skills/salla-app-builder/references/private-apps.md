@@ -54,6 +54,10 @@ account kind?"
 
 ## Step 2 — Publish
 
+Before the first publication, set at least one trusted IP or network with
+`salla_apps action=connect` (Access policy in **salla-app-auth**); updates of a published app
+are not checked.
+
 1. If `is_already_submitted` is true, a publication is already pending: wait for it, or pull
    it back with `salla_private_apps action=withdraw` before publishing again.
 2. Confirm with the partner first. For a merchant partner the app usually goes **live right
@@ -70,6 +74,7 @@ There is no pricing step before publishing: a private app's price lives on each 
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `free_private_apps_disabled` | A regular partner's free private app. Make it paid (`salla_apps action=update is_paid="1"`).                                                           |
 | `id_verification`            | Neither `id_verified` nor `is_merchant_verified` is true. The partner completes ID verification in the Partners Portal (merchant partners: see below). |
+| `access_policy_required`     | The first publication has no trusted IP or network. Set one with `salla_apps action=connect`, then publish again.                                      |
 | `already_submitted`          | A publication is already pending. Wait, or withdraw it (`salla_private_apps action=withdraw`) and retry.                                               |
 
 A merchant partner can instead complete their store's verification in the Salla dashboard and

@@ -98,7 +98,7 @@ Set up the OAuth + webhook config that makes tokens flow. Do this with the Partn
      are the **same decision**: in Easy Mode, point `redirect_urls` at the Salla callback, not
      your app.
 
-   (Set trusted IPs here too — Part: IP whitelisting below.)
+   (Set trusted IPs or networks here too — Part: Access policy below.)
 
    > **The MCP never mints or rotates the signing secret — read it live before deploying.**
    > `connect` does not touch the webhook signing secret. Create or rotate it **manually in
@@ -162,7 +162,7 @@ then on `app.store.authorize` **upsert** `access_token` / `refresh_token` /
 > **Secret hygiene (both modes):** access/refresh tokens and the client secret are
 > secrets — store them encrypted at rest and never write them to logs, errors, or
 > diagnostics. Redirect and webhook URLs are HTTPS-only. Restrict your app to known server
-> IPs (IP whitelisting, below).
+> IPs or networks (Access policy, below).
 
 Easy Mode checklist: webhook URL set (Step 2) · `app.store.authorize` auto-delivers to it
 (app event — no subscribe call) · the granted `data.scope` in the payload contains
@@ -340,11 +340,26 @@ private apps never see it.
 Full payload shapes: `references/app-events.md`. Lifecycle handling →
 **salla-app-lifecycle**.
 
-### IP whitelisting
+### Access policy: IPs and networks
 
-Restrict your app to known server IPs: Partners Portal → My Apps → Your App → **App
-Trusted IPs** (or pass `trusted_ips` in `salla_apps action=connect`). Reduces attack
-surface for production apps.
+Restrict your app to known servers: Partners Portal → My Apps → Your App → **App
+Trusted IPs** (or pass the lists below in `salla_apps action=connect`). Reduces attack
+surface for production apps. It is one policy whose entries are IPs, networks, or countries:
+
+- `trusted_ips` — the server IPs.
+- `trusted_asn` — a network number, with or without the prefix (`AS16509` or `16509`).
+- `allowed_countries` — ISO 3166-1 alpha-2 codes (`SA`, `AE`) the network may be used from.
+
+Rules:
+
+- A network needs at least one country, and countries need a network. Send `trusted_asn` and
+  `allowed_countries` **in the same call**.
+- A list you send **replaces** the stored one; `[]` clears it; a list you leave out stays.
+- Limits come from `access_limits` in the result (also shown by `action=get`) — do not
+  hard-code them. If the list is too long, send fewer entries.
+- The change reaches every merchant at once, with no approval.
+- If the call says networks and countries are not available for the account, send
+  `trusted_ips` only.
 
 ---
 

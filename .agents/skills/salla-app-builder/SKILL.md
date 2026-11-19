@@ -183,7 +183,8 @@ app's valid scope slugs and current selection:
    - `webhook_url` — your webhook receiver (**HTTPS-only**, must authenticate inbound
      requests via the signature/token strategy below)
    - `webhook_security_strategy` — `"signature"` (recommended) or `"token"`
-   - `trusted_ips`, `webhook_headers`
+   - `trusted_ips`, `trusted_asn` + `allowed_countries` (together — see **salla-app-auth**,
+     Access policy), `webhook_headers`
 
    Partial failures come back under `_partial` — re-apply only the failed pieces.
 

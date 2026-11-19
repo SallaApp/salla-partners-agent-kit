@@ -26,8 +26,9 @@ of per-merchant values**, not a replacement for the other two:
 So: you define the form once via the MCP; merchants fill it in and Salla pushes the
 authoritative values to your `app.settings.updated` webhook; these GET/POST endpoints let
 your backend **read** or **write** values programmatically. The field names in every payload
-below come from **your app's own form definition**, not a fixed list. The Validation URL
-Salla calls before saving is public (no signature) — see [form-builder.md](./form-builder.md).
+below come from **your app's own form definition**, not a fixed list. Settings
+validation before saving is the `app.settings.validating` App Function (the Validation URL is
+legacy) — see [form-builder.md](./form-builder.md).
 
 > **Secrets** (API keys, passwords, tokens): use `format: "password"` with `public: false`,
 > store the values encrypted, never log a raw settings object, never return them to client

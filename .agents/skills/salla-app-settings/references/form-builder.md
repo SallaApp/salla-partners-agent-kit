@@ -11,7 +11,8 @@ App Settings is a per-merchant configuration form rendered inside the Salla Merc
 Two things to configure:
 
 1. **Settings Form** — the JSON/HTML schema that defines the fields shown to the merchant
-2. **Validation URL** — an optional endpoint Salla calls to validate values before saving
+2. **Settings validation** — an optional `app.settings.validating` App Function Salla runs to
+   validate values before saving (the Validation URL is legacy)
 
 ---
 
@@ -109,7 +110,42 @@ runtime GET/POST work in scalar `value`s.)
 
 ---
 
-## Validation URL Contract (validation only)
+## Settings Validation Function (`app.settings.validating`)
+
+Salla runs this App Function **synchronously** when the merchant saves the settings form,
+before anything is saved, and waits up to **10 s**. It validates only; storage is the
+`app.settings.updated` webhook's job. Save it with `salla_functions action=save`; it runs on
+demo stores at once and on live stores after the next approved publication.
+
+```ts
+export default async (context: AppSettingsValidating): Promise<Resp> => {
+  const { fields } = context.payload.data; // the values being saved, keyed by field id
+  const errors: Record<string, string[]> = {};
+
+  if (!fields.api_key) errors.api_key = ["API key is required"];
+
+  if (Object.keys(errors).length > 0) {
+    return Resp.error()
+      .setStatus(422)
+      .setMessage("Please fix the highlighted fields", errors);
+  }
+
+  return Resp.success().setData({});
+};
+```
+
+- `context.settings` holds the settings saved before this submit (`{}` on first save).
+- A 422 with field errors blocks the save and shows each message under its field.
+- An error, a timeout or any answer without `success: true` blocks the save with a generic
+  error, so keep the check fast and never call a slow API without a time limit.
+
+---
+
+## Validation URL Contract (legacy, validation only)
+
+An app without the `app.settings.validating` function keeps using its Validation URL. The
+Portal refuses a new or changed URL once the partner is moved to the function; clear an old one
+with `salla_settings action=set_validation_url validation_url=null`.
 
 If you set a Validation URL, Salla POSTs the proposed values to it **before saving** so you
 can accept or reject them. It is a **public endpoint with no signature** and **no
@@ -163,8 +199,9 @@ Content-Type: application/json
    to client code. The builder's password control carries `hide: true`, which removes the
    public option, so a secret can never be exposed to the storefront (keep `public: false`
    to make the intent explicit).
-4. **Validation URL validates, never stores** — public, signature-free; settings are
-   persisted from the `app.settings.updated` webhook.
+4. **Settings validation validates, never stores** — the `app.settings.validating` function
+   (or a legacy Validation URL) only accepts or rejects; settings are persisted from the
+   `app.settings.updated` webhook.
 5. **Use a real `type`+`format` pair** from the taxonomy above.
 
 ---
@@ -180,7 +217,7 @@ Salla redirects merchant to your Settings form
     ↓
 Merchant fills form and saves
     ↓
-Salla calls your Validation URL (if set)
+Salla runs your app.settings.validating function (or a legacy Validation URL), if set
     ↓
 On success → Salla stores the values itself (your POST /apps/{app_id}/settings is only for runtime writes from your code)
     ↓

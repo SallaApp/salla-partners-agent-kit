@@ -159,7 +159,11 @@ Read first — both live in `twilight.json`, and both writes replace what is the
 - **Settings.** `settings_update` merges onto the current list — pass only the settings you are
   changing, and name deletions in `remove`. A write that would drop a setting you did not name is
   refused, because the Portal endpoint replaces the whole array. `replace_all: true` submits your
-  array verbatim; the drop check still applies.
+  array verbatim; the drop check still applies. The result is `twilight.json` read back after the
+  write: if it lists `altered`, the saved value of those settings differs from what was sent —
+  tell the partner which ones, even settings they did not ask to change, and that reverting the
+  commit restores them. If `verified` is false the read-back failed and `settings` holds what was
+  sent, not what was saved: call `salla_themes action=settings` before reporting any value.
 - **Components.** `component_create` needs `title`, `icon` and `path` (e.g. `home.hero`, which
   becomes `src/views/components/home/hero.twig` — letters, digits, dot, dash and underscore only,
   no slashes and no `.twig`). The Portal always seeds `fields: []`, so the schema comes from
@@ -215,6 +219,7 @@ theme (routes, hooks, components, slots, the API client) → `salla_themes_docs`
 | "Create timed out — retry it." (Step 4)                             | Create isn't idempotent: a retry can leave a second theme and a second repo. `list` with `q` first to see whether the first call landed.                                                                                      |
 | "The theme costs 250, that's what they chose." (Step 4)             | 250 is set server-side on every new theme. Reporting it as the partner's chosen price misleads them into publishing at the wrong price.                                                                                       |
 | "I'll send just the setting they changed." (Step 6)                 | The Portal replaces the whole settings array, so everything you leave out is deleted from `twilight.json`. `settings_update` merges for you — never hand-build the full array.                                                |
+| "`settings_update` succeeded, so only my setting changed." (Step 6) | Read `altered` in the result. It names every setting `twilight.json` saved differently from what was sent, including ones you never touched; tell the partner.                                                                |
 | "The field change is small, I'll confirm it myself." (Step 6)       | Stores already running the theme read those fields; a rename or removal breaks their pages. The confirmation is the partner's to give.                                                                                        |
 | "They asked to publish, so the theme goes live." (Step 7)           | `publish` submits to Salla's review team and freezes that version from edits. Say so before running it, or the partner is surprised twice.                                                                                    |
 

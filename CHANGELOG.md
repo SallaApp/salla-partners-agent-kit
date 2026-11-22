@@ -10,6 +10,17 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.28] — 2026-11-22
+
+### Changed
+
+- **`salla-theme-builder` reads the saved settings back after `settings_update`.** The tool now
+  returns `twilight.json` as saved rather than echoing the request, and lists under `altered` any
+  setting whose saved value differs from what was sent. The Portal's settings endpoint used to
+  strip inline `style` attributes from HTML values and trim strings on save — including settings
+  the partner never named, since every write sends the whole array — while the tool reported them
+  unchanged (TD-18068). The skill now tells the agent to report `altered` settings to the partner.
+
 ## [1.0.26] — 2026-11-19
 
 ### Changed

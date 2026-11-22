@@ -19,7 +19,8 @@ versions the **skill content as a whole** — the `version` field in `package.js
   setting whose saved value differs from what was sent. The Portal's settings endpoint used to
   strip inline `style` attributes from HTML values and trim strings on save — including settings
   the partner never named, since every write sends the whole array — while the tool reported them
-  unchanged (TD-18068). The skill now tells the agent to report `altered` settings to the partner.
+  unchanged (TD-18068). The skill now tells the agent to report `altered` settings to the partner,
+  and to call `action=settings` when the result says `verified: false`.
 
 ## [1.0.26] — 2026-11-19
 

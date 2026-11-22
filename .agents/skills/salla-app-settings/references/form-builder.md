@@ -134,7 +134,7 @@ export default async (context: AppSettingsValidating): Promise<Resp> => {
 };
 ```
 
-- `context.settings` holds the settings saved before this submit (`{}` on first save).
+- `context.settings` holds the merchant's saved settings (may be a few minutes old; `{}` on first save).
 - A 422 with field errors blocks the save and shows each message under its field.
 - An error, a timeout or any answer without `success: true` blocks the save with a generic
   error, so keep the check fast and never call a slow API without a time limit.

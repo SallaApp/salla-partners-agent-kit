@@ -162,8 +162,8 @@ Read first — both live in `twilight.json`, and both writes replace what is the
   array verbatim; the drop check still applies. The result is `twilight.json` read back after the
   write: if it lists `altered`, the saved value of those settings differs from what was sent —
   tell the partner which ones, even settings they did not ask to change, and that reverting the
-  commit restores them. If `verified` is false the read-back failed and no `settings` come
-  back: call `salla_themes action=settings` before reporting any value.
+  commit restores them. If `verified` is false the read-back failed and `settings` holds what was
+  sent, not what was saved: call `salla_themes action=settings` before reporting any value.
 - **Components.** `component_create` needs `title`, `icon` and `path` (e.g. `home.hero`, which
   becomes `src/views/components/home/hero.twig` — letters, digits, dot, dash and underscore only,
   no slashes and no `.twig`). The Portal always seeds `fields: []`, so the schema comes from

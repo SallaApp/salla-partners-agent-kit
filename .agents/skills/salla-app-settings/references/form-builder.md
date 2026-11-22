@@ -114,8 +114,9 @@ runtime GET/POST work in scalar `value`s.)
 
 Salla runs this App Function **synchronously** when the merchant saves the settings form,
 before anything is saved, and waits up to **10 s**. It validates only; storage is the
-`app.settings.updated` webhook's job. Save it with `salla_functions action=save`; it runs on
-demo stores at once and on live stores after the next approved publication.
+`app.settings.updated` webhook's job. Save it by name with `salla_functions action=save`
+(like onboarding steps, it isn't in `action=list_triggers`); it runs on demo stores at once
+and on live stores after the next approved publication.
 
 ```ts
 export default async (context: AppSettingsValidating): Promise<Resp> => {

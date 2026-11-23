@@ -151,7 +151,8 @@ value on each required field?"
    [`references/form-builder.md`](references/form-builder.md).
    The **Validation URL** (`set_validation_url`) is legacy. An app without the function keeps
    using it, but the Portal refuses a new or changed URL (422) once the partner is moved to the
-   function. Clear an old URL with `validation_url: null` after the function is published.
+   function. Clear an old URL with `validation_url: null` only after the published function
+   works on a demo store: a cleared URL can't be set again.
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
 

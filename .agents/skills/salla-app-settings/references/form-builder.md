@@ -146,7 +146,8 @@ export default async (context: AppSettingsValidating): Promise<Resp> => {
 
 An app without the `app.settings.validating` function keeps using its Validation URL. The
 Portal refuses a new or changed URL once the partner is moved to the function; clear an old one
-with `salla_settings action=set_validation_url validation_url=null`.
+with `salla_settings action=set_validation_url validation_url=null`. Clear it only after the
+published function works on a demo store: a cleared URL can't be set again.
 
 If you set a Validation URL, Salla POSTs the proposed values to it **before saving** so you
 can accept or reject them. It is a **public endpoint with no signature** and **no

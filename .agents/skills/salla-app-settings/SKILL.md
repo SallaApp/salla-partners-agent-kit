@@ -2,8 +2,9 @@
 name: salla-app-settings
 description: >
   Per-merchant settings for a Salla app. Use when designing a settings schema, registering
-  the form, or reading/writing merchant config. Covers the salla_settings form + optional
-  Validation URL, supported-features declaration (publish-blocker for communication apps),
+  the form, or reading/writing merchant config. Covers the salla_settings form, settings
+  validation (the app.settings.validating App Function; the Validation URL is legacy),
+  supported-features declaration (publish-blocker for communication apps),
   seeding defaults on install, value read/write (POST is a full replace — send ALL keys),
   reacting to app.settings.updated (activates the app AND is the storage source of truth),
   and context.settings in App Functions. Admin API → salla-api-core; lifecycle →
@@ -32,12 +33,12 @@ Salla Partners MCP tools. Follow the steps in order — complete each gate befor
 
 ## Tools
 
-| Tool             | Action               | What it does                                        |
-| ---------------- | -------------------- | --------------------------------------------------- |
-| `salla_settings` | `define_form`        | Register the merchant settings form (field objects) |
-| `salla_settings` | `set_validation_url` | Set the server-side Validation URL                  |
-| `salla_settings` | `list_features`      | Read the app's supported features                   |
-| `salla_settings` | `set_features`       | Set supported features                              |
+| Tool             | Action               | What it does                                          |
+| ---------------- | -------------------- | ----------------------------------------------------- |
+| `salla_settings` | `define_form`        | Register the merchant settings form (field objects)   |
+| `salla_settings` | `set_validation_url` | LEGACY: set, or clear with `null`, the Validation URL |
+| `salla_settings` | `list_features`      | Read the app's supported features                     |
+| `salla_settings` | `set_features`       | Set supported features                                |
 
 > **Prerequisite:** the Salla Partners MCP server must be connected. Every action needs
 > the app's `app_id`. If a tool returns "Salla session expired", re-run the login flow.
@@ -139,13 +140,19 @@ value on each required field?"
    array of field objects from Step 1). Give each field a plain-string `label`; set
    `multilanguage: true` on a string `text` / `textarea` field whose text should be
    translated.
-2. **Optional Validation URL — validation only, not storage.** To reject bad input before
-   Salla saves it, call `salla_settings` with `action: "set_validation_url"`, `app_id`, and
-   `validation_url`. Salla POSTs the proposed values there before saving; respond with field
-   errors (to block) or `200 OK` (to allow). It is a **public endpoint with no signature** —
-   validate the values and respond, nothing more. Storage happens via the
-   `app.settings.updated` webhook (Step 4). Contract →
+2. **Optional settings validation — validation only, not storage.** To reject bad input
+   before Salla saves it, write an App Function on the `app.settings.validating` trigger
+   (`salla_functions action=save`, flow → [salla-app-functions](../salla-app-functions/SKILL.md)).
+   Salla runs it synchronously when the merchant saves and waits up to 10 s. The values being
+   saved are in `context.payload.data.fields`. Return `Resp.success()` to save, or
+   `Resp.error().setStatus(422).setMessage(message, { field_id: ["message"] })` to block the
+   save with each message under its field. Any other answer blocks the save with a generic
+   error. Storage still happens via the `app.settings.updated` webhook (Step 4). Contract →
    [`references/form-builder.md`](references/form-builder.md).
+   The **Validation URL** (`set_validation_url`) is legacy. An app without the function keeps
+   using it, but the Portal refuses a new or changed URL (422) once the partner is moved to the
+   function. Clear an old URL with `validation_url: null` only after the published function
+   works on a demo store: a cleared URL can't be set again.
 
 **Manual fallback:** Portal → open the app → **App Settings** form builder.
 
@@ -248,7 +255,7 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Update the form definition** (fields, formats, defaults, Validation URL) **via the
+**Update the form definition** (fields, formats, defaults) **via the
 Partners MCP only** — `salla_settings action=define_form`. That is the one supported way
 to change the schema; there is no Portal-side hand-edit you should script around.
 

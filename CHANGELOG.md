@@ -10,6 +10,18 @@ versions the **skill content as a whole** — the `version` field in `package.js
 `gemini-extension.json` moves together (the structural validator enforces this).
 `.claude-plugin/marketplace.json` carries no version field and is not bumped.
 
+## [1.0.27] — 2026-11-19
+
+### Changed
+
+- **Settings validation is an App Function.** `salla-app-settings` now validates the merchant's
+  settings with the synchronous `app.settings.validating` trigger. The function gets the values
+  in `context.payload.data.fields`; `Resp.success()` saves and a 422 with field errors blocks
+  the save with each message under its field. The Validation URL is documented as legacy: the
+  Portal refuses a new or changed URL once the partner is moved to the function, and
+  `set_validation_url` accepts `null` to clear an old one. `salla-app-functions-design` lists
+  the trigger with the other `merchant_actions` sync actions.
+
 ## [1.0.26] — 2026-11-19
 
 ### Changed
